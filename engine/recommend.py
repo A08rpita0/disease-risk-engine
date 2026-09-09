@@ -1,8 +1,8 @@
 """Stage 6 - Personalized action plan.
 
 Recommendations come from three places, in priority order:
-  1. Urgency - anything the Disease Master marks emergency or specialist-level.
-  2. The Disease Master's own 'Prevention/Lifestyle Guidance' and 'Recommended Next Step'
+  1. Urgency - anything the clinical reference marks emergency or specialist-level.
+  2. The clinical reference's own 'Prevention/Lifestyle Guidance' and 'Recommended Next Step'
      columns for each flagged condition. The master stays the source of truth for
      disease-level guidance; this engine does not paraphrase it.
   3. The action library in config/recommendations.json, keyed by detected cohort and
@@ -20,14 +20,14 @@ from .models import Recommendation
 PRIORITY_ORDER = {"urgent": 0, "high": 1, "medium": 2, "low": 3}
 CATEGORY_ORDER = ["Urgent", "Consultation", "Testing", "Monitoring", "Diet", "Activity", "Lifestyle"]
 
-# Only conditions at or above this evidence level pull their Disease Master guidance,
+# Only conditions at or above this evidence level pull their reference guidance,
 # so a long tail of low-evidence differentials does not swamp the plan.
 GUIDANCE_LEVELS = {"High", "Moderate"}
 
 # An action plan a person will actually read. Guidance is drawn from the strongest
 # findings rather than from every condition that cleared the reporting floor.
-MAX_GUIDANCE_CONDITIONS = 6
-MAX_COHORT_SOURCES = 8
+MAX_GUIDANCE_CONDITIONS = 4
+MAX_COHORT_SOURCES = 5
 
 
 class RecommendationEngine:
@@ -62,7 +62,7 @@ class RecommendationEngine:
                      if r.urgency_tier == top_tier and r.evidence_level in GUIDANCE_LEVELS][:4]
             add(Recommendation(
                 category=spec["category"], priority=spec["priority"], text=spec["text"],
-                because="the highest urgency tier among the findings is '%s'" % top_tier,
+                because="based on the most urgent finding in this report",
                 sources=names or ["overall triage level"]))
 
         # ---- 2. Disease Master guidance for the conditions actually flagged ----
@@ -75,14 +75,13 @@ class RecommendationEngine:
                 add(Recommendation(
                     category="Lifestyle", priority=_priority_for(risk),
                     text=guidance,
-                    because="Disease Master guidance for %s (%s evidence)" % (
-                        risk.name, risk.evidence_level),
+                    because="advised for %s" % risk.name,
                     sources=[risk.name]))
             if next_step:
                 add(Recommendation(
                     category="Consultation", priority=_priority_for(risk),
                     text=next_step,
-                    because="Disease Master recommended next step for %s" % risk.name,
+                    because="the usual next step for %s" % risk.name,
                     sources=[risk.name]))
 
         # ---- 3. cohort-specific actions ----
@@ -91,7 +90,7 @@ class RecommendationEngine:
             for spec in self.lib.get("cohort_actions", {}).get(hit.cohort_id, []):
                 add(Recommendation(
                     category=spec["category"], priority=spec["priority"], text=spec["text"],
-                    because="the %s was detected (confidence %.0f%%)" % (hit.name, hit.confidence * 100),
+                    because="your results match %s" % hit.name,
                     sources=[hit.name]))
 
         # ---- 4. parameter-level actions for abnormal results ----
@@ -101,7 +100,8 @@ class RecommendationEngine:
             for spec in self.lib.get("parameter_actions", {}).get(pid, []):
                 add(Recommendation(
                     category=spec["category"], priority=spec["priority"], text=spec["text"],
-                    because="%s was %s" % (param.name, param.grade_label or "abnormal"),
+                    because="your %s was flagged (%s)" % (
+                        param.name, (param.grade_label or "abnormal").lower()),
                     sources=[param.name]))
 
         # ---- 5. follow-up testing that would raise confidence ----
@@ -112,8 +112,7 @@ class RecommendationEngine:
                 text=("The following tests were not in this report and would most improve the "
                       "confidence of this assessment: %s. Discuss with your doctor which are "
                       "worth adding." % ", ".join(name for name, _ in follow_up[:8])),
-                because="these parameters are referenced by the conditions flagged here but were "
-                        "not measured",
+                because="these tests were not in your report",
                 sources=[name for name, _ in follow_up[:8]]))
 
         # ---- 6. context gaps that change interpretation ----
@@ -123,14 +122,14 @@ class RecommendationEngine:
                 text="Sex was not recorded in this report. Several reference ranges used here "
                      "(haemoglobin, ferritin, creatinine, HDL, uric acid and others) differ "
                      "between men and women, so some results may change once sex is supplied.",
-                because="patient sex was absent from the source document",
+                because="sex was not recorded in this report",
                 sources=["record completeness"]))
 
         # ---- 7. baseline ----
         if not any(p.abnormal for p in patient.parameters.values()):
             for spec in self.lib.get("no_abnormality", []):
                 add(Recommendation(category=spec["category"], priority=spec["priority"],
-                                   text=spec["text"], because="no abnormal parameters were detected",
+                                   text=spec["text"], because="all your results were in range",
                                    sources=["overall result"]))
         for spec in self.lib.get("general", []):
             add(Recommendation(category=spec["category"], priority=spec["priority"],

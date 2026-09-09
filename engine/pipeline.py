@@ -20,11 +20,10 @@ from .recommend import RecommendationEngine
 from .risk import RiskEngine
 
 DISCLAIMER = (
-    "This is a disease-risk signalling tool, not a diagnostic system. It identifies "
-    "clinically established patterns in laboratory data and maps them to the supplied "
-    "Disease Master. Laboratory data alone cannot account for symptoms, examination "
-    "findings or history, so every finding here is a risk signal to be taken to a "
-    "doctor - not a diagnosis."
+    "This is a risk check, not a diagnosis. It compares your results against "
+    "established clinical guidelines to flag patterns that may need attention. "
+    "Blood tests alone cannot account for your symptoms, examination findings or "
+    "medical history, so please go through anything flagged here with your doctor."
 )
 
 

@@ -11,7 +11,7 @@
         "Autoimmune Disorders",
         "Lipid Profile"
       ],
-      "cross_profile_rationale": "Thyroid autoantibodies sit in both Thyroid Profile and Autoimmune Disorders in the Disease Master. Lipid parameters are admitted as supporting signals because untreated hypothyroidism raises LDL and is a reversible cause of dyslipidaemia.",
+      "cross_profile_rationale": "Thyroid autoantibodies sit in both Thyroid Profile and Autoimmune Disorders in the clinical reference. Lipid parameters are admitted as supporting signals because untreated hypothyroidism raises LDL and is a reversible cause of dyslipidaemia.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -229,7 +229,7 @@
         "Diabetes Monitoring",
         "Lipid Profile"
       ],
-      "cross_profile_rationale": "The Disease Master PCOS row itself lists Insulin (Fasting) and Fasting Blood Glucose alongside the hormone markers, so Diabetes Monitoring parameters contribute directly to this Hormones-profile cohort.",
+      "cross_profile_rationale": "The clinical reference PCOS row itself lists Insulin (Fasting) and Fasting Blood Glucose alongside the hormone markers, so Diabetes Monitoring parameters contribute directly to this Hormones-profile cohort.",
       "sex_restriction": "female",
       "min_triggers": 1,
       "min_parameters_present": 2,
@@ -767,7 +767,7 @@
       "id": "cortisol_excess",
       "name": "Cortisol Excess Pattern",
       "category": "Endocrine",
-      "description": "Cortisol above range. Screening only - the Disease Master requires dynamic suppression testing to confirm.",
+      "description": "Cortisol above range. Screening only - the clinical reference requires dynamic suppression testing to confirm.",
       "profiles_touched": [
         "Hormones"
       ],
@@ -845,7 +845,7 @@
         "Hormones",
         "Electrolyte Profile"
       ],
-      "cross_profile_rationale": "The Disease Master Addison's Disease row itself spans Hormones and Electrolyte Profile and names 'Low sodium with high potassium and low cortisol' - a pattern that cannot be seen from either profile alone.",
+      "cross_profile_rationale": "The clinical reference Addison's Disease row itself spans Hormones and Electrolyte Profile and names 'Low sodium with high potassium and low cortisol' - a pattern that cannot be seen from either profile alone.",
       "min_triggers": 2,
       "min_parameters_present": 2,
       "urgency_override": "specialist",
@@ -1002,7 +1002,7 @@
         "Electrolyte Profile",
         "Liver Profile"
       ],
-      "cross_profile_rationale": "The Disease Master Osteomalacia/Rickets row spans Bone Health and Vitamin Profile and names Vitamin D, Calcium and Phosphorus together - drawing on the Vitamin Profile and Electrolyte Profile at once. Alkaline phosphatase from the Liver Profile is admitted as a bone-turnover marker.",
+      "cross_profile_rationale": "The clinical reference Osteomalacia/Rickets row spans Bone Health and Vitamin Profile and names Vitamin D, Calcium and Phosphorus together - drawing on the Vitamin Profile and Electrolyte Profile at once. Alkaline phosphatase from the Liver Profile is admitted as a bone-turnover marker.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -1346,7 +1346,7 @@
       "id": "sodium_imbalance",
       "name": "Sodium Imbalance",
       "category": "Electrolyte",
-      "description": "Sodium outside 136-145 mmol/L, the band named in the Disease Master. Rate of change matters as much as the absolute value.",
+      "description": "Sodium outside 136-145 mmol/L, the band named in the clinical reference. Rate of change matters as much as the absolute value.",
       "profiles_touched": [
         "Electrolyte Profile",
         "Hormones",
@@ -1770,7 +1770,7 @@
         "Electrolyte Profile",
         "Mineral Profile"
       ],
-      "cross_profile_rationale": "This cohort exists precisely because no single profile can identify malabsorption. The Disease Master row lists 'Stool analysis (fecal fat), Vitamin D/B12/Folate, Iron studies, Total Protein' - four different profiles in one marker set.",
+      "cross_profile_rationale": "This cohort exists precisely because no single profile can identify malabsorption. The clinical reference row lists 'Stool analysis (fecal fat), Vitamin D/B12/Folate, Iron studies, Total Protein' - four different profiles in one marker set.",
       "mode": "count_of",
       "count_required": 2,
       "min_parameters_present": 3,

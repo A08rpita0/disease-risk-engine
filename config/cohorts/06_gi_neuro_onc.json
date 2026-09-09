@@ -12,7 +12,7 @@
         "Inflammation",
         "Autoimmune Disorders"
       ],
-      "cross_profile_rationale": "The Disease Master IBD row lists 'Stool analysis (occult blood), CBC, inflammatory markers' - a marker set that spans three profiles and cannot be evaluated from Stool Analysis alone.",
+      "cross_profile_rationale": "The clinical reference IBD row lists 'Stool analysis (occult blood), CBC, inflammatory markers' - a marker set that spans three profiles and cannot be evaluated from Stool Analysis alone.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -227,7 +227,7 @@
         "Semen Analysis",
         "Hormones"
       ],
-      "cross_profile_rationale": "Hormone parameters are admitted as supporting signals because the Disease Master Male Hypogonadism row lists 'Testosterone, LH, FSH, Semen Analysis parameters' together.",
+      "cross_profile_rationale": "Hormone parameters are admitted as supporting signals because the clinical reference Male Hypogonadism row lists 'Testosterone, LH, FSH, Semen Analysis parameters' together.",
       "sex_restriction": "male",
       "min_triggers": 1,
       "min_parameters_present": 1,
@@ -602,7 +602,7 @@
         "Vitamin Profile",
         "Diabetes Monitoring"
       ],
-      "cross_profile_rationale": "The Disease Master Peripheral Neuropathy row is itself tagged to all three of these profiles and lists 'Vitamin B12, HbA1c/Fasting Glucose (cross-link Diabetes)'. This cohort implements that cross-link directly.",
+      "cross_profile_rationale": "The Peripheral Neuropathy reference entry is itself tagged to all three of these profiles and lists 'Vitamin B12, HbA1c/Fasting Glucose (cross-link Diabetes)'. This cohort implements that cross-link directly.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [

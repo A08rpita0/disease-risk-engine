@@ -59,17 +59,9 @@
     send("/api/analyse", fd);
   });
 
-  function runSample(fileName, label) {
-    var fd = new FormData();
-    fd.append("file", fileName);
-    if ($("sexInput").value) fd.append("sex", $("sexInput").value);
-    $("chosen").innerHTML = "Sample: <b>" + esc(label) + "</b>";
-    send("/api/analyse/sample", fd);
-  }
-
   function send(url, fd) {
     $("analyseBtn").disabled = true;
-    status('<span class="spin"></span>Extracting parameters, detecting clusters and scoring against the Disease Master…');
+    status('<span class="spin"></span>Reading your report and checking it against clinical guidelines…');
     fetch(url, { method: "POST", body: fd })
       .then(function (r) {
         return r.json().then(function (body) {
@@ -116,17 +108,10 @@
     renderParams(d);
     renderPlan(d);
     renderData(d);
-    renderReference();
   }
 
   function patientLine(p) {
-    var bits = [];
-    if (p.patient_id) bits.push("ID " + esc(p.patient_id));
-    if (p.name) bits.push(esc(p.name));
-    if (p.sex) bits.push(esc(p.sex));
-    if (p.age) bits.push(Math.round(p.age) + " yrs");
-    if (p.report_date) bits.push(esc(p.report_date));
-    return bits.length ? bits.join(" · ") : "no patient details stated in the file";
+    return p.name ? esc(p.name) : '<span class="muted">Name not stated in the report</span>';
   }
 
   function renderOverview(d) {
@@ -138,10 +123,7 @@
       "<dt>Analysed</dt><dd>" + esc(d.generated_at.replace("T", " ")) + "</dd>" +
       "<dt>Analysis confidence</dt><dd><b>" + esc(s.analysis_confidence) + "</b> — " +
         esc(d.coverage.note) + "</dd>" +
-      "<dt>Disease Master</dt><dd>" + esc(d.provenance.disease_master_source) +
-        " — " + d.provenance.disease_master_rows + " conditions, " +
-        d.provenance.cohorts_configured + " clusters, " +
-        d.provenance.evidence_citations + " cited references</dd>" +
+
       "</dl></div>";
 
     out += '<div class="stats">' +
@@ -156,7 +138,7 @@
     if (d.urgent_findings.length) {
       out += '<div class="callout urgent"><b>Time-critical findings.</b> ' +
         d.urgent_findings.map(function (r) { return esc(r.name); }).join(", ") +
-        " — the Disease Master marks these as needing immediate assessment. " +
+        " — these need prompt medical assessment. " +
         "Seek medical care now rather than waiting for a routine appointment.</div>";
     }
 
@@ -200,8 +182,8 @@
       return;
     }
     var out = '<p class="small muted" style="margin:0 0 14px">' +
-      "Each condition below is a Disease Master row. Click one to see the clusters that " +
-      "triggered it, the exact Disease Master field that justifies the link, the parameters " +
+      "Click any condition to see the patterns that " +
+      "triggered it, the clinical reference behind it, the parameters " +
       "involved, and what is missing.</p>";
 
     d.disease_risks.forEach(function (r, i) {
@@ -230,7 +212,7 @@
           '<div class="bar"><i style="width:' + pct(c.contribution) + '"></i></div>' +
           '<span class="w">' + c.contribution.toFixed(3) +
           "  (w " + c.link_weight + " × conf " + c.cohort_confidence.toFixed(2) + ")</span></div>";
-        if (c.dm_basis) out += '<div class="basis">Disease Master basis — ' + esc(c.dm_basis) + "</div>";
+        if (c.dm_basis) out += '<div class="basis">Clinical basis — ' + esc(c.dm_basis) + "</div>";
       });
       out += "</div>";
 
@@ -253,12 +235,12 @@
       }
 
       if (r.conditional_urgency && r.conditional_urgency !== r.urgency_tier) {
-        out += '<div class="callout warn"><b>Can escalate.</b> The Disease Master notes this ' +
+        out += '<div class="callout warn"><b>Can become urgent.</b> Note that this ' +
           "condition can become <b>" + esc(r.conditional_urgency) + "</b>-level: " +
           esc(r.urgency_escalation || r.urgency_raw) + "</div>";
       }
 
-      out += "<details><summary>Disease Master record</summary><dl class=\"kv\">";
+      out += "<details><summary>Full clinical details</summary><dl class=\"kv\">";
       ["Definition", "Common Symptoms", "Related Markers/Tests", "High-Risk Indicators",
        "Confirmatory/Diagnostic Tests", "Prognosis / Typical Course", "Possible Complications",
        "External Risk Factors", "Genetic/Family History Factors", "Other Important Factors",
@@ -422,28 +404,87 @@
     return out + "</tbody></table></div>";
   }
 
+  /* The plan is grouped by what the person actually has to DO, in the order they would
+     do it — not by an abstract priority label. Each step is one numbered line. */
+  var PLAN_STEPS = [
+    { key: "Urgent", title: "Do this now",
+      lead: "These need attention before anything else." },
+    { key: "Consultation", title: "Talk to a doctor about",
+      lead: "Take this report with you and raise these points." },
+    { key: "Testing", title: "Tests to get done",
+      lead: "These would confirm or rule out what was flagged." },
+    { key: "Monitoring", title: "Keep an eye on",
+      lead: "Track these so changes are noticed early." },
+    { key: "Diet", title: "Food and drink",
+      lead: "Changes that act directly on the results flagged above." },
+    { key: "Activity", title: "Physical activity", lead: "" },
+    { key: "Lifestyle", title: "Everyday habits", lead: "" }
+  ];
+
   function renderPlan(d) {
-    if (!d.recommendations.length) { $("tab-plan").innerHTML = '<div class="empty">No recommendations.</div>'; return; }
-    var out = '<p class="small muted" style="margin:0 0 14px">Actions are ordered by priority. ' +
-      "Disease-level guidance is taken verbatim from the Disease Master's own " +
-      "<i>Prevention/Lifestyle Guidance</i> and <i>Recommended Next Step</i> columns. " +
-      "Nothing here is a prescription or a treatment decision.</p>";
-    var groups = {};
-    d.recommendations.forEach(function (r) { (groups[r.priority] = groups[r.priority] || []).push(r); });
-    ["urgent", "high", "medium", "low"].forEach(function (p) {
-      if (!groups[p]) return;
-      out += '<h3 style="margin:16px 0 10px;font-size:12px;text-transform:uppercase;' +
-        'letter-spacing:.06em;color:#788396">' + p + " priority (" + groups[p].length + ")</h3>";
-      groups[p].forEach(function (r) {
-        out += '<div class="rec p-' + r.priority + '"><div class="rec-top">' +
-          '<span class="badge b-tag">' + esc(r.category) + "</span>" +
-          (r.sources || []).slice(0, 3).map(function (s) {
-            return '<span class="small muted">' + esc(s) + "</span>";
-          }).join('<span class="muted">·</span>') +
-          '</div><div class="rec-text">' + esc(r.text) + "</div>" +
-          '<div class="rec-why">Triggered by: ' + esc(r.because) + "</div></div>";
-      });
+    if (!d.recommendations.length) {
+      $("tab-plan").innerHTML = '<div class="empty">No recommendations.</div>';
+      return;
+    }
+
+    var byCat = {};
+    d.recommendations.forEach(function (r) {
+      (byCat[r.category] = byCat[r.category] || []).push(r);
     });
+    // Most important first inside each group.
+    var rank = { urgent: 0, high: 1, medium: 2, low: 3 };
+    Object.keys(byCat).forEach(function (k) {
+      byCat[k].sort(function (a, b) { return rank[a.priority] - rank[b.priority]; });
+    });
+
+    var urgentCount = d.recommendations.filter(function (r) {
+      return r.priority === "urgent" || r.priority === "high";
+    }).length;
+
+    var out = '<div class="plan-intro">' +
+      "<b>Your action plan.</b> " + d.recommendations.length + " steps, grouped by what to do. " +
+      (urgentCount ? "<b>" + urgentCount + "</b> need attention sooner rather than later. " : "") +
+      "None of this is a prescription — it is what to discuss and check with your doctor." +
+      "</div>";
+
+    var n = 0;
+    PLAN_STEPS.forEach(function (step) {
+      var items = byCat[step.key];
+      if (!items || !items.length) return;
+
+      out += '<section class="plan-group">' +
+        '<h3 class="plan-h">' + esc(step.title) +
+        '<span class="plan-n">' + items.length + "</span></h3>" +
+        (step.lead ? '<p class="plan-lead">' + esc(step.lead) + "</p>" : "") +
+        '<ol class="plan-list">';
+
+      items.forEach(function (r) {
+        n++;
+        var flag = (r.priority === "urgent" || r.priority === "high")
+          ? ' <span class="plan-flag">Priority</span>' : "";
+        out += '<li class="plan-item p-' + r.priority + '">' +
+          '<div class="plan-text">' + esc(r.text) + flag + "</div>" +
+          '<div class="plan-why"><span class="why-k">Why</span> ' + esc(r.because) + "</div></li>";
+      });
+
+      out += "</ol></section>";
+    });
+
+    // Anything with a category outside the ordered list still has to appear.
+    var extra = Object.keys(byCat).filter(function (k) {
+      return !PLAN_STEPS.some(function (s) { return s.key === k; });
+    });
+    extra.forEach(function (k) {
+      out += '<section class="plan-group"><h3 class="plan-h">' + esc(k) +
+        '<span class="plan-n">' + byCat[k].length + "</span></h3><ol class=\"plan-list\">";
+      byCat[k].forEach(function (r) {
+        out += '<li class="plan-item p-' + r.priority + '"><div class="plan-text">' +
+          esc(r.text) + '</div><div class="plan-why"><span class="why-k">Why</span> ' +
+          esc(r.because) + "</div></li>";
+      });
+      out += "</ol></section>";
+    });
+
     $("tab-plan").innerHTML = out;
   }
 
@@ -505,118 +546,12 @@
     $("tab-data").innerHTML = out;
   }
 
-  function renderReference() {
-    if (!state.config) { $("tab-reference").innerHTML = '<div class="empty">Loading…</div>'; return; }
-    var c = state.config, out = "";
-    out += '<div class="card"><h2>Disease Master</h2><dl class="kv">' +
-      "<dt>Source workbook</dt><dd>" + esc(c.disease_master.source_file) + " · sheet “" +
-        esc(c.disease_master.sheet) + "”</dd>" +
-      "<dt>Conditions loaded</dt><dd>" + c.disease_master.disease_count + " of " +
-        (c.disease_master.disease_count + c.disease_master.skipped_rows.length) + " rows</dd>" +
-      "<dt>Rows skipped</dt><dd>" + (c.disease_master.skipped_rows.map(function (s) {
-        return esc(s.name) + " <span class='muted'>(" + esc(s.reason) + ")</span>";
-      }).join("<br>") || "none") + "</dd>" +
-      "<dt>Columns used</dt><dd class='small'>" + c.disease_master.columns.map(esc).join(" · ") + "</dd>" +
-      "<dt>Conditions mapped</dt><dd>" + c.counts.diseases_linked + " of " + c.counts.diseases +
-        " (" + Math.round(100 * c.counts.diseases_linked / c.counts.diseases) + "%)</dd>" +
-      "<dt>Cohort→disease links</dt><dd>" + c.counts.disease_links + "</dd>" +
-      "<dt>Parameters / aliases</dt><dd>" + c.counts.parameters + " / " + c.counts.aliases + "</dd>" +
-      "</dl>" +
-      '<div class="callout info" style="margin-top:14px">' + esc(c.disease_master.provenance_note) + "</div>" +
-      "</div>";
-
-    var totalCites = 0, distinct = {};
-    c.cohorts.forEach(function (x) {
-      (x.evidence || []).forEach(function (e) { totalCites++; distinct[e.citation] = 1; });
-    });
-    var linkTotal = 0, linkBasis = 0;
-    c.cohorts.forEach(function (x) {
-      (x.diseases || []).forEach(function (l) { linkTotal++; if (l.dm_basis) linkBasis++; });
-    });
-    out += '<div class="card"><h2>Evidence basis</h2>' +
-      '<p class="small muted">Each cluster asserts a clinical relationship, so it must cite the ' +
-      'guideline or study that establishes it, and each disease link must quote the Disease Master ' +
-      'field it was matched on. Both are enforced at load time — a cluster without a citation, or a ' +
-      'link without a basis, is rejected as a configuration error.</p><dl class="kv">' +
-      "<dt>Clusters citing a reference</dt><dd>" + Object.keys(distinct).length +
-        " distinct references across " + c.cohorts.length + " clusters (" + totalCites + " citations)</dd>" +
-      "<dt>Links quoting a Disease Master field</dt><dd>" + linkBasis + " of " + linkTotal + "</dd>" +
-      "</dl></div>";
-
-    out += '<div class="card"><h2>Deliberately unmapped</h2>' +
-      '<p class="small muted">' + esc(c.unmappable.note) + "</p>";
-    c.unmappable.conditions.forEach(function (u) {
-      out += '<div class="cite"><b>' + esc(u.name) + "</b><br>" + esc(u.reason) +
-        (u.would_need ? '<br><span class="muted">Would need: ' + esc(u.would_need) + "</span>" : "") +
-        "</div>";
-    });
-    if (c.unmappable.notes_on_weak_links) {
-      out += '<p class="small muted" style="margin-top:10px">' +
-        esc(c.unmappable.notes_on_weak_links) + "</p>";
-    }
-    out += "</div>";
-
-    var cross = c.cohorts.filter(function (x) { return x.cross_profile; });
-    out += '<div class="card"><h2>Cluster library (' + c.cohorts.length + ")</h2>" +
-      '<p class="small muted">' + cross.length + " of these deliberately draw parameters from more " +
-      "than one test profile, which is what lets a heart-risk cluster use lipid, metabolic, " +
-      "glucose and inflammatory markers together.</p>" +
-      '<div class="wrap"><table class="tbl"><thead><tr><th>Cluster</th><th>Domain</th>' +
-      "<th>Profiles</th><th>Maps to</th><th>Refs</th></tr></thead><tbody>";
-    c.cohorts.forEach(function (x) {
-      out += "<tr><td><b>" + esc(x.name) + "</b>" +
-        (x.cross_profile ? ' <span class="badge b-monitoring">cross-profile</span>' : "") +
-        '<div class="small muted">' + esc(x.description || "") + "</div></td>" +
-        '<td class="small">' + esc(x.domain || "") + "</td>" +
-        '<td class="small muted">' + x.profiles_touched.map(esc).join("<br>") + "</td>" +
-        '<td class="small">' + x.diseases.map(function (l) {
-          return esc(l.name) + ' <span class="muted">(' + l.role + " " + l.weight + ")</span>";
-        }).join("<br>") + "</td>" +
-        '<td class="small muted">' + (x.evidence || []).length + "</td></tr>";
-    });
-    out += "</tbody></table></div></div>";
-
-    out += '<div class="card"><h2>Profile coverage in the Disease Master</h2><div class="wrap">' +
-      '<table class="tbl"><thead><tr><th>Profile</th><th>Tests</th><th>Diseases mapped</th>' +
-      "<th>Status</th></tr></thead><tbody>";
-    c.profiles.forEach(function (p) {
-      out += "<tr><td>" + esc(p["NG Profile (canonical)"]) + '</td><td class="num">' +
-        esc(p["# Tests in Profile"]) + '</td><td class="num">' +
-        esc(p["# Diseases Mapped (this master)"]) + "</td><td>" + esc(p["Coverage Status"]) + "</td></tr>";
-    });
-    out += "</tbody></table></div></div>";
-
-    if (c.data_quality_notes && c.data_quality_notes.length) {
-      out += '<div class="card"><h2>Data quality notes carried from the workbook</h2>';
-      c.data_quality_notes.forEach(function (n) {
-        out += '<div class="cite"><b>' + esc(n.Observation) + "</b><br>" + esc(n.Detail) +
-          "<br><i>" + esc(n.Recommendation) + "</i></div>";
-      });
-      out += "</div>";
-    }
-    $("tab-reference").innerHTML = out;
-  }
 
   /* ---------------- boot ---------------- */
 
-  fetch("/api/samples").then(function (r) { return r.json(); }).then(function (list) {
-    $("sampleList").innerHTML = list.map(function (s) {
-      return '<button data-file="' + esc(s.file) + '">' + esc(s.label) + "</button>";
-    }).join("");
-    $("sampleList").addEventListener("click", function (e) {
-      var b = e.target.closest("button");
-      if (b) runSample(b.dataset.file, b.textContent);
-    });
-  }).catch(function () {});
-
   fetch("/api/config/summary").then(function (r) { return r.json(); }).then(function (c) {
     state.config = c;
-    $("topmeta").innerHTML = "<b>" + c.counts.diseases + "</b> conditions · <b>" +
-      c.counts.cohorts + "</b> clusters · <b>" + c.counts.parameters + "</b> parameters<br>" +
-      '<span class="muted">Disease Master: ' + esc(c.disease_master.source_file) + "</span>";
-    $("footConfig").textContent = c.counts.disease_links + " cohort→disease links · " +
-      c.counts.aliases + " parameter aliases · " + c.counts.diseases_linked + "/" +
-      c.counts.diseases + " conditions mapped";
-    if (state.result) renderReference();
+    $("footConfig").textContent =
+      "This report is a risk check based on clinical guidelines. It is not a diagnosis.";
   }).catch(function () {});
 })();

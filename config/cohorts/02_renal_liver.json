@@ -5,7 +5,7 @@
       "id": "renal_impairment",
       "name": "Reduced Kidney Function",
       "category": "Renal",
-      "description": "Reduced filtration with nitrogenous retention. Grading follows the KDIGO eGFR categories used in the Disease Master CKD row.",
+      "description": "Reduced filtration with nitrogenous retention. Grading follows the KDIGO eGFR categories used in the CKD reference entry.",
       "profiles_touched": [
         "Kidney Profile",
         "Blood Counts",
@@ -163,7 +163,7 @@
         "Kidney Profile",
         "Autoimmune Disorders"
       ],
-      "cross_profile_rationale": "The Disease Master ANCA-Associated Vasculitis row itself spans Autoimmune Disorders and Kidney Profile and names 'Positive ANCA with abnormal urinalysis (blood/protein) and elevated creatinine'. This cohort implements that exact cross-profile pattern.",
+      "cross_profile_rationale": "The clinical reference ANCA-Associated Vasculitis row itself spans Autoimmune Disorders and Kidney Profile and names 'Positive ANCA with abnormal urinalysis (blood/protein) and elevated creatinine'. This cohort implements that exact cross-profile pattern.",
       "min_triggers": 2,
       "min_parameters_present": 2,
       "expected_parameters": [
@@ -384,7 +384,7 @@
         "Autoimmune Disorders",
         "Mineral Profile"
       ],
-      "cross_profile_rationale": "Viral serology (Hepatitis), autoantibodies (Autoimmune Disorders) and copper studies (Mineral Profile) are admitted as supporting signals because the Disease Master rows for Hepatitis A/B/C, Autoimmune Hepatitis and Wilson's Disease all pair liver enzymes with a profile-specific confirmatory marker.",
+      "cross_profile_rationale": "Viral serology (Hepatitis), autoantibodies (Autoimmune Disorders) and copper studies (Mineral Profile) are admitted as supporting signals because the clinical reference rows for Hepatitis A/B/C, Autoimmune Hepatitis and Wilson's Disease all pair liver enzymes with a profile-specific confirmatory marker.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -656,7 +656,7 @@
         "Prothrombin Time",
         "Blood Clotting"
       ],
-      "cross_profile_rationale": "The Disease Master Liver-related Coagulopathy row itself spans Prothrombin Time and Liver Profile, and names 'Prolonged PT/INR with abnormal LFTs (low albumin, elevated bilirubin/transaminases)'.",
+      "cross_profile_rationale": "The clinical reference Liver-related Coagulopathy row itself spans Prothrombin Time and Liver Profile, and names 'Prolonged PT/INR with abnormal LFTs (low albumin, elevated bilirubin/transaminases)'.",
       "min_triggers": 2,
       "min_parameters_present": 2,
       "expected_parameters": [
@@ -950,7 +950,7 @@
         "Hormones",
         "Electrolyte Profile"
       ],
-      "cross_profile_rationale": "The Disease Master Diabetes Insipidus row itself spans Urinalysis and Hormones and names urine specific gravity together with serum sodium and glucose.",
+      "cross_profile_rationale": "The clinical reference Diabetes Insipidus row itself spans Urinalysis and Hormones and names urine specific gravity together with serum sodium and glucose.",
       "min_triggers": 2,
       "min_parameters_present": 2,
       "expected_parameters": [

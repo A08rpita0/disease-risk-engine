@@ -258,7 +258,7 @@ class RiskEngine:
 
         drivers = [c for c in risk.contributions if c.role in ("primary", "supporting")]
         if drivers:
-            parts.append("Flagged because %s matched this %s in the Disease Master: %s." % (
+            parts.append("Flagged because %s matched this %s in the clinical reference: %s." % (
                 "a detected pattern" if len(drivers) == 1 else "detected patterns",
                 lead,
                 "; ".join("%s (cluster confidence %.0f%%, link weight %.2f, %s link)"
@@ -291,10 +291,10 @@ class RiskEngine:
                          + ", ".join(self._pname(p) for p in risk.missing_parameters[:8]) + ".")
         if risk.conditional_urgency and risk.conditional_urgency != risk.urgency_tier:
             escalation = (risk.urgency_escalation or risk.urgency_raw or "").rstrip(" .")
-            parts.append("The Disease Master notes this can become %s-level: %s." % (
+            parts.append("Note that this can become %s-level: %s." % (
                 risk.conditional_urgency, escalation))
         if risk.confirmatory_tests:
-            parts.append("The Disease Master states confirmation requires: %s."
+            parts.append("Confirming it would require: %s."
                          % risk.confirmatory_tests.rstrip(" ."))
         return " ".join(parts)
 

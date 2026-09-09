@@ -319,7 +319,7 @@
         "Stool Analysis",
         "Neurological Disorders"
       ],
-      "cross_profile_rationale": "The Disease Master rows for B12 and folate deficiency both name 'macrocytic anemia on CBC' in their High-Risk Indicators, which requires Blood Counts and Vitamin Profile parameters to be evaluated together.",
+      "cross_profile_rationale": "The clinical reference rows for B12 and folate deficiency both name 'macrocytic anemia on CBC' in their High-Risk Indicators, which requires Blood Counts and Vitamin Profile parameters to be evaluated together.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -797,7 +797,7 @@
         "Blood Clotting",
         "Infectious Diseases"
       ],
-      "cross_profile_rationale": "Dengue serology (Infectious Diseases) and coagulation markers (Blood Clotting) are admitted as supporting signals because the Disease Master Dengue Fever and DIC rows both hinge on a falling platelet count.",
+      "cross_profile_rationale": "Dengue serology (Infectious Diseases) and coagulation markers (Blood Clotting) are admitted as supporting signals because the clinical reference Dengue Fever and DIC rows both hinge on a falling platelet count.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -1759,7 +1759,7 @@
       "id": "crab_pattern",
       "name": "Monoclonal Gammopathy (CRAB) Pattern",
       "category": "Haematology",
-      "description": "Raised total protein and globulin with hypercalcaemia, renal impairment or anaemia - the CRAB features named in the Disease Master.",
+      "description": "Raised total protein and globulin with hypercalcaemia, renal impairment or anaemia - the CRAB features named in the clinical reference.",
       "profiles_touched": [
         "Blood Disorder",
         "Cancer Profile",

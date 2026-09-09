@@ -12,7 +12,7 @@
         "Cardiac Profile",
         "Diabetes Monitoring"
       ],
-      "cross_profile_rationale": "The Disease Master already tags Atherogenic Dyslipidemia to both Lipid Profile and Cardiac Profile. Insulin-resistance markers from Diabetes Monitoring are admitted as supporting signals because the TG/HDL axis is driven by insulin resistance.",
+      "cross_profile_rationale": "The clinical reference already tags Atherogenic Dyslipidemia to both Lipid Profile and Cardiac Profile. Insulin-resistance markers from Diabetes Monitoring are admitted as supporting signals because the TG/HDL axis is driven by insulin resistance.",
       "min_triggers": 2,
       "min_parameters_present": 2,
       "expected_parameters": [
@@ -298,7 +298,7 @@
         "Vitamin Profile",
         "Kidney Profile"
       ],
-      "cross_profile_rationale": "Homocysteine sits in the Cardiac Profile in the Disease Master, but B12/folate (Vitamin Profile) and eGFR (Kidney Profile) are admitted as supporting signals because they are the dominant reversible causes of elevation.",
+      "cross_profile_rationale": "Homocysteine sits in the Cardiac Profile in the clinical reference, but B12/folate (Vitamin Profile) and eGFR (Kidney Profile) are admitted as supporting signals because they are the dominant reversible causes of elevation.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -455,7 +455,7 @@
         "Lipid Profile",
         "BMI & BP"
       ],
-      "cross_profile_rationale": "The Disease Master Prediabetes row names 'Fasting glucose in impaired range, especially combined with obesity'. BMI and the TG/HDL ratio are therefore admitted as supporting signals from other profiles.",
+      "cross_profile_rationale": "The clinical reference Prediabetes row names 'Fasting glucose in impaired range, especially combined with obesity'. BMI and the TG/HDL ratio are therefore admitted as supporting signals from other profiles.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -692,7 +692,7 @@
         "Urinalysis",
         "Electrolyte Profile"
       ],
-      "cross_profile_rationale": "The Disease Master DKA row itself spans Diabetes Monitoring and Urinalysis, and names Electrolytes (Sodium, Potassium) and pH among its markers.",
+      "cross_profile_rationale": "The clinical reference DKA row itself spans Diabetes Monitoring and Urinalysis, and names Electrolytes (Sodium, Potassium) and pH among its markers.",
       "min_triggers": 2,
       "min_parameters_present": 2,
       "urgency_override": "emergency",
@@ -812,7 +812,7 @@
         "BMI & BP",
         "Liver Profile"
       ],
-      "cross_profile_rationale": "This is the flagship cross-profile cohort. The Disease Master itself tags Metabolic Syndrome to four profiles - Lipid Profile, Diabetes Monitoring, Liver Profile and BMI & BP - so components are drawn from all of them.",
+      "cross_profile_rationale": "This is the flagship cross-profile cohort. The clinical reference itself tags Metabolic Syndrome to four profiles - Lipid Profile, Diabetes Monitoring, Liver Profile and BMI & BP - so components are drawn from all of them.",
       "mode": "count_of",
       "count_required": 3,
       "min_parameters_present": 3,
@@ -993,7 +993,7 @@
         "BMI & BP",
         "Kidney Profile"
       ],
-      "cross_profile_rationale": "Renal parameters are admitted as supporting signals because chronic kidney disease is both a cause and a consequence of hypertension; the Disease Master CKD row lists hypertension among its risk factors.",
+      "cross_profile_rationale": "Renal parameters are admitted as supporting signals because chronic kidney disease is both a cause and a consequence of hypertension; the clinical reference CKD row lists hypertension among its risk factors.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [

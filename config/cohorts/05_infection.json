@@ -11,7 +11,7 @@
         "Inflammation",
         "Infectious Diseases"
       ],
-      "cross_profile_rationale": "The Disease Master Sepsis row spans Infectious Diseases and Inflammation and names 'CBC (WBC), CRP/inflammatory markers if available, blood culture' - three profiles in one marker set.",
+      "cross_profile_rationale": "The clinical reference Sepsis row spans Infectious Diseases and Inflammation and names 'CBC (WBC), CRP/inflammatory markers if available, blood culture' - three profiles in one marker set.",
       "min_triggers": 1,
       "min_parameters_present": 2,
       "expected_parameters": [
@@ -648,7 +648,7 @@
         "Inflammation",
         "Blood Counts"
       ],
-      "cross_profile_rationale": "The Disease Master tags Rheumatoid Arthritis and Psoriatic Arthritis to both Arthritis Screening and Autoimmune Disorders, so serology and inflammatory markers are pooled across those profiles.",
+      "cross_profile_rationale": "The clinical reference tags Rheumatoid Arthritis and Psoriatic Arthritis to both Arthritis Screening and Autoimmune Disorders, so serology and inflammatory markers are pooled across those profiles.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -865,7 +865,7 @@
         "Stool Analysis",
         "Anemia Studies"
       ],
-      "cross_profile_rationale": "Total IgA from the Immunity profile is required to validate the tTG-IgA result - a cross-profile dependency the Disease Master captures by listing both markers on the Celiac Disease row.",
+      "cross_profile_rationale": "Total IgA from the Immunity profile is required to validate the tTG-IgA result - a cross-profile dependency the clinical reference captures by listing both markers on the Celiac Disease row.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -1075,7 +1075,7 @@
         "Immunity",
         "Blood Counts"
       ],
-      "cross_profile_rationale": "The Disease Master carries two rows - HIV under STD Profile/Blood Counts for detection, and HIV/AIDS Immune Status Monitoring under Immunity/STD Profile for CD4-based staging. This cohort feeds both.",
+      "cross_profile_rationale": "The clinical reference carries two rows - HIV under STD Profile/Blood Counts for detection, and HIV/AIDS Immune Status Monitoring under Immunity/STD Profile for CD4-based staging. This cohort feeds both.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
@@ -1511,7 +1511,7 @@
         "Malaria Profile",
         "Blood Counts"
       ],
-      "cross_profile_rationale": "The Disease Master itself tags Typhoid Fever to three profiles and Dengue Fever to two, and the Data Quality Notes sheet recommends multi-profile tagging for exactly these rows. Blood Counts parameters are pooled in because platelet and haematocrit changes are named in the Dengue High-Risk Indicators.",
+      "cross_profile_rationale": "The clinical reference itself tags Typhoid Fever to three profiles and Dengue Fever to two, and the Data Quality Notes sheet recommends multi-profile tagging for exactly these rows. Blood Counts parameters are pooled in because platelet and haematocrit changes are named in the Dengue High-Risk Indicators.",
       "min_triggers": 1,
       "min_parameters_present": 1,
       "expected_parameters": [
