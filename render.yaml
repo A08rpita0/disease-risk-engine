@@ -1,0 +1,40 @@
+# Render blueprint — https://render.com/docs/blueprint-spec
+#
+# Render reads this file automatically when you create a Blueprint from the repo,
+# so you do not have to fill the settings in by hand.
+#
+#   Render dashboard -> New -> Blueprint -> select this repository -> Apply
+#
+# To deploy as a plain Web Service instead, use these settings:
+#   Build command  : pip install -r requirements.txt
+#   Start command  : uvicorn app:app --host 0.0.0.0 --port $PORT --proxy-headers
+#   Health check   : /api/health
+
+services:
+  - type: web
+    name: disease-risk-engine
+    runtime: python
+    plan: free                 # free sleeps after ~15 min idle; "starter" stays warm
+    region: singapore          # closest Render region to India; also: oregon, frankfurt
+    branch: main
+
+    buildCommand: pip install -r requirements.txt
+
+    # --proxy-headers so client IP and HTTPS are read correctly behind Render's proxy.
+    # One worker on the free plan (512 MB); raise WEB_CONCURRENCY on a paid plan.
+    startCommand: >-
+      uvicorn app:app --host 0.0.0.0 --port $PORT
+      --workers ${WEB_CONCURRENCY:-1}
+      --proxy-headers --forwarded-allow-ips='*'
+
+    # Render polls this; a failing config still serves, so /api/health reports it
+    # rather than the instance silently flapping.
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: PYTHONUNBUFFERED     # stream logs to the Render dashboard live
+        value: "1"

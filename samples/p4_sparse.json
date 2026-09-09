@@ -1,0 +1,15 @@
+{
+  "_label": "Sparse basic panel (10 parameters, sex not stated)",
+  "report": {
+    "Fasting Blood Sugar": "112 mg/dL",
+    "HbA1c": "6.1 %",
+    "Total Cholesterol": "214 mg/dL",
+    "HDL": "38 mg/dL",
+    "Triglycerides": "196 mg/dL",
+    "Serum Creatinine": "0.95 mg/dL",
+    "SGPT": "58 U/L",
+    "Haemoglobin": "13.4 g/dL",
+    "Vitamin D": "14 ng/mL",
+    "TSH": "3.1 uIU/mL"
+  }
+}

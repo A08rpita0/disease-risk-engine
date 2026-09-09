@@ -1,0 +1,2106 @@
+{
+  "domain": "Infection, Inflammation and Immunity",
+  "cohorts": [
+    {
+      "id": "acute_inflammatory_response",
+      "name": "Acute Inflammatory / Infective Response",
+      "category": "Inflammation",
+      "description": "Neutrophil-predominant leucocytosis with raised acute-phase proteins - the systemic response to bacterial infection or acute inflammation.",
+      "profiles_touched": [
+        "Blood Counts",
+        "Inflammation",
+        "Infectious Diseases"
+      ],
+      "cross_profile_rationale": "The Disease Master Sepsis row spans Infectious Diseases and Inflammation and names 'CBC (WBC), CRP/inflammatory markers if available, blood culture' - three profiles in one marker set.",
+      "min_triggers": 1,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "wbc_count",
+        "neutrophil_pct",
+        "crp",
+        "esr",
+        "procalcitonin"
+      ],
+      "triggers": [
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "gt": 11000
+          },
+          "weight": 1.0,
+          "label": "WBC above 11,000 /uL"
+        },
+        {
+          "parameter": "crp",
+          "condition": {
+            "gte": 10
+          },
+          "weight": 1.0,
+          "label": "CRP at or above 10 mg/L"
+        },
+        {
+          "parameter": "procalcitonin",
+          "condition": {
+            "gte": 0.5
+          },
+          "weight": 1.0,
+          "label": "Procalcitonin at or above 0.5 ng/mL - suggests bacterial infection"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "neutrophil_pct",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "Neutrophil percentage raised"
+        },
+        {
+          "parameter": "esr",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "ESR raised"
+        },
+        {
+          "parameter": "lymphocyte_pct",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Relative lymphopenia"
+        },
+        {
+          "parameter": "blood_culture",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Blood culture positive"
+        },
+        {
+          "parameter": "ferritin",
+          "condition": {
+            "gte": 1000
+          },
+          "weight": 0.4,
+          "label": "Ferritin markedly raised as an acute-phase reactant"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.2,
+          "label": "Reactive thrombocytosis"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Singer M et al., The Third International Consensus Definitions for Sepsis and Septic Shock (Sepsis-3), JAMA 2016;315:801-10",
+          "note": "Sepsis is organ dysfunction from a dysregulated host response; laboratory markers support but do not define it."
+        },
+        {
+          "citation": "Wacker C et al., Lancet Infect Dis 2013;13:426-35",
+          "note": "Procalcitonin discriminates bacterial sepsis from non-infectious systemic inflammation."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Reactive Leukocytosis",
+          "role": "primary",
+          "weight": 0.72,
+          "dm_basis": "High-Risk Indicators: 'Elevated WBC with a clear infectious/inflammatory trigger and normal differential pattern'; Related Markers/Tests: WBC count and differential"
+        },
+        {
+          "name": "Sepsis",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Markedly abnormal WBC (very high or very low) with fever/hypotension and suspected infection source'; Related Markers/Tests: CBC (WBC), CRP/inflammatory markers, blood culture. Weight held moderate because fever and hypotension are not lab-derivable."
+        },
+        {
+          "name": "Urinary Tract Infection",
+          "role": "differential",
+          "weight": 0.18,
+          "dm_basis": "Cross-linked as a common source; confirmed only by the urinary markers in the UTI cohort"
+        }
+      ]
+    },
+    {
+      "id": "sepsis_pattern",
+      "name": "Severe Systemic Infection Pattern",
+      "category": "Inflammation",
+      "description": "Markedly deranged white cell count - very high or very low - with high procalcitonin or a positive blood culture. A time-critical combination.",
+      "profiles_touched": [
+        "Infectious Diseases",
+        "Inflammation",
+        "Blood Counts"
+      ],
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "urgency_override": "emergency",
+      "expected_parameters": [
+        "wbc_count",
+        "procalcitonin",
+        "crp",
+        "blood_culture",
+        "platelet_count",
+        "creatinine",
+        "pdw"
+      ],
+      "triggers": [
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "gte": 20000
+          },
+          "weight": 1.0,
+          "label": "WBC at or above 20,000 /uL"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "lt": 4000
+          },
+          "weight": 1.0,
+          "label": "WBC below 4000 /uL - leukopenia in the context of infection"
+        },
+        {
+          "parameter": "procalcitonin",
+          "condition": {
+            "gte": 2.0
+          },
+          "weight": 1.0,
+          "label": "Procalcitonin at or above 2 ng/mL"
+        },
+        {
+          "parameter": "blood_culture",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Blood culture positive"
+        },
+        {
+          "parameter": "crp",
+          "condition": {
+            "gte": 50
+          },
+          "weight": 0.8,
+          "label": "CRP at or above 50 mg/L"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Thrombocytopenia - organ dysfunction marker"
+        },
+        {
+          "parameter": "creatinine",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Creatinine raised - renal dysfunction"
+        },
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Bilirubin raised - hepatic dysfunction"
+        },
+        {
+          "parameter": "inr",
+          "condition": {
+            "gt": 1.2
+          },
+          "weight": 0.5,
+          "label": "INR prolonged - coagulation dysfunction"
+        },
+        {
+          "parameter": "bicarbonate",
+          "condition": {
+            "lt": 22
+          },
+          "weight": 0.4,
+          "label": "Low bicarbonate - metabolic acidosis"
+        },
+        {
+          "parameter": "pdw",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "Platelet distribution width raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Singer M et al., JAMA 2016;315:801-10",
+          "note": "Sepsis-3: SOFA-based organ dysfunction criteria including platelets, bilirubin, creatinine and coagulation."
+        },
+        {
+          "citation": "Evans L et al., Surviving Sepsis Campaign Guidelines 2021, Crit Care Med 2021;49:e1063-e1143",
+          "note": "Time-critical recognition and treatment of sepsis."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Sepsis",
+          "role": "primary",
+          "weight": 0.8,
+          "dm_basis": "High-Risk Indicators: 'Markedly abnormal WBC (very high or very low) with fever/hypotension and suspected infection source'; Related Markers/Tests: CBC (WBC), CRP/inflammatory markers if available, blood culture"
+        },
+        {
+          "name": "Disseminated Intravascular Coagulation (DIC)",
+          "role": "downstream_risk",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators name 'a critically ill patient'; DIC is a recognised complication of severe sepsis"
+        },
+        {
+          "name": "Leukemia (Suspected/Screening)",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "High-Risk Indicators: 'Markedly abnormal WBC count (very high or low) with abnormal differential' - the haematological alternative to infection"
+        }
+      ]
+    },
+    {
+      "id": "chronic_inflammation",
+      "name": "Chronic Inflammatory Signal",
+      "category": "Inflammation",
+      "description": "Persistent acute-phase elevation without a neutrophil-predominant leucocytosis - the pattern seen in autoimmune and chronic inflammatory disease.",
+      "profiles_touched": [
+        "Inflammation",
+        "Autoimmune Disorders",
+        "Blood Counts"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "esr",
+        "crp",
+        "wbc_count",
+        "hemoglobin",
+        "globulin"
+      ],
+      "triggers": [
+        {
+          "parameter": "esr",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "ESR above the sex-specific range"
+        },
+        {
+          "parameter": "crp",
+          "condition": {
+            "between": [
+              5,
+              49.9
+            ]
+          },
+          "weight": 0.9,
+          "label": "CRP raised but not in the acute bacterial range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "abnormal": "none"
+          },
+          "weight": 0.5,
+          "label": "White cell count normal - argues against acute bacterial infection"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.5,
+          "label": "Anaemia - consistent with anaemia of chronic disease"
+        },
+        {
+          "parameter": "globulin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Globulin raised - chronic immune stimulation"
+        },
+        {
+          "parameter": "ferritin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.35,
+          "label": "Ferritin raised as an acute-phase reactant"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "Reactive thrombocytosis"
+        },
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.35,
+          "label": "Albumin low - negative acute-phase reactant"
+        },
+        {
+          "parameter": "monocyte_pct",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "Monocytes raised - seen in chronic infection and inflammatory disease"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Weiss G, Ganz T, Goodnough LT, Blood 2019;133:40-50",
+          "note": "Anaemia of inflammation: hepcidin-mediated iron restriction with raised inflammatory markers."
+        },
+        {
+          "citation": "Bray C et al., WMJ 2016;115:317-21",
+          "note": "ESR and CRP: complementary acute-phase markers with different kinetics."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Rheumatoid Arthritis",
+          "role": "supporting",
+          "weight": 0.3,
+          "dm_basis": "Related Markers/Tests: 'RA factor (quantitative), ASO (quantitative, if used for differential)'; inflammatory markers support but do not establish the diagnosis"
+        },
+        {
+          "name": "Systemic Lupus Erythematosus",
+          "role": "supporting",
+          "weight": 0.25,
+          "dm_basis": "Related Markers/Tests: ANA, Anti-dsDNA, CBC, Urinalysis"
+        },
+        {
+          "name": "Inflammatory Bowel Disease (Crohn's Disease/Ulcerative Colitis)",
+          "role": "supporting",
+          "weight": 0.28,
+          "dm_basis": "Related Markers/Tests: 'Stool analysis (occult blood), CBC, inflammatory markers'"
+        },
+        {
+          "name": "Tuberculosis",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "Related Markers/Tests: 'Sputum/urine analysis where relevant, inflammatory markers'"
+        }
+      ]
+    },
+    {
+      "id": "atopy_allergic",
+      "name": "Atopic / Allergic Sensitisation Pattern",
+      "category": "Immunology",
+      "description": "Raised total or allergen-specific IgE with eosinophilia - the laboratory signature of atopy. Which allergic condition it manifests as depends on symptoms, not on the blood test.",
+      "profiles_touched": [
+        "Allergy Panel",
+        "Blood Counts"
+      ],
+      "cross_profile_rationale": "Eosinophil counts come from Blood Counts while IgE comes from the Allergy Panel; the two together are far more informative than either alone.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "ige_total",
+        "ige_specific",
+        "eosinophil_pct",
+        "absolute_eosinophil_count"
+      ],
+      "triggers": [
+        {
+          "parameter": "ige_specific",
+          "condition": {
+            "gte": 0.35
+          },
+          "weight": 1.0,
+          "label": "Allergen-specific IgE at or above 0.35 kUA/L - sensitisation present"
+        },
+        {
+          "parameter": "ige_total",
+          "condition": {
+            "gte": 100
+          },
+          "weight": 0.8,
+          "label": "Total IgE at or above 100 IU/mL"
+        },
+        {
+          "parameter": "absolute_eosinophil_count",
+          "condition": {
+            "gte": 500
+          },
+          "weight": 0.8,
+          "label": "Absolute eosinophil count at or above 500 /uL"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "eosinophil_pct",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Eosinophil percentage raised"
+        },
+        {
+          "parameter": "ige_total",
+          "condition": {
+            "gte": 400
+          },
+          "weight": 0.5,
+          "label": "Total IgE markedly raised"
+        },
+        {
+          "parameter": "anti_thyroglobulin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "Thyroid antibodies raised - the Disease Master notes this autoimmune association for chronic urticaria"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Bousquet J et al., ARIA 2019 update, J Allergy Clin Immunol 2020;145:70-80",
+          "note": "Allergen-specific IgE sensitisation must be interpreted alongside symptom history; sensitisation alone is not allergy."
+        },
+        {
+          "citation": "Global Initiative for Asthma (GINA) 2023 Report",
+          "note": "Allergic (atopic) asthma phenotype defined by sensitisation plus compatible respiratory symptoms."
+        },
+        {
+          "citation": "Valent P et al., J Allergy Clin Immunol 2012;130:607-12",
+          "note": "Absolute eosinophil count thresholds for eosinophilia and hypereosinophilia."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Allergic Rhinitis",
+          "role": "primary",
+          "weight": 0.5,
+          "dm_basis": "High-Risk Indicators: 'Elevated specific IgE to common inhalant allergens with matching symptom pattern'; Related Markers/Tests: Specific IgE panel for common inhalant allergens"
+        },
+        {
+          "name": "Allergic Asthma",
+          "role": "primary",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Elevated specific IgE to common triggers with recurrent wheeze/breathlessness'; Related Markers/Tests: Specific IgE panel, Total IgE"
+        },
+        {
+          "name": "Atopic Dermatitis/Eczema",
+          "role": "primary",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Elevated total/specific IgE with characteristic chronic itchy rash pattern'; Related Markers/Tests: Total IgE"
+        },
+        {
+          "name": "Allergic Conjunctivitis",
+          "role": "supporting",
+          "weight": 0.38,
+          "dm_basis": "High-Risk Indicators: 'Elevated specific IgE to inhalant allergens with matching eye symptoms'"
+        },
+        {
+          "name": "Food Allergy",
+          "role": "supporting",
+          "weight": 0.38,
+          "dm_basis": "High-Risk Indicators: 'Elevated specific IgE to a food allergen with a clear history of reaction on exposure'"
+        },
+        {
+          "name": "Chronic Urticaria",
+          "role": "supporting",
+          "weight": 0.3,
+          "dm_basis": "Related Markers/Tests: 'Total IgE; specific IgE panel if a trigger is suspected; thyroid antibodies (autoimmune association)'"
+        },
+        {
+          "name": "Drug Allergy",
+          "role": "differential",
+          "weight": 0.18,
+          "dm_basis": "High-Risk Indicators rest on 'Clear temporal relationship between drug exposure and reaction onset' - not lab-derivable"
+        },
+        {
+          "name": "Insect Sting Allergy",
+          "role": "differential",
+          "weight": 0.18,
+          "dm_basis": "High-Risk Indicators: 'History of a systemic reaction to a sting, or elevated venom-specific IgE'"
+        },
+        {
+          "name": "Anaphylaxis",
+          "role": "differential",
+          "weight": 0.12,
+          "dm_basis": "High-Risk Indicators: 'Any history of a rapid multi-system reaction' - a clinical event, not a screening finding"
+        }
+      ]
+    },
+    {
+      "id": "eosinophilia_parasitic",
+      "name": "Marked Eosinophilia",
+      "category": "Immunology",
+      "description": "Eosinophils substantially raised. In addition to atopy, parasitic infection and drug reactions are important causes.",
+      "profiles_touched": [
+        "Blood Counts",
+        "Stool Analysis",
+        "Allergy Panel"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "absolute_eosinophil_count",
+        "eosinophil_pct",
+        "stool_ova_parasite",
+        "ige_total"
+      ],
+      "triggers": [
+        {
+          "parameter": "absolute_eosinophil_count",
+          "condition": {
+            "gte": 1500
+          },
+          "weight": 1.0,
+          "label": "Absolute eosinophil count at or above 1500 /uL - hypereosinophilia"
+        },
+        {
+          "parameter": "eosinophil_pct",
+          "condition": {
+            "gte": 12
+          },
+          "weight": 0.8,
+          "label": "Eosinophils at or above 12% of the differential"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "stool_ova_parasite",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Ova, cysts or parasites seen on stool microscopy"
+        },
+        {
+          "parameter": "ige_total",
+          "condition": {
+            "gte": 400
+          },
+          "weight": 0.5,
+          "label": "Total IgE markedly raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Valent P et al., J Allergy Clin Immunol 2012;130:607-12",
+          "note": "Consensus definitions of eosinophilia and hypereosinophilia and their diagnostic workup."
+        },
+        {
+          "citation": "O'Connell EM, Nutman TB, Semin Hematol 2012;49:149-59",
+          "note": "Helminth infection as a leading global cause of eosinophilia."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Intestinal Parasitic Infection",
+          "role": "primary",
+          "weight": 0.5,
+          "dm_basis": "High-Risk Indicators: 'Ova, cysts, or parasites identified on stool microscopy, especially with compatible symptoms or exposure history'; Related Markers/Tests: Stool microscopy/ova and parasite exam",
+          "requires_any": [
+            "stool_ova_parasite"
+          ]
+        },
+        {
+          "name": "Allergic Asthma",
+          "role": "supporting",
+          "weight": 0.25,
+          "dm_basis": "Related Markers/Tests: Specific IgE panel for inhalant allergens; Total IgE"
+        },
+        {
+          "name": "Atopic Dermatitis/Eczema",
+          "role": "supporting",
+          "weight": 0.2,
+          "dm_basis": "Related Markers/Tests: Total IgE"
+        }
+      ]
+    },
+    {
+      "id": "autoimmune_serology",
+      "name": "Autoimmune Serology Pattern",
+      "category": "Autoimmune",
+      "description": "Positive autoantibodies with inflammatory markers. The specific autoantibody, not the ANA alone, determines which condition is most likely.",
+      "profiles_touched": [
+        "Autoimmune Disorders",
+        "Arthritis Screening",
+        "Inflammation",
+        "Blood Counts"
+      ],
+      "cross_profile_rationale": "The Disease Master tags Rheumatoid Arthritis and Psoriatic Arthritis to both Arthritis Screening and Autoimmune Disorders, so serology and inflammatory markers are pooled across those profiles.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "ana",
+        "anti_dsdna",
+        "ra_factor",
+        "anti_ccp",
+        "esr",
+        "crp",
+        "anca"
+      ],
+      "triggers": [
+        {
+          "parameter": "ana",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "ANA positive"
+        },
+        {
+          "parameter": "ra_factor",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Rheumatoid factor raised"
+        },
+        {
+          "parameter": "anti_ccp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Anti-CCP antibody raised - highly specific for rheumatoid arthritis"
+        },
+        {
+          "parameter": "anti_dsdna",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Anti-dsDNA positive - specific for lupus"
+        },
+        {
+          "parameter": "anca",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "ANCA positive"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "esr",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "ESR raised"
+        },
+        {
+          "parameter": "crp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "CRP raised"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.35,
+          "label": "Anaemia - common in active connective tissue disease"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Thrombocytopenia - a haematological feature of lupus"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "lt": 4000
+          },
+          "weight": 0.4,
+          "label": "Leukopenia - a haematological feature of lupus"
+        },
+        {
+          "parameter": "urine_protein",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.6,
+          "label": "Proteinuria - renal involvement"
+        },
+        {
+          "parameter": "globulin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Globulin raised"
+        },
+        {
+          "parameter": "aso_titre",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.2,
+          "label": "ASO raised - used in the Disease Master for the RA differential"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Aringer M et al., 2019 EULAR/ACR Classification Criteria for Systemic Lupus Erythematosus, Arthritis Rheumatol 2019;71:1400-12",
+          "note": "Positive ANA is the entry criterion; organ-specific and immunological domains score toward classification."
+        },
+        {
+          "citation": "Aletaha D et al., 2010 ACR/EULAR Rheumatoid Arthritis Classification Criteria, Arthritis Rheum 2010;62:2569-81",
+          "note": "RF and anti-CCP with acute-phase reactants and joint involvement form the classification score."
+        },
+        {
+          "citation": "Shiboski CH et al., 2016 ACR/EULAR Classification Criteria for Primary Sjogren's Syndrome, Arthritis Rheumatol 2017;69:35-45",
+          "note": "Anti-SSA/Ro with objective dryness measures; ANA and RF are frequent co-findings."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Rheumatoid Arthritis",
+          "role": "primary",
+          "weight": 0.62,
+          "dm_basis": "High-Risk Indicators: 'Elevated RA factor with typical symmetric joint symptoms'; Related Markers/Tests: RA factor (quantitative), ASO",
+          "requires_any": [
+            "ra_factor",
+            "anti_ccp"
+          ]
+        },
+        {
+          "name": "Systemic Lupus Erythematosus",
+          "role": "primary",
+          "weight": 0.55,
+          "dm_basis": "High-Risk Indicators: 'Positive ANA with multi-system symptoms (joint, skin, renal, hematologic)'; Related Markers/Tests: ANA, Anti-dsDNA, CBC, Urinalysis",
+          "requires_any": [
+            "ana",
+            "anti_dsdna"
+          ]
+        },
+        {
+          "name": "Sjögren's Syndrome",
+          "role": "supporting",
+          "weight": 0.38,
+          "dm_basis": "High-Risk Indicators: 'Positive ANA/RA factor with characteristic dry eye and dry mouth symptoms'; Related Markers/Tests: ANA, RA factor",
+          "requires_any": [
+            "ana",
+            "ra_factor"
+          ]
+        },
+        {
+          "name": "Mixed Connective Tissue Disease",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Positive ANA with overlapping lupus/scleroderma/myositis-like symptoms'; Related Markers/Tests: ANA, RA factor",
+          "requires_any": [
+            "ana"
+          ]
+        },
+        {
+          "name": "ANCA-Associated Vasculitis",
+          "role": "supporting",
+          "weight": 0.42,
+          "dm_basis": "High-Risk Indicators: 'Positive ANCA with abnormal urinalysis (blood/protein) and elevated creatinine'",
+          "requires_any": [
+            "anca"
+          ]
+        },
+        {
+          "name": "Autoimmune Hepatitis",
+          "role": "supporting",
+          "weight": 0.25,
+          "dm_basis": "High-Risk Indicators: 'Elevated liver enzymes with positive ANA and elevated globulin'",
+          "requires_any": [
+            "ana"
+          ]
+        },
+        {
+          "name": "Psoriatic Arthritis",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "High-Risk Indicators: 'Joint symptoms with an existing or family history of psoriasis, and a negative RA factor' - a seronegative pattern"
+        },
+        {
+          "name": "Autoimmune thyroiditis (Hashimoto's)",
+          "role": "differential",
+          "weight": 0.15,
+          "dm_basis": "Related Profile(s) includes Autoimmune Disorders; thyroid autoimmunity commonly coexists with other autoimmune disease"
+        }
+      ]
+    },
+    {
+      "id": "celiac_serology",
+      "name": "Coeliac Serology Pattern",
+      "category": "Autoimmune",
+      "description": "Raised tissue transglutaminase IgA, interpreted alongside total IgA because selective IgA deficiency makes the test falsely negative.",
+      "profiles_touched": [
+        "Autoimmune Disorders",
+        "Immunity",
+        "Stool Analysis",
+        "Anemia Studies"
+      ],
+      "cross_profile_rationale": "Total IgA from the Immunity profile is required to validate the tTG-IgA result - a cross-profile dependency the Disease Master captures by listing both markers on the Celiac Disease row.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "anti_ttg_iga",
+        "iga_serum",
+        "ferritin",
+        "folate",
+        "vitamin_d"
+      ],
+      "triggers": [
+        {
+          "parameter": "anti_ttg_iga",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Anti-tTG IgA above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "iga_serum",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Total IgA low - the tTG-IgA result may be falsely negative and IgG-based testing is needed"
+        },
+        {
+          "parameter": "ferritin",
+          "condition": {
+            "lt": 30
+          },
+          "weight": 0.6,
+          "label": "Iron stores depleted - unexplained iron deficiency is a classic presentation"
+        },
+        {
+          "parameter": "folate",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.5,
+          "label": "Folate low"
+        },
+        {
+          "parameter": "vitamin_d",
+          "condition": {
+            "lt": 20
+          },
+          "weight": 0.4,
+          "label": "Vitamin D deficient"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Anaemia"
+        },
+        {
+          "parameter": "fecal_fat",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.5,
+          "label": "Steatorrhoea"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Rubio-Tapia A et al., ACG Clinical Guidelines: Diagnosis and Management of Celiac Disease, Am J Gastroenterol 2023;118:59-76",
+          "note": "tTG-IgA with total IgA as first-line serology; duodenal biopsy on a gluten-containing diet for confirmation in adults."
+        },
+        {
+          "citation": "Husby S et al., ESPGHAN Guidelines for Diagnosing Coeliac Disease 2020, J Pediatr Gastroenterol Nutr 2020;70:141-56",
+          "note": "The role of tTG-IgA titre magnitude and the need to exclude IgA deficiency."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Celiac Disease",
+          "role": "primary",
+          "weight": 0.82,
+          "dm_basis": "High-Risk Indicators: 'Elevated tTG-IgA with compatible symptoms or unexplained iron/folate deficiency'; Related Markers/Tests: Anti-tTG IgA, Total IgA"
+        },
+        {
+          "name": "Malabsorption Syndrome",
+          "role": "supporting",
+          "weight": 0.42,
+          "dm_basis": "High-Risk Indicators: 'Chronic diarrhea with steatorrhea plus multiple vitamin/mineral deficiencies'"
+        },
+        {
+          "name": "Iron Deficiency Anemia",
+          "role": "supporting",
+          "weight": 0.3,
+          "dm_basis": "Cross-linked because coeliac disease is a leading cause of iron deficiency that does not respond to oral iron"
+        },
+        {
+          "name": "Selective IgA Deficiency",
+          "role": "differential",
+          "weight": 0.3,
+          "dm_basis": "High-Risk Indicators: 'Low serum IgA with normal other immunoglobulins' - relevant here because it invalidates IgA-based coeliac serology",
+          "requires_any": [
+            "iga_serum"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "humoral_immunodeficiency",
+      "name": "Antibody Deficiency Pattern",
+      "category": "Immunology",
+      "description": "One or more immunoglobulin classes below range, which predisposes to recurrent bacterial infection.",
+      "profiles_touched": [
+        "Immunity"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "igg_serum",
+        "iga_serum",
+        "igm_serum"
+      ],
+      "triggers": [
+        {
+          "parameter": "igg_serum",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "IgG below range"
+        },
+        {
+          "parameter": "iga_serum",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.9,
+          "label": "IgA below range"
+        },
+        {
+          "parameter": "igm_serum",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.8,
+          "label": "IgM below range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "lymphocyte_pct",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Lymphopenia"
+        },
+        {
+          "parameter": "cd4_count",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.5,
+          "label": "CD4 count low"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Bonilla FA et al., Practice Parameter for the Diagnosis and Management of Primary Immunodeficiency, J Allergy Clin Immunol 2015;136:1186-205",
+          "note": "Diagnostic criteria for CVID (reduced IgG with reduced IgA or IgM plus impaired vaccine responses) and selective IgA deficiency."
+        },
+        {
+          "citation": "Yazdani R et al., J Investig Allergol Clin Immunol 2020;30:14-34",
+          "note": "Selective IgA deficiency: isolated low IgA with normal IgG and IgM."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Common Variable Immunodeficiency (CVID)",
+          "role": "primary",
+          "weight": 0.7,
+          "dm_basis": "High-Risk Indicators: 'Low IgG with low IgA and/or IgM and history of recurrent infections'; Related Markers/Tests: Immunoglobulin IgA/IgG/IgM (Serum)",
+          "requires_any": [
+            "igg_serum"
+          ]
+        },
+        {
+          "name": "Selective IgA Deficiency",
+          "role": "primary",
+          "weight": 0.62,
+          "dm_basis": "High-Risk Indicators: 'Low serum IgA with normal other immunoglobulins'; Related Markers/Tests: Immunoglobulin IgA (Serum)",
+          "requires_any": [
+            "iga_serum"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hiv_immune_status",
+      "name": "HIV Screening and Immune Status",
+      "category": "Immunology",
+      "description": "A reactive HIV screen, or a low CD4 count reflecting the degree of immunosuppression in someone already known to be positive.",
+      "profiles_touched": [
+        "STD Profile",
+        "Immunity",
+        "Blood Counts"
+      ],
+      "cross_profile_rationale": "The Disease Master carries two rows - HIV under STD Profile/Blood Counts for detection, and HIV/AIDS Immune Status Monitoring under Immunity/STD Profile for CD4-based staging. This cohort feeds both.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "hiv_screen",
+        "cd4_count",
+        "cd4_cd8_ratio",
+        "cd3_count",
+        "nk_cells"
+      ],
+      "triggers": [
+        {
+          "parameter": "hiv_screen",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "HIV screening test reactive"
+        },
+        {
+          "parameter": "cd4_count",
+          "condition": {
+            "lt": 350
+          },
+          "weight": 0.9,
+          "label": "CD4 count below 350 cells/uL"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "cd4_count",
+          "condition": {
+            "lt": 200
+          },
+          "weight": 1.0,
+          "label": "CD4 count below 200 cells/uL - advanced immunosuppression"
+        },
+        {
+          "parameter": "cd4_cd8_ratio",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.6,
+          "label": "CD4/CD8 ratio inverted"
+        },
+        {
+          "parameter": "cd3_count",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Total T cells reduced"
+        },
+        {
+          "parameter": "lymphocyte_pct",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.35,
+          "label": "Lymphopenia"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.25,
+          "label": "Anaemia - common in advanced HIV"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.25,
+          "label": "Thrombocytopenia - can occur in HIV"
+        },
+        {
+          "parameter": "nk_cells",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.3,
+          "label": "Natural killer cells reduced"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "WHO Consolidated Guidelines on HIV Testing Services, 2019",
+          "note": "A reactive screening test requires confirmation by a second assay before any diagnosis is communicated."
+        },
+        {
+          "citation": "WHO Consolidated Guidelines on HIV Prevention, Testing, Treatment, 2021",
+          "note": "CD4 <200 cells/uL defines advanced HIV disease with need for opportunistic infection prophylaxis."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "HIV",
+          "role": "primary",
+          "weight": 0.7,
+          "dm_basis": "High-Risk Indicators: 'Reactive HIV screening test confirmed by a second confirmatory method'; Related Markers/Tests: HIV antibody/antigen test; CBC used only as a general cross-reference. Weight reflects that a screen alone is not diagnostic.",
+          "requires_any": [
+            "hiv_screen"
+          ]
+        },
+        {
+          "name": "HIV/AIDS - Immune Status Monitoring",
+          "role": "primary",
+          "weight": 0.72,
+          "dm_basis": "High-Risk Indicators: 'Low CD4 count in a confirmed HIV-positive individual signals advancing immunosuppression'; Related Markers/Tests: CD4, CD4/CD8 ratio, CD3, Natural Killer Cells",
+          "requires_any": [
+            "cd4_count",
+            "cd4_cd8_ratio",
+            "cd3_count"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sti_serology",
+      "name": "Sexually Transmitted Infection Screen",
+      "category": "Infection",
+      "description": "A positive result on one or more sexually transmitted infection tests.",
+      "profiles_touched": [
+        "STD Profile",
+        "Hepatitis"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "vdrl_rpr",
+        "tpha",
+        "chlamydia_naat",
+        "gonorrhea_naat",
+        "hsv_igg",
+        "hbsag",
+        "hiv_screen"
+      ],
+      "triggers": [
+        {
+          "parameter": "vdrl_rpr",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "VDRL/RPR reactive"
+        },
+        {
+          "parameter": "chlamydia_naat",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Chlamydia NAAT/PCR positive"
+        },
+        {
+          "parameter": "gonorrhea_naat",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Gonorrhoea NAAT/PCR positive"
+        },
+        {
+          "parameter": "hsv_igg",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.8,
+          "label": "HSV IgG positive"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "tpha",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Treponemal test positive - confirms the non-treponemal screen"
+        },
+        {
+          "parameter": "hiv_screen",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.6,
+          "label": "HIV screen reactive - co-infection is common"
+        },
+        {
+          "parameter": "hbsag",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.5,
+          "label": "HBsAg positive - hepatitis B is sexually transmissible"
+        },
+        {
+          "parameter": "urine_leukocyte_esterase",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.3,
+          "label": "Leukocyte esterase positive - urethritis"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Workowski KA et al., CDC Sexually Transmitted Infections Treatment Guidelines 2021, MMWR Recomm Rep 2021;70(4):1-187",
+          "note": "NAAT as the diagnostic standard for chlamydia and gonorrhoea; reverse/traditional syphilis testing algorithms."
+        },
+        {
+          "citation": "WHO Guidelines for the Management of Symptomatic Sexually Transmitted Infections, 2021",
+          "note": "Partner notification and co-infection screening as standard practice on any positive result."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Syphilis",
+          "role": "primary",
+          "weight": 0.72,
+          "dm_basis": "High-Risk Indicators: 'Reactive VDRL/RPR confirmed by treponemal test'; Related Markers/Tests: VDRL/RPR (screening)",
+          "requires_any": [
+            "vdrl_rpr",
+            "tpha"
+          ]
+        },
+        {
+          "name": "Chlamydia",
+          "role": "primary",
+          "weight": 0.88,
+          "dm_basis": "High-Risk Indicators: 'Positive NAAT/PCR result'; Related Markers/Tests: Chlamydia NAAT/PCR or antigen test",
+          "requires_any": [
+            "chlamydia_naat"
+          ]
+        },
+        {
+          "name": "Gonorrhea",
+          "role": "primary",
+          "weight": 0.88,
+          "dm_basis": "High-Risk Indicators: 'Positive NAAT/PCR or culture result'; Related Markers/Tests: Gonorrhea NAAT/PCR or culture",
+          "requires_any": [
+            "gonorrhea_naat"
+          ]
+        },
+        {
+          "name": "Herpes Simplex (Type I & II)",
+          "role": "primary",
+          "weight": 0.55,
+          "dm_basis": "High-Risk Indicators: 'Positive HSV-2 IgG (genital association) or recurrent symptomatic outbreaks'; Related Markers/Tests: HSV IgG/IgM serology",
+          "requires_any": [
+            "hsv_igg"
+          ]
+        },
+        {
+          "name": "HIV",
+          "role": "supporting",
+          "weight": 0.2,
+          "dm_basis": "Related Profile(s): STD Profile - co-infection screening is standard on any positive STI result",
+          "requires_any": [
+            "hiv_screen"
+          ]
+        },
+        {
+          "name": "Hepatitis B",
+          "role": "supporting",
+          "weight": 0.2,
+          "dm_basis": "Related Profile(s) on the Hepatitis B row includes STD Profile",
+          "requires_any": [
+            "hbsag"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "viral_hepatitis_serology",
+      "name": "Viral Hepatitis Serology",
+      "category": "Infection",
+      "description": "A positive hepatitis marker, interpreted alongside the liver enzymes.",
+      "profiles_touched": [
+        "Hepatitis",
+        "Liver Profile",
+        "STD Profile",
+        "Infectious Diseases"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "hbsag",
+        "anti_hcv",
+        "anti_hav_igm",
+        "sgpt_alt",
+        "sgot_ast",
+        "total_bilirubin"
+      ],
+      "triggers": [
+        {
+          "parameter": "hbsag",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "HBsAg positive"
+        },
+        {
+          "parameter": "anti_hcv",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Anti-HCV positive"
+        },
+        {
+          "parameter": "anti_hav_igm",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Anti-HAV IgM positive - acute hepatitis A"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "sgpt_alt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "ALT raised"
+        },
+        {
+          "parameter": "sgot_ast",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "AST raised"
+        },
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Bilirubin raised - jaundice"
+        },
+        {
+          "parameter": "inr",
+          "condition": {
+            "gt": 1.2
+          },
+          "weight": 0.7,
+          "label": "INR prolonged - a marker of severe hepatic impairment"
+        },
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.5,
+          "label": "Albumin low - chronic liver disease"
+        },
+        {
+          "parameter": "afp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "AFP raised - hepatocellular carcinoma surveillance marker in chronic hepatitis"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "WHO Guidelines on Hepatitis B and C Testing, 2017",
+          "note": "HBsAg and anti-HCV as the primary serological screening markers, with nucleic acid testing for confirmation of active HCV infection."
+        },
+        {
+          "citation": "Terrault NA et al., AASLD 2018 Hepatitis B Guidance, Hepatology 2018;67:1560-99",
+          "note": "HBsAg with ALT and viral load determines phase of infection and need for treatment."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Hepatitis B",
+          "role": "primary",
+          "weight": 0.88,
+          "dm_basis": "High-Risk Indicators: 'Positive HBsAg with elevated liver enzymes'; Related Markers/Tests: HBsAg, Liver function markers (SGOT, SGPT)",
+          "requires_any": [
+            "hbsag"
+          ]
+        },
+        {
+          "name": "Hepatitis C",
+          "role": "primary",
+          "weight": 0.82,
+          "dm_basis": "High-Risk Indicators: 'Positive Anti-HCV with elevated liver enzymes'",
+          "requires_any": [
+            "anti_hcv"
+          ]
+        },
+        {
+          "name": "Hepatitis A",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Markedly elevated SGOT/SGPT with jaundice and positive Anti-HAV IgM'",
+          "requires_any": [
+            "anti_hav_igm"
+          ]
+        },
+        {
+          "name": "Liver Cancer (Hepatocellular Carcinoma)",
+          "role": "downstream_risk",
+          "weight": 0.3,
+          "dm_basis": "High-Risk Indicators: 'Rising or markedly elevated AFP in a patient with chronic liver disease'; chronic hepatitis B/C is the leading risk factor"
+        },
+        {
+          "name": "Liver-related Coagulopathy",
+          "role": "downstream_risk",
+          "weight": 0.25,
+          "dm_basis": "High-Risk Indicators: 'Prolonged PT/INR with abnormal LFTs'"
+        }
+      ]
+    },
+    {
+      "id": "acute_febrile_illness",
+      "name": "Acute Febrile Tropical Illness Panel",
+      "category": "Infection",
+      "description": "A positive result on one of the acute febrile illness tests, interpreted with the blood count changes that accompany these infections.",
+      "profiles_touched": [
+        "Infectious Diseases",
+        "Viral Infections",
+        "Bacterial Infections",
+        "Malaria Profile",
+        "Blood Counts"
+      ],
+      "cross_profile_rationale": "The Disease Master itself tags Typhoid Fever to three profiles and Dengue Fever to two, and the Data Quality Notes sheet recommends multi-profile tagging for exactly these rows. Blood Counts parameters are pooled in because platelet and haematocrit changes are named in the Dengue High-Risk Indicators.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "dengue_ns1",
+        "dengue_igm",
+        "malaria_antigen",
+        "widal_test",
+        "leptospira_igm",
+        "scrub_typhus_igm",
+        "brucella_serology",
+        "platelet_count",
+        "wbc_count",
+        "dengue_igg"
+      ],
+      "triggers": [
+        {
+          "parameter": "dengue_ns1",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Dengue NS1 antigen positive"
+        },
+        {
+          "parameter": "dengue_igm",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.9,
+          "label": "Dengue IgM positive"
+        },
+        {
+          "parameter": "malaria_antigen",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Malaria antigen or smear positive"
+        },
+        {
+          "parameter": "widal_test",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.8,
+          "label": "Widal/Typhidot positive"
+        },
+        {
+          "parameter": "leptospira_igm",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Leptospira IgM positive"
+        },
+        {
+          "parameter": "scrub_typhus_igm",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Scrub typhus IgM positive"
+        },
+        {
+          "parameter": "brucella_serology",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.9,
+          "label": "Brucella serology positive"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "lt": 150000
+          },
+          "weight": 0.8,
+          "label": "Thrombocytopenia - characteristic of dengue, malaria and scrub typhus"
+        },
+        {
+          "parameter": "hematocrit",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "Rising haematocrit - plasma leakage warning sign in dengue"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "lt": 4000
+          },
+          "weight": 0.5,
+          "label": "Leukopenia - typical of dengue and typhoid"
+        },
+        {
+          "parameter": "blood_culture",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Blood culture positive - confirms enteric fever"
+        },
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Bilirubin raised - jaundice, seen in severe leptospirosis and malaria"
+        },
+        {
+          "parameter": "creatinine",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Creatinine raised - organ involvement"
+        },
+        {
+          "parameter": "sgpt_alt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Transaminases raised"
+        },
+        {
+          "parameter": "dengue_igg",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.4,
+          "label": "Dengue IgG positive - with a positive IgM this suggests secondary infection, which carries a higher risk of severe dengue"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "WHO, Dengue Guidelines for Diagnosis, Treatment, Prevention and Control, 2009",
+          "note": "NS1 antigen and IgM for diagnosis; falling platelets with rising haematocrit are warning signs of severe dengue."
+        },
+        {
+          "citation": "WHO Guidelines for Malaria, 2023",
+          "note": "Rapid diagnostic test or microscopy for confirmation before treatment."
+        },
+        {
+          "citation": "Parry CM et al., N Engl J Med 2002;347:1770-82",
+          "note": "Blood culture is the diagnostic standard for typhoid; the Widal test has limited specificity and requires paired titres."
+        },
+        {
+          "citation": "Haake DA, Levett PN, Curr Top Microbiol Immunol 2015;387:65-97",
+          "note": "Leptospirosis: IgM serology with the clinical triad of fever, myalgia and jaundice."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Dengue Fever",
+          "role": "primary",
+          "weight": 0.88,
+          "dm_basis": "High-Risk Indicators: 'Positive NS1/IgM with falling platelet count and rising hematocrit'; Related Markers/Tests: Dengue NS1 antigen, Dengue IgM/IgG, Platelet count",
+          "requires_any": [
+            "dengue_ns1",
+            "dengue_igm"
+          ]
+        },
+        {
+          "name": "Malaria",
+          "role": "primary",
+          "weight": 0.9,
+          "dm_basis": "High-Risk Indicators: 'Positive blood smear/antigen test, especially with high parasite density'; Related Markers/Tests: Malaria antigen test, peripheral blood smear",
+          "requires_any": [
+            "malaria_antigen"
+          ]
+        },
+        {
+          "name": "Typhoid Fever",
+          "role": "primary",
+          "weight": 0.62,
+          "dm_basis": "High-Risk Indicators: 'Sustained fever with positive blood culture or a significantly rising Widal titer'. Weight reflects the Widal test's limited specificity noted in the same row.",
+          "requires_any": [
+            "widal_test",
+            "blood_culture"
+          ]
+        },
+        {
+          "name": "Leptospirosis",
+          "role": "primary",
+          "weight": 0.82,
+          "dm_basis": "High-Risk Indicators: 'Positive serology with fever, muscle pain, and jaundice, especially after flood/water exposure'",
+          "requires_any": [
+            "leptospira_igm"
+          ]
+        },
+        {
+          "name": "Scrub Typhus",
+          "role": "primary",
+          "weight": 0.82,
+          "dm_basis": "High-Risk Indicators: 'Positive serology with fever and an eschar following outdoor/rural exposure'",
+          "requires_any": [
+            "scrub_typhus_igm"
+          ]
+        },
+        {
+          "name": "Brucellosis",
+          "role": "primary",
+          "weight": 0.75,
+          "dm_basis": "High-Risk Indicators: 'Positive serology with recurring fever and relevant animal/dairy exposure'",
+          "requires_any": [
+            "brucella_serology"
+          ]
+        },
+        {
+          "name": "Sepsis",
+          "role": "downstream_risk",
+          "weight": 0.22,
+          "dm_basis": "Possible Complications across these infection rows include progression to severe systemic illness"
+        }
+      ]
+    },
+    {
+      "id": "covid_pattern",
+      "name": "COVID-19 Test Result",
+      "category": "Infection",
+      "description": "A positive SARS-CoV-2 test, or antibody evidence of past infection.",
+      "profiles_touched": [
+        "COVID"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "covid_rtpcr",
+        "covid_antigen",
+        "covid_antibody"
+      ],
+      "triggers": [
+        {
+          "parameter": "covid_rtpcr",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "SARS-CoV-2 RT-PCR positive"
+        },
+        {
+          "parameter": "covid_antigen",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.9,
+          "label": "SARS-CoV-2 antigen test positive"
+        },
+        {
+          "parameter": "covid_antibody",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.5,
+          "label": "SARS-CoV-2 antibody positive - documents past infection or vaccination"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "crp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "CRP raised"
+        },
+        {
+          "parameter": "d_dimer",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "D-dimer raised - thrombotic risk marker in COVID-19"
+        },
+        {
+          "parameter": "lymphocyte_pct",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Lymphopenia - characteristic of acute COVID-19"
+        },
+        {
+          "parameter": "ferritin",
+          "condition": {
+            "gte": 1000
+          },
+          "weight": 0.4,
+          "label": "Ferritin markedly raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "WHO, Diagnostic Testing for SARS-CoV-2, Interim Guidance 2020",
+          "note": "RT-PCR as the reference standard; antigen tests are less sensitive but useful with high viral load."
+        },
+        {
+          "citation": "Soriano JB et al., WHO Clinical Case Definition of Post COVID-19 Condition, Lancet Infect Dis 2022;22:e102-e107",
+          "note": "Symptoms persisting beyond 12 weeks with no alternative explanation."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "COVID-19 (Acute Infection)",
+          "role": "primary",
+          "weight": 0.9,
+          "dm_basis": "High-Risk Indicators: 'Positive RT-PCR/antigen test; low Ct value can suggest higher viral load'; Related Markers/Tests: COVID RT-PCR, COVID Antigen",
+          "requires_any": [
+            "covid_rtpcr",
+            "covid_antigen"
+          ]
+        },
+        {
+          "name": "Post-COVID/Long COVID Syndrome",
+          "role": "supporting",
+          "weight": 0.25,
+          "dm_basis": "High-Risk Indicators: 'Persistent multi-system symptoms beyond 12 weeks following confirmed/suspected COVID-19'; Related Markers/Tests: COVID Antibody. Weight is low because the defining feature is symptom duration, not a lab result.",
+          "requires_any": [
+            "covid_antibody"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "varicella_serology",
+      "name": "Varicella Zoster Immunity",
+      "category": "Infection",
+      "description": "Varicella zoster IgG, which documents past infection or vaccination rather than acute disease.",
+      "profiles_touched": [
+        "Viral Infections"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "varicella_igg"
+      ],
+      "triggers": [
+        {
+          "parameter": "varicella_igg",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Varicella zoster IgG positive - past infection or vaccination"
+        }
+      ],
+      "supporting": [],
+      "evidence": [
+        {
+          "citation": "Marin M et al., CDC Prevention of Varicella Recommendations, MMWR Recomm Rep 2007;56(RR-4):1-40",
+          "note": "VZV IgG documents immunity; acute varicella and zoster are clinical diagnoses."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Varicella (Chickenpox)/Herpes Zoster (Shingles)",
+          "role": "primary",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Positive IgG indicates past infection/immunity; acute diagnosis is primarily clinical'. Weight is deliberately low - the Disease Master states this marker does not establish acute disease."
+        }
+      ]
+    },
+    {
+      "id": "h_pylori_pattern",
+      "name": "Helicobacter pylori Infection Pattern",
+      "category": "Infection",
+      "description": "A positive H. pylori test. Stool antigen and urea breath test indicate active infection; serology cannot distinguish current from past infection.",
+      "profiles_touched": [
+        "Bacterial Infections",
+        "Infectious Diseases",
+        "Stool Analysis"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "h_pylori_stool_antigen",
+        "urea_breath_test",
+        "h_pylori_antibody"
+      ],
+      "triggers": [
+        {
+          "parameter": "h_pylori_stool_antigen",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "H. pylori stool antigen positive - active infection"
+        },
+        {
+          "parameter": "urea_breath_test",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Urea breath test positive - active infection"
+        },
+        {
+          "parameter": "h_pylori_antibody",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.5,
+          "label": "H. pylori antibody positive - cannot distinguish current from past infection"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "ferritin",
+          "condition": {
+            "lt": 30
+          },
+          "weight": 0.4,
+          "label": "Iron stores depleted - H. pylori is a recognised cause of refractory iron deficiency"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.3,
+          "label": "Anaemia"
+        },
+        {
+          "parameter": "stool_occult_blood",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.5,
+          "label": "Faecal occult blood positive - possible ulcer bleeding"
+        },
+        {
+          "parameter": "vitamin_b12",
+          "condition": {
+            "lt": 200
+          },
+          "weight": 0.3,
+          "label": "B12 low - atrophic gastritis impairs absorption"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Malfertheiner P et al., Maastricht VI/Florence Consensus Report, Gut 2022;71:1724-62",
+          "note": "Urea breath test and stool antigen as non-invasive tests of active infection; serology cannot confirm current infection."
+        },
+        {
+          "citation": "Chey WD et al., ACG Clinical Guideline: Treatment of Helicobacter pylori Infection, Am J Gastroenterol 2017;112:212-39",
+          "note": "Test-and-treat strategy and the association with peptic ulcer disease."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "H. pylori Infection",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Positive stool antigen/breath test with symptomatic peptic ulcer disease'; Related Markers/Tests: H. pylori antigen (stool) or antibody test"
+        },
+        {
+          "name": "Peptic Ulcer Disease/Gastritis (H. pylori-associated)",
+          "role": "primary",
+          "weight": 0.68,
+          "dm_basis": "High-Risk Indicators: 'Positive Urea Breath Test or stool antigen with matching GI symptoms'; Related Markers/Tests: Helicobacter Pylori Abs (IgG/IgM), Helicobacter Antigen in Stool",
+          "requires_any": [
+            "h_pylori_stool_antigen",
+            "urea_breath_test",
+            "h_pylori_antibody"
+          ]
+        },
+        {
+          "name": "Iron Deficiency Anemia",
+          "role": "supporting",
+          "weight": 0.2,
+          "dm_basis": "Cross-linked because H. pylori is a recognised cause of iron deficiency refractory to oral supplementation"
+        }
+      ]
+    },
+    {
+      "id": "uti_pattern",
+      "name": "Urinary Tract Infection Pattern",
+      "category": "Infection",
+      "description": "Nitrite and leukocyte esterase positive with pyuria, ideally confirmed on culture.",
+      "profiles_touched": [
+        "Urinalysis",
+        "Infectious Diseases"
+      ],
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "urine_nitrite",
+        "urine_leukocyte_esterase",
+        "urine_pus_cells",
+        "urine_culture"
+      ],
+      "triggers": [
+        {
+          "parameter": "urine_nitrite",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Urine nitrite positive - suggests Enterobacteriaceae"
+        },
+        {
+          "parameter": "urine_leukocyte_esterase",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Leukocyte esterase positive"
+        },
+        {
+          "parameter": "urine_pus_cells",
+          "condition": {
+            "gt": 5
+          },
+          "weight": 0.9,
+          "label": "Pus cells above 5 per high power field - pyuria"
+        },
+        {
+          "parameter": "urine_culture",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Urine culture positive"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "urine_blood",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.4,
+          "label": "Blood in urine"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Systemic leucocytosis - possible upper tract involvement"
+        },
+        {
+          "parameter": "crp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "CRP raised"
+        },
+        {
+          "parameter": "creatinine",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "Creatinine raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Gupta K et al., IDSA/ESCMID Guidelines for Acute Uncomplicated Cystitis and Pyelonephritis, Clin Infect Dis 2011;52:e103-20",
+          "note": "Dipstick nitrite and leukocyte esterase with pyuria; culture for confirmation and susceptibility."
+        },
+        {
+          "citation": "Bonkat G et al., EAU Guidelines on Urological Infections, 2023",
+          "note": "Diagnostic thresholds and the distinction between asymptomatic bacteriuria and infection."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Urinary Tract Infection",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Positive nitrite/leukocyte esterase with pyuria and a positive urine culture'; Related Markers/Tests: Leukocytes (urine), Nitrite (urine), Pus Cells, Urine culture"
+        },
+        {
+          "name": "Sepsis",
+          "role": "downstream_risk",
+          "weight": 0.2,
+          "dm_basis": "Possible Complications on the UTI row include ascending infection and systemic sepsis"
+        }
+      ]
+    }
+  ]
+}

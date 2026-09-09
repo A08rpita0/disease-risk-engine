@@ -1,0 +1,85 @@
+{
+  "_label": "Anaemia + thyroid (female, flat JSON, mmol/L units)",
+  "PatientName": "Sample Patient B",
+  "Gender": "F",
+  "Age": 29,
+  "results": {
+    "Haemoglobin": {
+      "value": 9.1,
+      "unit": "g/dL",
+      "ref": "12.0 - 15.0"
+    },
+    "RBC Count": {
+      "value": 4.9,
+      "unit": "million/uL"
+    },
+    "MCV": {
+      "value": 68,
+      "unit": "fL",
+      "ref": "80 - 100"
+    },
+    "MCH": {
+      "value": 21.4,
+      "unit": "pg"
+    },
+    "RDW-CV": {
+      "value": 17.8,
+      "unit": "%",
+      "ref": "11.5 - 14.5"
+    },
+    "Platelet Count": {
+      "value": 462000,
+      "unit": "/uL"
+    },
+    "Total WBC Count": {
+      "value": 6800,
+      "unit": "/uL"
+    },
+    "Serum Ferritin": {
+      "value": 5,
+      "unit": "ng/mL",
+      "ref": "15 - 150"
+    },
+    "Serum Iron": {
+      "value": 22,
+      "unit": "ug/dL"
+    },
+    "TIBC": {
+      "value": 498,
+      "unit": "ug/dL"
+    },
+    "TSH": {
+      "value": 11.8,
+      "unit": "uIU/mL",
+      "ref": "0.4 - 4.0"
+    },
+    "Free T4": {
+      "value": 0.62,
+      "unit": "ng/dL",
+      "ref": "0.8 - 1.8"
+    },
+    "Anti-TPO Antibodies": {
+      "value": 412,
+      "unit": "IU/mL",
+      "ref": "0 - 34"
+    },
+    "Vitamin B12": {
+      "value": 143,
+      "unit": "pg/mL",
+      "ref": "200 - 900"
+    },
+    "Vitamin D (25-Hydroxy)": {
+      "value": 27.5,
+      "unit": "nmol/L"
+    },
+    "Anti-tTG IgA": {
+      "value": 68,
+      "unit": "U/mL",
+      "ref": "0 - 10"
+    },
+    "Total IgA": {
+      "value": 190,
+      "unit": "mg/dL"
+    }
+  }
+}

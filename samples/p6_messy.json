@@ -1,0 +1,105 @@
+{
+  "_label": "Messy input (duplicates, nulls, mmol/L, deep nesting)",
+  "metadata": {
+    "lab_info": {
+      "name": "Ignore This Lab",
+      "address": "should not be parsed"
+    }
+  },
+  "episode": {
+    "demographics": {
+      "gender": "Male",
+      "age": "58 yrs"
+    },
+    "panels": {
+      "chemistry": {
+        "groups": [
+          {
+            "items": [
+              {
+                "analyte": "Glucose Fasting",
+                "obs_value": 7.6,
+                "uom": "mmol/L"
+              },
+              {
+                "analyte": "Cholesterol Total",
+                "obs_value": 6.4,
+                "uom": "mmol/L"
+              },
+              {
+                "analyte": "Triglycerides",
+                "obs_value": 3.1,
+                "uom": "mmol/L"
+              },
+              {
+                "analyte": "HDL Cholesterol",
+                "obs_value": 0.86,
+                "uom": "mmol/L"
+              },
+              {
+                "analyte": "Creatinine",
+                "obs_value": 168,
+                "uom": "umol/L"
+              },
+              {
+                "analyte": "Potassium",
+                "obs_value": 6.3,
+                "uom": "mmol/L"
+              },
+              {
+                "analyte": "Sodium",
+                "obs_value": 129,
+                "uom": "mmol/L"
+              },
+              {
+                "analyte": "Bicarbonate",
+                "obs_value": 17,
+                "uom": "mmol/L"
+              },
+              {
+                "analyte": "Chloride",
+                "obs_value": 99,
+                "uom": "mmol/L"
+              },
+              {
+                "analyte": "Calcium",
+                "obs_value": null,
+                "uom": "mmol/L"
+              },
+              {
+                "analyte": "Albumin",
+                "obs_value": "",
+                "uom": "g/L"
+              }
+            ]
+          }
+        ]
+      },
+      "haematology": {
+        "items": [
+          {
+            "analyte": "Haemoglobin",
+            "obs_value": 9.8,
+            "uom": "g/dL"
+          },
+          {
+            "analyte": "Hb",
+            "obs_value": 9.9,
+            "uom": "g/dL",
+            "reference_range": "13.0 - 17.0"
+          },
+          {
+            "analyte": "Platelets",
+            "obs_value": 118,
+            "uom": "10^9/L"
+          },
+          {
+            "analyte": "WBC",
+            "obs_value": 2.9,
+            "uom": "10^9/L"
+          }
+        ]
+      }
+    }
+  }
+}

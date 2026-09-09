@@ -1,0 +1,89 @@
+{
+  "_label": "Healthy panel (no abnormal findings expected)",
+  "patient": {
+    "gender": "female",
+    "age": 34
+  },
+  "tests": [
+    {
+      "test_name": "Haemoglobin",
+      "value": 13.4,
+      "unit": "g/dL"
+    },
+    {
+      "test_name": "Total WBC Count",
+      "value": 7200,
+      "unit": "/uL"
+    },
+    {
+      "test_name": "Platelet Count",
+      "value": 265000,
+      "unit": "/uL"
+    },
+    {
+      "test_name": "Fasting Blood Sugar",
+      "value": 88,
+      "unit": "mg/dL"
+    },
+    {
+      "test_name": "HbA1c",
+      "value": 5.2,
+      "unit": "%"
+    },
+    {
+      "test_name": "Total Cholesterol",
+      "value": 172,
+      "unit": "mg/dL"
+    },
+    {
+      "test_name": "HDL Cholesterol",
+      "value": 62,
+      "unit": "mg/dL"
+    },
+    {
+      "test_name": "LDL Cholesterol",
+      "value": 92,
+      "unit": "mg/dL"
+    },
+    {
+      "test_name": "Triglycerides",
+      "value": 96,
+      "unit": "mg/dL"
+    },
+    {
+      "test_name": "Serum Creatinine",
+      "value": 0.78,
+      "unit": "mg/dL"
+    },
+    {
+      "test_name": "eGFR",
+      "value": 104,
+      "unit": "mL/min/1.73m2"
+    },
+    {
+      "test_name": "SGPT",
+      "value": 22,
+      "unit": "U/L"
+    },
+    {
+      "test_name": "SGOT",
+      "value": 24,
+      "unit": "U/L"
+    },
+    {
+      "test_name": "TSH",
+      "value": 2.1,
+      "unit": "uIU/mL"
+    },
+    {
+      "test_name": "Vitamin D",
+      "value": 41,
+      "unit": "ng/mL"
+    },
+    {
+      "test_name": "Vitamin B12",
+      "value": 512,
+      "unit": "pg/mL"
+    }
+  ]
+}

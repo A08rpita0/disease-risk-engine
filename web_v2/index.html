@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clinical Analytics — Disease Correlation &amp; Risk Engine</title>
+<link rel="stylesheet" href="/v2-static/styles.css?v=7">
+</head>
+<body>
+
+<header class="appbar">
+  <div class="brand">
+    <span class="logo">CA</span>
+    <div>
+      <div class="app-name">Clinical Analytics</div>
+      <div class="app-sub">Disease correlation &amp; risk engine</div>
+    </div>
+  </div>
+  <div class="appbar-meta" id="appbarMeta"></div>
+</header>
+
+<div class="shell">
+
+  <nav class="sidebar" aria-label="Sections">
+    <div class="nav-label">Analysis</div>
+    <button class="nav-item active" data-tab="overview">Overview</button>
+    <button class="nav-item" data-tab="risks" disabled>Findings <span class="nav-count" id="cRisks">—</span></button>
+    <button class="nav-item" data-tab="cohorts" disabled>Clusters <span class="nav-count" id="cCohorts">—</span></button>
+    <button class="nav-item" data-tab="params" disabled>Parameters <span class="nav-count" id="cParams">—</span></button>
+    <button class="nav-item" data-tab="plan" disabled>Recommendations <span class="nav-count" id="cPlan">—</span></button>
+    <div class="nav-label">Audit</div>
+    <button class="nav-item" data-tab="data" disabled>Data quality</button>
+    <button class="nav-item" data-tab="reference">Reference</button>
+    <div class="sidebar-foot" id="sidebarFoot"></div>
+  </nav>
+
+  <main class="content">
+
+    <div class="notice">
+      <span class="notice-mark">!</span>
+      <span><b>Risk signalling, not diagnosis.</b> Clinically established patterns are matched
+      against the supplied Disease Master. Every cluster cites the reference that establishes it
+      and every condition shows the Disease Master field it matched on. Laboratory data cannot
+      account for symptoms, examination or history — take any finding to a doctor.</span>
+    </div>
+
+    <section class="intake" id="intake">
+      <div class="intake-head">
+        <span class="card-title">Report intake</span>
+        <button class="btn-sec" id="collapseBtn" hidden>Hide</button>
+      </div>
+      <div class="intake-body" id="intakeBody">
+        <div class="intake-main">
+          <div class="dropzone" id="dropzone" tabindex="0" role="button"
+               aria-label="Choose or drop a report file">
+            <div class="dz-title">Drop a report here, or click to choose</div>
+            <div class="dz-sub">Laboratory report (PDF, CSV, TXT) or standardized JSON &middot; max 20&nbsp;MB</div>
+            <input type="file" id="fileInput" accept=".json,.pdf,.csv,.tsv,.txt" hidden>
+          </div>
+          <div class="chosen" id="chosen"></div>
+        </div>
+        <div class="intake-side">
+          <div class="field">
+            <label for="sexInput">Sex <span class="hint">— sets sex-specific ranges</span></label>
+            <select id="sexInput">
+              <option value="">Read from report</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="ageInput">Age <span class="hint">— optional</span></label>
+            <input type="number" id="ageInput" min="0" max="120" step="1" placeholder="years">
+          </div>
+          <button id="analyseBtn" class="btn" disabled>Run analysis</button>
+          <div>
+            <div class="samples-label">Sample records</div>
+            <div id="sampleList" class="sample-list"></div>
+          </div>
+        </div>
+      </div>
+      <div id="status" class="status" hidden></div>
+    </section>
+
+    <div id="results" hidden>
+      <div class="patient-bar" id="patientBar"></div>
+      <section class="panel active" id="tab-overview"></section>
+      <section class="panel" id="tab-risks"></section>
+      <section class="panel" id="tab-cohorts"></section>
+      <section class="panel" id="tab-params"></section>
+      <section class="panel" id="tab-plan"></section>
+      <section class="panel" id="tab-data"></section>
+    </div>
+
+    <section class="panel" id="tab-reference"></section>
+
+  </main>
+</div>
+
+<script src="/v2-static/app.js?v=7"></script>
+</body>
+</html>

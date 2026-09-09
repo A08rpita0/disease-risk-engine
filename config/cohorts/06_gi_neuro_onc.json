@@ -1,0 +1,1166 @@
+{
+  "domain": "Gastrointestinal, Urogenital, Neurological and Oncology",
+  "cohorts": [
+    {
+      "id": "gi_inflammatory_pattern",
+      "name": "Gastrointestinal Inflammation / Bleeding Pattern",
+      "category": "Gastrointestinal",
+      "description": "Blood or inflammatory cells in the stool, usually alongside systemic markers of inflammation and anaemia.",
+      "profiles_touched": [
+        "Stool Analysis",
+        "Blood Counts",
+        "Inflammation",
+        "Autoimmune Disorders"
+      ],
+      "cross_profile_rationale": "The Disease Master IBD row lists 'Stool analysis (occult blood), CBC, inflammatory markers' - a marker set that spans three profiles and cannot be evaluated from Stool Analysis alone.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "stool_occult_blood",
+        "stool_wbc",
+        "hemoglobin",
+        "crp",
+        "esr",
+        "albumin"
+      ],
+      "triggers": [
+        {
+          "parameter": "stool_occult_blood",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Faecal occult blood positive"
+        },
+        {
+          "parameter": "stool_wbc",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "White cells present in stool - invasive or inflammatory process"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Anaemia - chronic blood loss or inflammation"
+        },
+        {
+          "parameter": "ferritin",
+          "condition": {
+            "lt": 30
+          },
+          "weight": 0.6,
+          "label": "Iron stores depleted"
+        },
+        {
+          "parameter": "crp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "CRP raised"
+        },
+        {
+          "parameter": "esr",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "ESR raised"
+        },
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.6,
+          "label": "Albumin low - protein-losing enteropathy or chronic inflammation"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Reactive thrombocytosis - common in active bowel inflammation"
+        },
+        {
+          "parameter": "anti_ttg_iga",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Anti-tTG IgA raised - coeliac disease"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Lamb CA et al., BSG Consensus Guidelines on the Management of IBD in Adults, Gut 2019;68(s3):s1-s106",
+          "note": "Raised CRP, anaemia, thrombocytosis and low albumin as markers of active bowel inflammation; faecal calprotectin distinguishes IBD from IBS."
+        },
+        {
+          "citation": "Lacy BE et al., ACG Clinical Guideline: Management of Irritable Bowel Syndrome, Am J Gastroenterol 2021;116:17-44",
+          "note": "IBS is a positive symptom-based diagnosis requiring the absence of alarm features and normal inflammatory markers."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Inflammatory Bowel Disease (Crohn's Disease/Ulcerative Colitis)",
+          "role": "primary",
+          "weight": 0.62,
+          "dm_basis": "High-Risk Indicators: 'Persistent diarrhea (over several weeks) with blood/mucus, unexplained weight loss, abnormal stool findings with systemic symptoms'; Related Markers/Tests: Stool analysis (occult blood), CBC, inflammatory markers"
+        },
+        {
+          "name": "Bacterial Gastroenteritis (Salmonella/Shigella)",
+          "role": "supporting",
+          "weight": 0.42,
+          "dm_basis": "High-Risk Indicators: 'Acute bloody or high-volume diarrhea with fever'; Related Markers/Tests: Stool analysis (microscopy for white/red blood cells)"
+        },
+        {
+          "name": "Irritable Bowel Syndrome (IBS)",
+          "role": "differential",
+          "weight": 0.12,
+          "dm_basis": "High-Risk Indicators: 'Chronic pattern fits symptom-based criteria AND stool/blood tests show NO red-flag findings' - this cohort's findings argue against IBS rather than for it"
+        },
+        {
+          "name": "Iron Deficiency Anemia",
+          "role": "supporting",
+          "weight": 0.3,
+          "dm_basis": "Cross-linked because gastrointestinal blood loss is the leading cause of iron deficiency in adult men and postmenopausal women"
+        },
+        {
+          "name": "Celiac Disease",
+          "role": "differential",
+          "weight": 0.22,
+          "dm_basis": "Related Profile(s) on the Celiac Disease row includes Stool Analysis",
+          "requires_any": [
+            "anti_ttg_iga"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "parasitic_infection",
+      "name": "Intestinal Parasite Detection",
+      "category": "Gastrointestinal",
+      "description": "Ova, cysts or parasites seen on stool microscopy.",
+      "profiles_touched": [
+        "Stool Analysis",
+        "Blood Counts"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "stool_ova_parasite",
+        "absolute_eosinophil_count",
+        "hemoglobin"
+      ],
+      "triggers": [
+        {
+          "parameter": "stool_ova_parasite",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Ova, cysts or parasites seen on stool microscopy"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "absolute_eosinophil_count",
+          "condition": {
+            "gte": 500
+          },
+          "weight": 0.6,
+          "label": "Eosinophilia - typical of helminth infection"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Anaemia - hookworm and other parasites cause chronic blood loss"
+        },
+        {
+          "parameter": "ferritin",
+          "condition": {
+            "lt": 30
+          },
+          "weight": 0.4,
+          "label": "Iron stores depleted"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "WHO Guideline: Preventive Chemotherapy to Control Soil-Transmitted Helminth Infections, 2017",
+          "note": "Stool microscopy as the standard field diagnostic; anaemia and eosinophilia as associated findings."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Intestinal Parasitic Infection",
+          "role": "primary",
+          "weight": 0.88,
+          "dm_basis": "High-Risk Indicators: 'Ova, cysts, or parasites identified on stool microscopy, especially with compatible symptoms or exposure history'; Related Markers/Tests: Stool microscopy/ova and parasite exam"
+        },
+        {
+          "name": "Iron Deficiency Anemia",
+          "role": "supporting",
+          "weight": 0.22,
+          "dm_basis": "Cross-linked because intestinal parasites are a leading cause of iron deficiency where they are endemic"
+        }
+      ]
+    },
+    {
+      "id": "semen_abnormality",
+      "name": "Abnormal Semen Parameters",
+      "category": "Urogenital",
+      "description": "Sperm concentration, motility or morphology below the WHO lower reference limits.",
+      "profiles_touched": [
+        "Semen Analysis",
+        "Hormones"
+      ],
+      "cross_profile_rationale": "Hormone parameters are admitted as supporting signals because the Disease Master Male Hypogonadism row lists 'Testosterone, LH, FSH, Semen Analysis parameters' together.",
+      "sex_restriction": "male",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "sperm_concentration",
+        "sperm_motility_total",
+        "sperm_progressive_motility",
+        "sperm_morphology",
+        "semen_volume"
+      ],
+      "triggers": [
+        {
+          "parameter": "sperm_concentration",
+          "condition": {
+            "lt": 16
+          },
+          "weight": 1.0,
+          "label": "Sperm concentration below the WHO lower reference limit of 16 million/mL"
+        },
+        {
+          "parameter": "sperm_motility_total",
+          "condition": {
+            "lt": 42
+          },
+          "weight": 1.0,
+          "label": "Total motility below the WHO lower reference limit of 42%"
+        },
+        {
+          "parameter": "sperm_progressive_motility",
+          "condition": {
+            "lt": 30
+          },
+          "weight": 0.9,
+          "label": "Progressive motility below the WHO lower reference limit of 30%"
+        },
+        {
+          "parameter": "sperm_morphology",
+          "condition": {
+            "lt": 4
+          },
+          "weight": 0.8,
+          "label": "Normal morphology below the WHO lower reference limit of 4%"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "semen_volume",
+          "condition": {
+            "lt": 1.4
+          },
+          "weight": 0.6,
+          "label": "Semen volume below the WHO lower reference limit of 1.4 mL"
+        },
+        {
+          "parameter": "sperm_concentration",
+          "condition": {
+            "lt": 1
+          },
+          "weight": 0.9,
+          "label": "Sperm concentration below 1 million/mL - severe oligozoospermia or azoospermia"
+        },
+        {
+          "parameter": "testosterone_total",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Testosterone low"
+        },
+        {
+          "parameter": "fsh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "FSH raised - primary testicular failure"
+        },
+        {
+          "parameter": "lh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "LH raised"
+        },
+        {
+          "parameter": "prolactin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Prolactin raised - suppresses the gonadal axis"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "WHO Laboratory Manual for the Examination and Processing of Human Semen, 6th edition, 2021",
+          "note": "Lower reference limits (5th centile): volume 1.4 mL, concentration 16 million/mL, total motility 42%, progressive motility 30%, normal forms 4%."
+        },
+        {
+          "citation": "Schlegel PN et al., AUA/ASRM Guideline: Diagnosis and Treatment of Infertility in Men, Fertil Steril 2021;115:54-61",
+          "note": "Two abnormal semen analyses before diagnosis; endocrine evaluation when concentration is low or there are clinical features of hypogonadism."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Male Infertility (Oligospermia/Azoospermia)",
+          "role": "primary",
+          "weight": 0.8,
+          "dm_basis": "High-Risk Indicators: 'Sperm concentration below the reference range on semen analysis, especially on repeat testing'; Related Markers/Tests: Semen analysis (sperm count/concentration)",
+          "requires_any": [
+            "sperm_concentration"
+          ]
+        },
+        {
+          "name": "Asthenozoospermia (Reduced Sperm Motility)",
+          "role": "primary",
+          "weight": 0.78,
+          "dm_basis": "High-Risk Indicators: 'Motile sperm percentage below the reference range on semen analysis, especially on repeat testing'; Related Markers/Tests: Semen analysis (sperm motility)",
+          "requires_any": [
+            "sperm_motility_total",
+            "sperm_progressive_motility"
+          ]
+        },
+        {
+          "name": "Varicocele-related Infertility",
+          "role": "supporting",
+          "weight": 0.32,
+          "dm_basis": "High-Risk Indicators: 'Abnormal semen analysis with a palpable scrotal varicocele on examination' - the examination finding is not lab-derivable, so weight is limited"
+        },
+        {
+          "name": "Male Hypogonadism",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "Related Markers/Tests: 'Testosterone, LH, FSH, Semen Analysis parameters'"
+        }
+      ]
+    },
+    {
+      "id": "semen_infection",
+      "name": "Genital Tract Infection Pattern",
+      "category": "Urogenital",
+      "description": "Bacterial growth on semen culture, or excess leukocytes in semen.",
+      "profiles_touched": [
+        "Semen Culture and Sensitivity",
+        "Semen Analysis"
+      ],
+      "sex_restriction": "male",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "semen_culture",
+        "semen_pus_cells"
+      ],
+      "triggers": [
+        {
+          "parameter": "semen_culture",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Semen culture shows significant bacterial growth"
+        },
+        {
+          "parameter": "semen_pus_cells",
+          "condition": {
+            "gt": 1.0
+          },
+          "weight": 0.8,
+          "label": "Leukocytes in semen above 1 million/mL - leukocytospermia"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "sperm_motility_total",
+          "condition": {
+            "lt": 42
+          },
+          "weight": 0.5,
+          "label": "Reduced motility - infection impairs sperm function"
+        },
+        {
+          "parameter": "chlamydia_naat",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.8,
+          "label": "Chlamydia positive"
+        },
+        {
+          "parameter": "gonorrhea_naat",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.8,
+          "label": "Gonorrhoea positive"
+        },
+        {
+          "parameter": "urine_culture",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.6,
+          "label": "Urine culture positive"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Bonkat G et al., EAU Guidelines on Urological Infections, 2023",
+          "note": "Bacterial prostatitis and epididymo-orchitis: culture-based diagnosis, with sexually transmitted pathogens predominating in younger men."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Bacterial Prostatitis",
+          "role": "primary",
+          "weight": 0.68,
+          "dm_basis": "High-Risk Indicators: 'Positive bacterial growth on semen culture with matching sensitivity profile'; Related Markers/Tests: Semen culture and sensitivity, Primary smear of semen"
+        },
+        {
+          "name": "Epididymitis/Epididymo-orchitis",
+          "role": "primary",
+          "weight": 0.6,
+          "dm_basis": "High-Risk Indicators: 'Positive bacterial growth on semen/urine culture with matching clinical presentation'; Related Markers/Tests: Semen culture and sensitivity"
+        },
+        {
+          "name": "Chlamydia",
+          "role": "supporting",
+          "weight": 0.25,
+          "dm_basis": "Cross-linked because chlamydia is a leading cause of epididymitis in younger men",
+          "requires_any": [
+            "chlamydia_naat"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "neuro_autoimmune",
+      "name": "Neuro-Autoimmune Serology",
+      "category": "Neurological",
+      "description": "A positive neurological autoantibody or a raised CSF protein - findings that always require neurology interpretation alongside the clinical picture.",
+      "profiles_touched": [
+        "Neurological Disorders"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "urgency_override": "specialist",
+      "expected_parameters": [
+        "achr_antibody",
+        "anti_mog",
+        "anti_aquaporin4",
+        "csf_protein",
+        "paraneoplastic_panel"
+      ],
+      "triggers": [
+        {
+          "parameter": "achr_antibody",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Acetylcholine receptor antibody positive"
+        },
+        {
+          "parameter": "anti_mog",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Anti-MOG antibody positive"
+        },
+        {
+          "parameter": "anti_aquaporin4",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Anti-aquaporin4 (NMO) antibody positive"
+        },
+        {
+          "parameter": "paraneoplastic_panel",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Paraneoplastic antibody panel positive"
+        },
+        {
+          "parameter": "csf_protein",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "CSF protein raised"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "vitamin_b12",
+          "condition": {
+            "lt": 200
+          },
+          "weight": 0.3,
+          "label": "B12 deficient - a reversible contributor to neurological symptoms that should be corrected regardless"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Gilhus NE et al., Nat Rev Dis Primers 2019;5:30",
+          "note": "AChR antibodies are present in roughly 85% of generalised myasthenia gravis and are highly specific."
+        },
+        {
+          "citation": "Wingerchuk DM et al., Neurology 2015;85:177-89",
+          "note": "International consensus criteria for neuromyelitis optica spectrum disorder based on AQP4-IgG serostatus."
+        },
+        {
+          "citation": "Leonhard SE et al., Nat Rev Neurol 2019;15:671-83",
+          "note": "Guillain-Barre syndrome: albuminocytologic dissociation - raised CSF protein with a normal cell count."
+        },
+        {
+          "citation": "Graus F et al., Lancet Neurol 2016;15:391-404",
+          "note": "Clinical approach to autoimmune encephalitis and the interpretation of neuronal antibody panels."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Myasthenia Gravis",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Positive AChR antibody with fatigable muscle weakness'; Related Markers/Tests: AChR (Acetylcholine Receptor) Antibodies",
+          "requires_any": [
+            "achr_antibody"
+          ]
+        },
+        {
+          "name": "Multiple Sclerosis",
+          "role": "primary",
+          "weight": 0.6,
+          "dm_basis": "High-Risk Indicators: 'Positive Anti-MOG or Anti-NMO/Aquaporin4 with matching neurological symptoms'; Related Markers/Tests: Anti-MOG, Anti-Aquaporin4 (NMO), CSF Proteins",
+          "requires_any": [
+            "anti_mog",
+            "anti_aquaporin4"
+          ]
+        },
+        {
+          "name": "Guillain-Barre Syndrome",
+          "role": "primary",
+          "weight": 0.55,
+          "dm_basis": "High-Risk Indicators: 'Elevated CSF protein with normal cell count following recent infection, with progressive weakness'; Severity/Urgency: 'Emergency - can progress to respiratory failure within days'",
+          "requires_any": [
+            "csf_protein"
+          ]
+        },
+        {
+          "name": "Autoimmune/Paraneoplastic Encephalitis",
+          "role": "primary",
+          "weight": 0.8,
+          "dm_basis": "High-Risk Indicators: 'Positive paraneoplastic antibody panel (Hu/Ri/Amphiphysin/CASPR2/AMPA) with matching neuro-psychiatric symptoms'",
+          "requires_any": [
+            "paraneoplastic_panel"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "neuropathy_risk",
+      "name": "Peripheral Neuropathy Risk Pattern",
+      "category": "Neurological",
+      "description": "The two commonest metabolic causes of peripheral neuropathy - B12 deficiency and sustained hyperglycaemia - detected together.",
+      "profiles_touched": [
+        "Neurological Disorders",
+        "Vitamin Profile",
+        "Diabetes Monitoring"
+      ],
+      "cross_profile_rationale": "The Disease Master Peripheral Neuropathy row is itself tagged to all three of these profiles and lists 'Vitamin B12, HbA1c/Fasting Glucose (cross-link Diabetes)'. This cohort implements that cross-link directly.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "vitamin_b12",
+        "hba1c",
+        "fasting_glucose"
+      ],
+      "triggers": [
+        {
+          "parameter": "vitamin_b12",
+          "condition": {
+            "lt": 200
+          },
+          "weight": 1.0,
+          "label": "Vitamin B12 in the deficient range"
+        },
+        {
+          "parameter": "hba1c",
+          "condition": {
+            "gte": 7.0
+          },
+          "weight": 1.0,
+          "label": "HbA1c at or above 7% - sustained hyperglycaemia"
+        },
+        {
+          "parameter": "fasting_glucose",
+          "condition": {
+            "gte": 126
+          },
+          "weight": 0.8,
+          "label": "Fasting glucose in the diabetic range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "vitamin_b12",
+          "condition": {
+            "between": [
+              200,
+              299.9
+            ]
+          },
+          "weight": 0.5,
+          "label": "Vitamin B12 borderline"
+        },
+        {
+          "parameter": "hba1c",
+          "condition": {
+            "gte": 9.0
+          },
+          "weight": 0.7,
+          "label": "HbA1c at or above 9% - markedly raised, higher neuropathy risk"
+        },
+        {
+          "parameter": "homocysteine",
+          "condition": {
+            "gt": 15
+          },
+          "weight": 0.4,
+          "label": "Homocysteine raised - functional B12 marker"
+        },
+        {
+          "parameter": "egfr",
+          "condition": {
+            "lt": 60
+          },
+          "weight": 0.3,
+          "label": "Reduced eGFR - uraemic neuropathy is an additional contributor"
+        },
+        {
+          "parameter": "folate",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.3,
+          "label": "Folate low"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Pop-Busui R et al., Diabetic Neuropathy: A Position Statement by the American Diabetes Association, Diabetes Care 2017;40:136-54",
+          "note": "Glycaemic exposure as the main modifiable driver of distal symmetric polyneuropathy; screening recommended at diagnosis in type 2 diabetes."
+        },
+        {
+          "citation": "Stabler SP, N Engl J Med 2013;368:149-60",
+          "note": "B12 deficiency neuropathy can precede haematological changes and may be irreversible if untreated."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Peripheral Neuropathy",
+          "role": "primary",
+          "weight": 0.68,
+          "dm_basis": "High-Risk Indicators: 'Low B12 or poorly controlled diabetes together with sensory symptoms in a stocking-glove pattern'; Related Markers/Tests: Vitamin B12, HbA1c/Fasting Glucose"
+        },
+        {
+          "name": "Vitamin B12 Deficiency",
+          "role": "supporting",
+          "weight": 0.4,
+          "dm_basis": "Related Markers/Tests: Vitamin B12"
+        },
+        {
+          "name": "Diabetes Mellitus",
+          "role": "supporting",
+          "weight": 0.3,
+          "dm_basis": "Possible Complications on the Diabetes Mellitus row include neuropathy"
+        }
+      ]
+    },
+    {
+      "id": "aed_monitoring",
+      "name": "Antiepileptic Drug Level Monitoring",
+      "category": "Neurological",
+      "description": "A carbamazepine level outside the usual therapeutic window. Monitoring context only - drug levels do not diagnose epilepsy.",
+      "profiles_touched": [
+        "Neurological Disorders"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "carbamazepine_level"
+      ],
+      "triggers": [
+        {
+          "parameter": "carbamazepine_level",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 1.0,
+          "label": "Carbamazepine level outside the usual therapeutic range of 4-12 ug/mL"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "sodium",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.6,
+          "label": "Sodium low - carbamazepine is a recognised cause of hyponatraemia"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "lt": 4000
+          },
+          "weight": 0.5,
+          "label": "Leukopenia - a known haematological effect of carbamazepine"
+        },
+        {
+          "parameter": "sgpt_alt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "ALT raised - hepatic effect"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Patsalos PN et al., ILAE Position Paper on Antiepileptic Drug Therapeutic Drug Monitoring, Epilepsia 2008;49:1239-76",
+          "note": "Reference ranges are guides; clinical response takes precedence over the number."
+        },
+        {
+          "citation": "Van Amelsvoort T et al., Epilepsia 1994;35:181-8",
+          "note": "Carbamazepine-induced hyponatraemia as a dose-related adverse effect."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Epilepsy",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Recurrent unprovoked seizures confirmed on EEG; drug levels used for monitoring, not diagnosis'; Related Markers/Tests: Carbamazepine (Tegretol) level for those on treatment. Weight is deliberately limited - the Disease Master states this marker is not diagnostic."
+        }
+      ]
+    },
+    {
+      "id": "tumour_marker_elevation",
+      "name": "Raised Tumour Marker",
+      "category": "Oncology",
+      "description": "A tumour marker above its reference value. These are surveillance and monitoring tools; none is diagnostic on its own, and all can be raised in benign conditions.",
+      "profiles_touched": [
+        "Cancer Profile",
+        "Tumour Marker Test",
+        "Liver Profile",
+        "Pancreas"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "urgency_override": "specialist",
+      "expected_parameters": [
+        "psa_total",
+        "ca_125",
+        "ca_15_3",
+        "ca_19_9",
+        "afp",
+        "cea"
+      ],
+      "triggers": [
+        {
+          "parameter": "psa_total",
+          "condition": {
+            "gte": 4.0
+          },
+          "weight": 1.0,
+          "label": "PSA at or above 4.0 ng/mL"
+        },
+        {
+          "parameter": "ca_125",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "CA-125 above range"
+        },
+        {
+          "parameter": "ca_15_3",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "CA 15-3 above range"
+        },
+        {
+          "parameter": "ca_19_9",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "CA 19-9 above range"
+        },
+        {
+          "parameter": "afp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "AFP above range"
+        },
+        {
+          "parameter": "cea",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "CEA above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "psa_total",
+          "condition": {
+            "gte": 10.0
+          },
+          "weight": 0.8,
+          "label": "PSA at or above 10 ng/mL - markedly raised"
+        },
+        {
+          "parameter": "afp",
+          "condition": {
+            "gte": 200
+          },
+          "weight": 0.8,
+          "label": "AFP at or above 200 ng/mL - markedly raised"
+        },
+        {
+          "parameter": "alkaline_phosphatase",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "ALP raised"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.3,
+          "label": "Anaemia"
+        },
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.3,
+          "label": "Albumin low"
+        },
+        {
+          "parameter": "ldh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "LDH raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Sturgeon CM et al., NACB Laboratory Medicine Practice Guidelines for Use of Tumor Markers, Clin Chem 2008;54:e11-79",
+          "note": "Tumour markers lack the specificity for diagnosis; their validated roles are surveillance, prognosis and treatment monitoring."
+        },
+        {
+          "citation": "Wei JT et al., AUA/SUO Guideline: Early Detection of Prostate Cancer, J Urol 2023;210:46-53",
+          "note": "PSA thresholds and the need for confirmation and shared decision-making before biopsy."
+        },
+        {
+          "citation": "Marrero JA et al., AASLD Guidance on Hepatocellular Carcinoma, Hepatology 2018;68:723-50",
+          "note": "AFP with ultrasound for surveillance in chronic liver disease; AFP alone is insufficient."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Prostate Cancer",
+          "role": "primary",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Elevated/rising PSA, especially with abnormal digital rectal exam'; Related Markers/Tests: PSA. Weight is capped because the Disease Master indicator also requires an examination finding.",
+          "requires_any": [
+            "psa_total"
+          ]
+        },
+        {
+          "name": "Ovarian Cancer",
+          "role": "primary",
+          "weight": 0.4,
+          "dm_basis": "High-Risk Indicators: 'Elevated tumor marker with imaging findings suspicious for a mass'; Related Markers/Tests: CA-125. Weight is capped because imaging is required.",
+          "requires_any": [
+            "ca_125"
+          ]
+        },
+        {
+          "name": "Breast Cancer",
+          "role": "supporting",
+          "weight": 0.3,
+          "dm_basis": "High-Risk Indicators: 'Palpable mass or imaging finding with abnormal biopsy result'; Related Markers/Tests: 'Tumor markers if included in panel (e.g., CA 15-3)'. Weight is low - the Disease Master makes clear the marker is not the screening test.",
+          "requires_any": [
+            "ca_15_3"
+          ]
+        },
+        {
+          "name": "Pancreatic Cancer",
+          "role": "primary",
+          "weight": 0.4,
+          "dm_basis": "High-Risk Indicators: 'New unexplained jaundice/weight loss with elevated tumor marker and imaging findings'; Related Markers/Tests: Amylase, CA 19-9",
+          "requires_any": [
+            "ca_19_9"
+          ]
+        },
+        {
+          "name": "Liver Cancer (Hepatocellular Carcinoma)",
+          "role": "primary",
+          "weight": 0.48,
+          "dm_basis": "High-Risk Indicators: 'Rising or markedly elevated AFP in a patient with chronic liver disease or a liver mass on imaging'; Related Markers/Tests: Alfa Feto Protein (AFP), LFT markers",
+          "requires_any": [
+            "afp"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lymphoproliferative_pattern",
+      "name": "Lymphoproliferative Screening Pattern",
+      "category": "Oncology",
+      "description": "Raised LDH with lymphocyte abnormality and cytopenias - a combination that warrants haematology review for a lymphoproliferative process.",
+      "profiles_touched": [
+        "Blood Counts",
+        "Cancer Profile"
+      ],
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "urgency_override": "specialist",
+      "expected_parameters": [
+        "ldh",
+        "lymphocyte_pct",
+        "hemoglobin",
+        "platelet_count",
+        "esr",
+        "wbc_count"
+      ],
+      "triggers": [
+        {
+          "parameter": "ldh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "LDH above range"
+        },
+        {
+          "parameter": "lymphocyte_pct",
+          "condition": {
+            "gte": 60
+          },
+          "weight": 0.9,
+          "label": "Marked lymphocytosis on the differential"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Anaemia"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Thrombocytopenia"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "esr",
+          "condition": {
+            "gte": 60
+          },
+          "weight": 0.5,
+          "label": "ESR markedly raised"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 0.4,
+          "label": "White cell count outside range"
+        },
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.3,
+          "label": "Albumin low"
+        },
+        {
+          "parameter": "calcium",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Calcium raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Cheson BD et al., Recommendations for Initial Evaluation, Staging, and Response Assessment of Lymphoma (Lugano Classification), J Clin Oncol 2014;32:3059-68",
+          "note": "LDH as a prognostic marker requiring tissue diagnosis for confirmation."
+        },
+        {
+          "citation": "Swerdlow SH et al., Blood 2016;127:2375-90",
+          "note": "WHO classification of lymphoid neoplasms; peripheral blood findings as an initial trigger for further investigation."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Lymphoma (Suspected/Screening)",
+          "role": "primary",
+          "weight": 0.55,
+          "dm_basis": "High-Risk Indicators: 'Persistent unexplained lymphadenopathy with elevated LDH and systemic symptoms'; Related Markers/Tests: CBC, LDH. Weight is capped because lymphadenopathy - the central finding - is not lab-derivable."
+        },
+        {
+          "name": "Leukemia (Suspected/Screening)",
+          "role": "supporting",
+          "weight": 0.4,
+          "dm_basis": "High-Risk Indicators: 'Markedly abnormal WBC count with abnormal differential, especially with low hemoglobin and platelets together'"
+        },
+        {
+          "name": "Multiple Myeloma",
+          "role": "differential",
+          "weight": 0.22,
+          "dm_basis": "High-Risk Indicators reference anaemia and hypercalcaemia within the CRAB pattern"
+        }
+      ]
+    },
+    {
+      "id": "prostate_screening",
+      "name": "Prostate-Specific Antigen Elevation",
+      "category": "Oncology",
+      "description": "PSA above the commonly used threshold. Benign prostatic enlargement, prostatitis and recent instrumentation all raise PSA.",
+      "profiles_touched": [
+        "Cancer Profile"
+      ],
+      "sex_restriction": "male",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "psa_total"
+      ],
+      "triggers": [
+        {
+          "parameter": "psa_total",
+          "condition": {
+            "gte": 4.0
+          },
+          "weight": 1.0,
+          "label": "PSA at or above 4.0 ng/mL"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "psa_total",
+          "condition": {
+            "gte": 10.0
+          },
+          "weight": 0.8,
+          "label": "PSA at or above 10 ng/mL"
+        },
+        {
+          "parameter": "semen_culture",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.5,
+          "label": "Semen culture positive - prostatitis can raise PSA and should be treated before re-testing"
+        },
+        {
+          "parameter": "urine_culture",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.4,
+          "label": "Urine culture positive - infection can raise PSA"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Wei JT et al., AUA/SUO Guideline: Early Detection of Prostate Cancer, J Urol 2023;210:46-53",
+          "note": "PSA thresholds, confirmatory repeat testing and shared decision-making before biopsy."
+        },
+        {
+          "citation": "Nadler RB et al., J Urol 1995;154:407-13",
+          "note": "Inflammation and benign enlargement as non-malignant causes of PSA elevation."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Prostate Cancer",
+          "role": "primary",
+          "weight": 0.5,
+          "dm_basis": "High-Risk Indicators: 'Elevated/rising PSA, especially with abnormal digital rectal exam'; Related Markers/Tests: PSA (Prostate-Specific Antigen, if included in panel)"
+        },
+        {
+          "name": "Bacterial Prostatitis",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "Cross-linked as a benign cause of PSA elevation that the Disease Master covers under Semen Culture and Sensitivity",
+          "requires_any": [
+            "semen_culture",
+            "urine_culture"
+          ]
+        }
+      ]
+    }
+  ]
+}

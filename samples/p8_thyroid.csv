@@ -1,0 +1,18 @@
+Patient Name: Sample Patient H,,,,
+UHID: NG-551903,,,,
+Age: 38,Sex: Female,,,
+Reported Date: 2026-08-25,,,,
+,,,,
+Test Name,Result,Unit,Reference Range,Flag
+TSH,0.02,uIU/mL,0.4 - 4.0,L
+Free T4,3.4,ng/dL,0.8 - 1.8,H
+Free T3,9.8,pg/mL,2.3 - 4.2,H
+Anti-TPO Antibodies,96,IU/mL,0 - 34,H
+Haemoglobin,11.4,g/dL,12.0 - 15.0,L
+Total Leucocyte Count,7100,/cumm,4000 - 11000,
+Platelet Count,212000,/cumm,150000 - 450000,
+Alkaline Phosphatase,163,U/L,40 - 129,H
+Serum Calcium,10.6,mg/dL,8.6 - 10.2,H
+Vitamin D (25-Hydroxy),18,ng/mL,30 - 100,L
+Total Cholesterol,141,mg/dL,125 - 200,
+Fasting Blood Sugar,91,mg/dL,70 - 99,

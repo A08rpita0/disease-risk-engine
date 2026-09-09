@@ -1,0 +1,1932 @@
+{
+  "domain": "Haematology and Coagulation",
+  "cohorts": [
+    {
+      "id": "iron_deficiency",
+      "name": "Iron Deficiency Pattern",
+      "category": "Haematology",
+      "description": "Depleted iron stores with a compensatory rise in iron-binding capacity, with or without established microcytic anaemia.",
+      "profiles_touched": [
+        "Anemia Studies",
+        "Blood Counts",
+        "Stool Analysis",
+        "Autoimmune Disorders"
+      ],
+      "cross_profile_rationale": "Red cell indices come from Blood Counts while iron studies come from Anemia Studies; coeliac serology and faecal occult blood are admitted as supporting signals because they identify the two commonest causes of unexplained iron loss in adults.",
+      "min_triggers": 1,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "ferritin",
+        "serum_iron",
+        "tibc",
+        "transferrin_saturation",
+        "hemoglobin",
+        "mcv",
+        "rdw_cv",
+        "mchc"
+      ],
+      "triggers": [
+        {
+          "parameter": "ferritin",
+          "condition": {
+            "lt": 30
+          },
+          "weight": 1.0,
+          "label": "Ferritin below 30 ng/mL - depleted iron stores"
+        },
+        {
+          "parameter": "transferrin_saturation",
+          "condition": {
+            "lt": 20
+          },
+          "weight": 0.9,
+          "label": "Transferrin saturation below 20%"
+        },
+        {
+          "parameter": "serum_iron",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Serum iron below range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "tibc",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "TIBC raised - compensatory increase in iron-binding capacity"
+        },
+        {
+          "parameter": "uibc",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "UIBC raised"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.8,
+          "label": "Haemoglobin below the sex-specific range"
+        },
+        {
+          "parameter": "mcv",
+          "condition": {
+            "lt": 80
+          },
+          "weight": 0.7,
+          "label": "MCV below 80 fL - microcytosis"
+        },
+        {
+          "parameter": "mch",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "MCH low - hypochromia"
+        },
+        {
+          "parameter": "rdw_cv",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "RDW raised - anisocytosis typical of evolving iron deficiency"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "Reactive thrombocytosis, a recognised accompaniment of iron deficiency"
+        },
+        {
+          "parameter": "anti_ttg_iga",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "Anti-tTG IgA raised - possible coeliac disease as the underlying cause"
+        },
+        {
+          "parameter": "stool_occult_blood",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.8,
+          "label": "Faecal occult blood positive - possible gastrointestinal blood loss"
+        },
+        {
+          "parameter": "mchc",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.35,
+          "label": "MCHC low - hypochromia"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Camaschella C, N Engl J Med 2015;372:1832-43",
+          "note": "Ferritin <30 ng/mL with low transferrin saturation as the most specific pattern for iron deficiency."
+        },
+        {
+          "citation": "WHO, Serum ferritin concentrations for the assessment of iron status, 2020",
+          "note": "Ferritin thresholds for depleted iron stores, noting ferritin's behaviour as an acute-phase reactant."
+        },
+        {
+          "citation": "Ko CW et al., AGA Clinical Practice Guideline on Gastrointestinal Evaluation of Iron Deficiency Anemia, Gastroenterology 2020;159:1085-94",
+          "note": "Coeliac serology and evaluation for gastrointestinal blood loss in unexplained iron deficiency."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Iron Deficiency Anemia",
+          "role": "primary",
+          "weight": 0.9,
+          "dm_basis": "High-Risk Indicators: 'Low Ferritin with Low Iron and elevated TIBC/UIBC'; Related Markers/Tests: Iron, TIBC, UIBC, Ferritin, Transferrin Saturation"
+        },
+        {
+          "name": "Celiac Disease",
+          "role": "supporting",
+          "weight": 0.3,
+          "dm_basis": "High-Risk Indicators: 'Elevated tTG-IgA with compatible symptoms or unexplained iron/folate deficiency'",
+          "requires_any": [
+            "anti_ttg_iga"
+          ]
+        },
+        {
+          "name": "Malabsorption Syndrome",
+          "role": "supporting",
+          "weight": 0.25,
+          "dm_basis": "Related Markers/Tests lists Iron studies among the malabsorption marker set"
+        },
+        {
+          "name": "Inflammatory Bowel Disease (Crohn's Disease/Ulcerative Colitis)",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "Related Markers/Tests lists 'Stool analysis (occult blood), CBC' - chronic blood loss from bowel inflammation",
+          "requires_any": [
+            "stool_occult_blood"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "microcytic_non_iron_deficient",
+      "name": "Microcytosis Without Iron Deficiency",
+      "category": "Haematology",
+      "description": "Small red cells with preserved iron stores and a red cell count that is normal or high - the classic screening pattern for a thalassaemia trait rather than iron deficiency.",
+      "profiles_touched": [
+        "Blood Counts",
+        "Anemia Studies",
+        "Hemoglobin Electrophoresis",
+        "Blood Disorder"
+      ],
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "mcv",
+        "ferritin",
+        "rbc_count",
+        "hemoglobin",
+        "hba2",
+        "hb_electrophoresis"
+      ],
+      "triggers": [
+        {
+          "parameter": "mcv",
+          "condition": {
+            "lt": 80
+          },
+          "weight": 1.0,
+          "label": "MCV below 80 fL"
+        },
+        {
+          "parameter": "ferritin",
+          "condition": {
+            "gte": 30
+          },
+          "weight": 0.9,
+          "label": "Ferritin preserved - iron deficiency does not explain the microcytosis"
+        },
+        {
+          "parameter": "hba2",
+          "condition": {
+            "gte": 4.0
+          },
+          "weight": 1.0,
+          "label": "HbA2 at or above 4% - consistent with beta-thalassaemia trait"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "rbc_count",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "Red cell count normal or raised despite microcytosis"
+        },
+        {
+          "parameter": "hb_electrophoresis",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Abnormal haemoglobin fraction on electrophoresis"
+        },
+        {
+          "parameter": "hbf",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "HbF raised"
+        },
+        {
+          "parameter": "rdw_cv",
+          "condition": {
+            "lte": 14.5
+          },
+          "weight": 0.4,
+          "label": "RDW not raised - favours a trait over evolving iron deficiency"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Mild anaemia"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Origa R, Genet Med 2017;19:609-19",
+          "note": "Beta-thalassaemia trait: microcytosis disproportionate to the degree of anaemia, with raised HbA2."
+        },
+        {
+          "citation": "Mentzer WC, Lancet 1973;1:882",
+          "note": "MCV/RBC discrimination between thalassaemia trait and iron deficiency."
+        },
+        {
+          "citation": "Brancaleoni V et al., Int J Lab Hematol 2016;38(S1):32-40",
+          "note": "Laboratory approach to differentiating microcytic anaemias."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Thalassemia (Trait/Major)",
+          "role": "primary",
+          "weight": 0.78,
+          "dm_basis": "High-Risk Indicators: 'Microcytic anemia (low MCV) that doesn't fully correct with iron, especially with a relevant family/ethnic background'; Related Markers/Tests: Hemoglobin, RBC indices, Hemoglobin electrophoresis"
+        },
+        {
+          "name": "Hemoglobin C/E Disease (HbC/HbE)",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Mild microcytic anemia with an abnormal hemoglobin fraction on electrophoresis not explained by iron deficiency or thalassemia alone'",
+          "requires_any": [
+            "hb_electrophoresis",
+            "hba2"
+          ]
+        },
+        {
+          "name": "Iron Deficiency Anemia",
+          "role": "differential",
+          "weight": 0.15,
+          "dm_basis": "Listed as the differential this cohort is specifically designed to exclude, via the preserved ferritin criterion"
+        }
+      ]
+    },
+    {
+      "id": "macrocytic_anemia",
+      "name": "Macrocytic / Megaloblastic Pattern",
+      "category": "Haematology",
+      "description": "Enlarged red cells with a low B12 and/or folate - the reversible nutritional causes of macrocytic anaemia.",
+      "profiles_touched": [
+        "Blood Counts",
+        "Vitamin Profile",
+        "Stool Analysis",
+        "Neurological Disorders"
+      ],
+      "cross_profile_rationale": "The Disease Master rows for B12 and folate deficiency both name 'macrocytic anemia on CBC' in their High-Risk Indicators, which requires Blood Counts and Vitamin Profile parameters to be evaluated together.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "mcv",
+        "vitamin_b12",
+        "folate",
+        "hemoglobin",
+        "rdw_cv"
+      ],
+      "triggers": [
+        {
+          "parameter": "vitamin_b12",
+          "condition": {
+            "lt": 200
+          },
+          "weight": 1.0,
+          "label": "Vitamin B12 in the deficient range"
+        },
+        {
+          "parameter": "folate",
+          "condition": {
+            "lt": 3.0
+          },
+          "weight": 1.0,
+          "label": "Folate in the deficient range"
+        },
+        {
+          "parameter": "mcv",
+          "condition": {
+            "gt": 100
+          },
+          "weight": 0.85,
+          "label": "MCV above 100 fL - macrocytosis"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "vitamin_b12",
+          "condition": {
+            "between": [
+              200,
+              299.9
+            ]
+          },
+          "weight": 0.5,
+          "label": "Vitamin B12 borderline (200-300 pg/mL)"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.6,
+          "label": "Haemoglobin below the sex-specific range"
+        },
+        {
+          "parameter": "rdw_cv",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "RDW raised"
+        },
+        {
+          "parameter": "homocysteine",
+          "condition": {
+            "gt": 15
+          },
+          "weight": 0.5,
+          "label": "Homocysteine raised - functional marker of B12/folate status"
+        },
+        {
+          "parameter": "ldh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "LDH raised - ineffective erythropoiesis"
+        },
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.25,
+          "label": "Bilirubin raised - ineffective erythropoiesis"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Stabler SP, N Engl J Med 2013;368:149-60",
+          "note": "Vitamin B12 deficiency: thresholds, macrocytosis and the role of homocysteine as a functional marker."
+        },
+        {
+          "citation": "Devalia V et al., BCSH Guidelines for the Diagnosis and Treatment of Cobalamin and Folate Disorders, Br J Haematol 2014;166:496-513",
+          "note": "Diagnostic thresholds for B12 and folate and the indeterminate zone."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Vitamin B12 Deficiency",
+          "role": "primary",
+          "weight": 0.88,
+          "dm_basis": "High-Risk Indicators: 'Vitamin B12 level in the deficient range with macrocytic anemia on CBC'; Related Markers/Tests: Vitamin B12",
+          "requires_any": [
+            "vitamin_b12"
+          ]
+        },
+        {
+          "name": "Folate (B9) Deficiency",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Low folate with macrocytic anemia on CBC'; Related Markers/Tests: Vitamin B9 (Folate)",
+          "requires_any": [
+            "folate"
+          ]
+        },
+        {
+          "name": "Peripheral Neuropathy",
+          "role": "downstream_risk",
+          "weight": 0.4,
+          "dm_basis": "High-Risk Indicators: 'Low B12 or poorly controlled diabetes together with sensory symptoms in a stocking-glove pattern'; Related Markers/Tests: Vitamin B12"
+        },
+        {
+          "name": "Malabsorption Syndrome",
+          "role": "supporting",
+          "weight": 0.28,
+          "dm_basis": "Related Markers/Tests lists 'Vitamin D/B12/Folate' among the malabsorption marker set"
+        },
+        {
+          "name": "Myelodysplastic Syndrome",
+          "role": "differential",
+          "weight": 0.15,
+          "dm_basis": "Differential Diagnoses on the MDS row - macrocytosis without a nutritional cause requires haematology review"
+        }
+      ]
+    },
+    {
+      "id": "pancytopenia",
+      "name": "Pancytopenia",
+      "category": "Haematology",
+      "description": "Reduction across all three cell lines at once. A pattern that always requires haematology assessment.",
+      "profiles_touched": [
+        "Blood Counts",
+        "Blood Disorder",
+        "Anemia Studies",
+        "Cancer Profile"
+      ],
+      "mode": "count_of",
+      "count_required": 3,
+      "min_parameters_present": 3,
+      "urgency_override": "specialist",
+      "expected_parameters": [
+        "hemoglobin",
+        "wbc_count",
+        "platelet_count"
+      ],
+      "components": [
+        {
+          "id": "low_hb",
+          "label": "Low haemoglobin",
+          "any_of": [
+            {
+              "parameter": "hemoglobin",
+              "condition": {
+                "abnormal": "low"
+              },
+              "label": "Haemoglobin below the sex-specific range"
+            }
+          ]
+        },
+        {
+          "id": "low_wbc",
+          "label": "Low white cell count",
+          "any_of": [
+            {
+              "parameter": "wbc_count",
+              "condition": {
+                "lt": 4000
+              },
+              "label": "WBC below 4000 /uL"
+            }
+          ]
+        },
+        {
+          "id": "low_plt",
+          "label": "Low platelet count",
+          "any_of": [
+            {
+              "parameter": "platelet_count",
+              "condition": {
+                "lt": 150000
+              },
+              "label": "Platelets below 150,000 /uL"
+            }
+          ]
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "reticulocyte_pct",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Reticulocyte count low - hypoproductive marrow"
+        },
+        {
+          "parameter": "ldh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "LDH raised"
+        },
+        {
+          "parameter": "mcv",
+          "condition": {
+            "gt": 100
+          },
+          "weight": 0.3,
+          "label": "Macrocytosis - can accompany marrow failure states"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Killick SB et al., BCSH Guidelines for the Diagnosis and Management of Adult Aplastic Anaemia, Br J Haematol 2016;172:187-207",
+          "note": "Pancytopenia definition and the mandatory diagnostic workup including marrow examination."
+        },
+        {
+          "citation": "Arber DA et al., Blood 2016;127:2391-405",
+          "note": "WHO classification: cytopenias as the presenting feature of myelodysplastic syndromes and acute leukaemia."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Aplastic Anemia",
+          "role": "primary",
+          "weight": 0.72,
+          "dm_basis": "High-Risk Indicators: 'Simultaneous low hemoglobin, low white cell count, and low platelet count (pancytopenia) without an obvious alternate cause'; Related Markers/Tests: Hemoglobin, WBC count, Platelet Count"
+        },
+        {
+          "name": "Myelodysplastic Syndrome",
+          "role": "primary",
+          "weight": 0.62,
+          "dm_basis": "High-Risk Indicators: 'Persistent unexplained low blood counts (one or more cell lines) not attributable to another cause'"
+        },
+        {
+          "name": "Leukemia (Suspected/Screening)",
+          "role": "supporting",
+          "weight": 0.55,
+          "dm_basis": "High-Risk Indicators: 'Markedly abnormal WBC count (very high or low) with abnormal differential, especially with low hemoglobin and platelets together'"
+        },
+        {
+          "name": "Multiple Myeloma",
+          "role": "differential",
+          "weight": 0.18,
+          "dm_basis": "High-Risk Indicators reference anaemia as part of the CRAB pattern"
+        }
+      ]
+    },
+    {
+      "id": "leukocyte_abnormality_screen",
+      "name": "Markedly Abnormal White Cell Pattern",
+      "category": "Haematology",
+      "description": "White cell count very high or very low with an abnormal differential - a screening signal that needs a blood film and haematology review rather than reassurance.",
+      "profiles_touched": [
+        "Blood Counts",
+        "Cancer Profile"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 2,
+      "urgency_override": "specialist",
+      "expected_parameters": [
+        "wbc_count",
+        "hemoglobin",
+        "platelet_count",
+        "lymphocyte_pct",
+        "neutrophil_pct",
+        "ldh"
+      ],
+      "triggers": [
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "gte": 50000
+          },
+          "weight": 1.0,
+          "label": "WBC at or above 50,000 /uL"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "lt": 2000
+          },
+          "weight": 1.0,
+          "label": "WBC below 2000 /uL"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "between": [
+              20000,
+              49999
+            ]
+          },
+          "weight": 0.6,
+          "label": "WBC 20,000-50,000 /uL"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Concurrent anaemia"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Concurrent thrombocytopenia"
+        },
+        {
+          "parameter": "lymphocyte_pct",
+          "condition": {
+            "gte": 60
+          },
+          "weight": 0.5,
+          "label": "Marked lymphocytosis on the differential"
+        },
+        {
+          "parameter": "ldh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "LDH raised - high cell turnover"
+        },
+        {
+          "parameter": "esr",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.2,
+          "label": "ESR raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Arber DA et al., Blood 2016;127:2391-405",
+          "note": "WHO classification of myeloid and lymphoid neoplasms; peripheral counts as the initial trigger for marrow evaluation."
+        },
+        {
+          "citation": "George TI, Hematology Am Soc Hematol Educ Program 2012;2012:475-84",
+          "note": "Diagnostic approach to leukocytosis and leukopenia."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Leukemia (Suspected/Screening)",
+          "role": "primary",
+          "weight": 0.7,
+          "dm_basis": "High-Risk Indicators: 'Markedly abnormal WBC count (very high or low) with abnormal differential, especially with low hemoglobin and platelets together'; Severity/Urgency: 'Emergency-level urgency if acute leukemia is suspected'"
+        },
+        {
+          "name": "Lymphoma (Suspected/Screening)",
+          "role": "supporting",
+          "weight": 0.4,
+          "dm_basis": "High-Risk Indicators: 'Persistent unexplained lymphadenopathy with elevated LDH and systemic symptoms'; Related Markers/Tests: CBC, LDH"
+        },
+        {
+          "name": "Myelodysplastic Syndrome",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Persistent unexplained low blood counts (one or more cell lines)'"
+        },
+        {
+          "name": "Reactive Leukocytosis",
+          "role": "differential",
+          "weight": 0.25,
+          "dm_basis": "High-Risk Indicators: 'Elevated WBC with a clear infectious/inflammatory trigger and normal differential pattern' - the benign alternative that must be excluded"
+        }
+      ]
+    },
+    {
+      "id": "polycythemia",
+      "name": "Raised Red Cell Mass",
+      "category": "Haematology",
+      "description": "Haemoglobin and haematocrit persistently above range, which may be primary or secondary to hypoxia or dehydration.",
+      "profiles_touched": [
+        "Blood Counts"
+      ],
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "hemoglobin",
+        "hematocrit",
+        "rbc_count"
+      ],
+      "triggers": [
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Haemoglobin above the sex-specific range"
+        },
+        {
+          "parameter": "hematocrit",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Haematocrit above the sex-specific range"
+        },
+        {
+          "parameter": "rbc_count",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "Red cell count above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Platelets also raised - can accompany a myeloproliferative process"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "White cells also raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Arber DA et al., Blood 2016;127:2391-405",
+          "note": "WHO haemoglobin/haematocrit thresholds used as the entry criterion for polycythaemia vera evaluation."
+        },
+        {
+          "citation": "McMullin MF et al., Br J Haematol 2019;184:176-91",
+          "note": "Diagnostic approach to erythrocytosis, distinguishing primary from secondary causes."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Polycythemia",
+          "role": "primary",
+          "weight": 0.82,
+          "dm_basis": "High-Risk Indicators: 'Persistently elevated hemoglobin/hematocrit above normal range'; Related Markers/Tests: RBC count, Hemoglobin, Hematocrit"
+        }
+      ]
+    },
+    {
+      "id": "thrombocytopenia",
+      "name": "Thrombocytopenia",
+      "category": "Haematology",
+      "description": "Platelet count below range. Severity determines bleeding risk and how urgently it needs attention.",
+      "profiles_touched": [
+        "Blood Counts",
+        "Blood Clotting",
+        "Infectious Diseases"
+      ],
+      "cross_profile_rationale": "Dengue serology (Infectious Diseases) and coagulation markers (Blood Clotting) are admitted as supporting signals because the Disease Master Dengue Fever and DIC rows both hinge on a falling platelet count.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "platelet_count",
+        "pt",
+        "inr",
+        "aptt",
+        "d_dimer",
+        "mpv"
+      ],
+      "triggers": [
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "lt": 150000
+          },
+          "weight": 1.0,
+          "label": "Platelets below 150,000 /uL"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "lt": 50000
+          },
+          "weight": 0.8,
+          "label": "Platelets below 50,000 /uL - significant bleeding risk"
+        },
+        {
+          "parameter": "dengue_ns1",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Dengue NS1 antigen positive"
+        },
+        {
+          "parameter": "dengue_igm",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.9,
+          "label": "Dengue IgM positive"
+        },
+        {
+          "parameter": "hematocrit",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Rising haematocrit - plasma leakage pattern in dengue"
+        },
+        {
+          "parameter": "d_dimer",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "D-dimer raised"
+        },
+        {
+          "parameter": "inr",
+          "condition": {
+            "gt": 1.2
+          },
+          "weight": 0.5,
+          "label": "INR prolonged"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.3,
+          "label": "Concurrent anaemia"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "lt": 4000
+          },
+          "weight": 0.4,
+          "label": "Concurrent leukopenia"
+        },
+        {
+          "parameter": "mpv",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.35,
+          "label": "Mean platelet volume raised - suggests peripheral destruction rather than reduced marrow production"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Neunert C et al., American Society of Hematology 2019 Guidelines for Immune Thrombocytopenia, Blood Adv 2019;3:3829-66",
+          "note": "Platelet thresholds and the diagnosis of ITP by exclusion."
+        },
+        {
+          "citation": "WHO, Dengue Guidelines for Diagnosis, Treatment, Prevention and Control, 2009",
+          "note": "Falling platelet count with rising haematocrit as a warning sign in dengue."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Immune Thrombocytopenia (ITP)",
+          "role": "primary",
+          "weight": 0.58,
+          "dm_basis": "High-Risk Indicators: 'Markedly low platelet count with bleeding symptoms'; Related Markers/Tests: Platelet count"
+        },
+        {
+          "name": "Dengue Fever",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Positive NS1/IgM with falling platelet count and rising hematocrit'; Related Markers/Tests: Dengue NS1 antigen, Dengue IgM/IgG, Platelet count"
+        },
+        {
+          "name": "Disseminated Intravascular Coagulation (DIC)",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Prolonged PT/PTT with thrombocytopenia and elevated D-dimer in a critically ill patient'"
+        },
+        {
+          "name": "Aplastic Anemia",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "Related Markers/Tests names Platelet Count as one of the three lines assessed"
+        }
+      ]
+    },
+    {
+      "id": "thrombocytosis",
+      "name": "Thrombocytosis",
+      "category": "Haematology",
+      "description": "Platelet count above range. Most cases are reactive to iron deficiency, inflammation or infection.",
+      "profiles_touched": [
+        "Blood Counts",
+        "Blood Clotting",
+        "Anemia Studies"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "platelet_count",
+        "ferritin",
+        "crp"
+      ],
+      "triggers": [
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "gt": 450000
+          },
+          "weight": 1.0,
+          "label": "Platelets above 450,000 /uL"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "ferritin",
+          "condition": {
+            "lt": 30
+          },
+          "weight": 0.7,
+          "label": "Low ferritin - iron deficiency is the commonest reactive cause"
+        },
+        {
+          "parameter": "crp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "CRP raised - inflammatory reactive cause"
+        },
+        {
+          "parameter": "esr",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.35,
+          "label": "ESR raised"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "White cells also raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Bleeker JS, Hogan WJ, Thrombosis 2011;2011:536062",
+          "note": "Reactive thrombocytosis accounts for the large majority of raised platelet counts; iron deficiency and inflammation are the leading causes."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Thrombocytosis (Reactive/Secondary)",
+          "role": "primary",
+          "weight": 0.8,
+          "dm_basis": "High-Risk Indicators: 'Persistently elevated platelet count without an obvious reactive cause'; Related Markers/Tests: Platelet count (from CBC/Blood Counts panel)"
+        },
+        {
+          "name": "Iron Deficiency Anemia",
+          "role": "supporting",
+          "weight": 0.25,
+          "dm_basis": "Cross-linked because iron deficiency is the commonest identifiable reactive trigger; confirmed by the ferritin result"
+        }
+      ]
+    },
+    {
+      "id": "prolonged_pt_inr",
+      "name": "Prolonged Prothrombin Time / INR",
+      "category": "Coagulation",
+      "description": "Prolongation of the extrinsic pathway. Causes divide into vitamin K deficiency, liver disease and anticoagulant effect - distinguished by the accompanying results.",
+      "profiles_touched": [
+        "Prothrombin Time",
+        "Liver Profile",
+        "Vitamin Profile",
+        "Blood Clotting"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "pt",
+        "inr",
+        "albumin",
+        "total_bilirubin",
+        "aptt",
+        "platelet_count"
+      ],
+      "triggers": [
+        {
+          "parameter": "inr",
+          "condition": {
+            "gt": 1.2
+          },
+          "weight": 1.0,
+          "label": "INR above 1.2"
+        },
+        {
+          "parameter": "pt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "Prothrombin time above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "inr",
+          "condition": {
+            "gte": 3.5
+          },
+          "weight": 0.8,
+          "label": "INR at or above 3.5 - bleeding risk range"
+        },
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.8,
+          "label": "Albumin low - points toward hepatic rather than vitamin K cause"
+        },
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Bilirubin raised"
+        },
+        {
+          "parameter": "sgpt_alt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "ALT raised"
+        },
+        {
+          "parameter": "aptt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "APTT also prolonged - both pathways affected"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.5,
+          "label": "Thrombocytopenia - raises the possibility of consumption"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Tripodi A, Mannucci PM, N Engl J Med 2011;365:147-56",
+          "note": "Interpretation of prolonged PT/INR in liver disease versus vitamin K deficiency."
+        },
+        {
+          "citation": "Keeling D et al., BCSH Guidelines on Oral Anticoagulation with Warfarin, Br J Haematol 2011;154:311-24",
+          "note": "Therapeutic INR ranges and the bleeding risk associated with supratherapeutic values."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Vitamin K Deficiency",
+          "role": "primary",
+          "weight": 0.55,
+          "dm_basis": "High-Risk Indicators: 'Prolonged PT/INR responsive to vitamin K supplementation'; Related Markers/Tests: PT (Prothrombin Time), PT-INR"
+        },
+        {
+          "name": "Liver-related Coagulopathy",
+          "role": "primary",
+          "weight": 0.55,
+          "dm_basis": "High-Risk Indicators: 'Prolonged PT/INR with abnormal LFTs (low albumin, elevated bilirubin/transaminases)'",
+          "requires_any": [
+            "albumin",
+            "total_bilirubin",
+            "sgpt_alt"
+          ]
+        },
+        {
+          "name": "Anticoagulant Therapy Monitoring",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'INR outside the prescribed therapeutic range (too high = bleeding risk, too low = clotting risk)'; Classification 'Other' - a monitoring context, not a disease"
+        },
+        {
+          "name": "Disseminated Intravascular Coagulation (DIC)",
+          "role": "differential",
+          "weight": 0.25,
+          "dm_basis": "High-Risk Indicators: 'Prolonged PT/PTT with thrombocytopenia and elevated D-dimer'",
+          "requires_any": [
+            "platelet_count",
+            "aptt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "isolated_aptt_prolongation",
+      "name": "Isolated APTT Prolongation",
+      "category": "Coagulation",
+      "description": "APTT prolonged while the prothrombin time stays normal - the screening pattern for an intrinsic pathway factor deficiency.",
+      "profiles_touched": [
+        "Blood Clotting",
+        "Blood Disorder",
+        "Prothrombin Time"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "aptt",
+        "pt",
+        "inr",
+        "platelet_count"
+      ],
+      "triggers": [
+        {
+          "parameter": "aptt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "APTT above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "inr",
+          "condition": {
+            "lte": 1.2
+          },
+          "weight": 0.8,
+          "label": "INR normal - the prolongation is confined to the intrinsic pathway"
+        },
+        {
+          "parameter": "pt",
+          "condition": {
+            "abnormal": "none"
+          },
+          "weight": 0.8,
+          "label": "Prothrombin time normal - confirms an isolated APTT prolongation"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "none"
+          },
+          "weight": 0.4,
+          "label": "Platelet count normal - argues against a consumptive process"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Srivastava A et al., WFH Guidelines for the Management of Hemophilia, 3rd edition, Haemophilia 2020;26(S6):1-158",
+          "note": "Prolonged APTT with normal PT as the screening pattern for haemophilia A/B, requiring factor assays for confirmation."
+        },
+        {
+          "citation": "James PD et al., ASH/ISTH/NHF/WFH 2021 Guidelines on the Diagnosis of von Willebrand Disease, Blood Adv 2021;5:280-300",
+          "note": "APTT may be normal or only mildly prolonged in von Willebrand disease; bleeding history drives testing."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Hemophilia (A/B)",
+          "role": "primary",
+          "weight": 0.7,
+          "dm_basis": "High-Risk Indicators: 'Prolonged APTT with normal PT, especially with a personal/family history of unusual bleeding or joint bleeds'; Related Markers/Tests: Prothrombin Time/APTT",
+          "requires_any": [
+            "aptt"
+          ]
+        },
+        {
+          "name": "Von Willebrand Disease",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "Related Markers/Tests: 'Prothrombin Time/APTT (often normal or mildly prolonged APTT)'; High-Risk Indicators rest on the bleeding history",
+          "requires_any": [
+            "aptt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dic_pattern",
+      "name": "Consumptive Coagulopathy Pattern",
+      "category": "Coagulation",
+      "description": "Simultaneous prolongation of both pathways, falling platelets and raised D-dimer - the laboratory signature of disseminated intravascular coagulation.",
+      "profiles_touched": [
+        "Prothrombin Time",
+        "Blood Clotting",
+        "Blood Counts"
+      ],
+      "mode": "count_of",
+      "count_required": 3,
+      "min_parameters_present": 3,
+      "urgency_override": "emergency",
+      "expected_parameters": [
+        "pt",
+        "inr",
+        "aptt",
+        "platelet_count",
+        "d_dimer",
+        "fibrinogen"
+      ],
+      "components": [
+        {
+          "id": "prolonged_extrinsic",
+          "label": "Prolonged PT/INR",
+          "any_of": [
+            {
+              "parameter": "inr",
+              "condition": {
+                "gt": 1.2
+              },
+              "label": "INR prolonged"
+            },
+            {
+              "parameter": "pt",
+              "condition": {
+                "abnormal": "high"
+              },
+              "label": "Prothrombin time prolonged"
+            }
+          ]
+        },
+        {
+          "id": "prolonged_intrinsic",
+          "label": "Prolonged APTT",
+          "any_of": [
+            {
+              "parameter": "aptt",
+              "condition": {
+                "abnormal": "high"
+              },
+              "label": "APTT prolonged"
+            }
+          ]
+        },
+        {
+          "id": "low_platelets",
+          "label": "Thrombocytopenia",
+          "any_of": [
+            {
+              "parameter": "platelet_count",
+              "condition": {
+                "lt": 150000
+              },
+              "label": "Platelets below 150,000 /uL"
+            }
+          ]
+        },
+        {
+          "id": "raised_fibrinolysis",
+          "label": "Raised D-dimer",
+          "any_of": [
+            {
+              "parameter": "d_dimer",
+              "condition": {
+                "abnormal": "high"
+              },
+              "label": "D-dimer above range"
+            }
+          ]
+        },
+        {
+          "id": "low_fibrinogen",
+          "label": "Low fibrinogen",
+          "any_of": [
+            {
+              "parameter": "fibrinogen",
+              "condition": {
+                "abnormal": "low"
+              },
+              "label": "Fibrinogen below range - factor consumption"
+            }
+          ]
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "crp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "CRP raised - infection or inflammation as a trigger"
+        },
+        {
+          "parameter": "wbc_count",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 0.3,
+          "label": "White cell count deranged"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Taylor FB et al., ISTH Scoring System for Overt DIC, Thromb Haemost 2001;86:1327-30",
+          "note": "The ISTH DIC score combines platelet count, fibrin marker (D-dimer), prolonged PT and fibrinogen - the components implemented here."
+        },
+        {
+          "citation": "Levi M, Sivapalaratnam S, Expert Rev Hematol 2018;11:663-72",
+          "note": "Laboratory diagnosis of DIC as a composite rather than a single test."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Disseminated Intravascular Coagulation (DIC)",
+          "role": "primary",
+          "weight": 0.88,
+          "dm_basis": "High-Risk Indicators: 'Prolonged PT/PTT with thrombocytopenia and elevated D-dimer in a critically ill patient'; Related Markers/Tests: PT, PT-INR, PTT"
+        },
+        {
+          "name": "Sepsis",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "External Risk Factors and Possible Complications on the Sepsis row identify DIC as a recognised complication of severe sepsis"
+        }
+      ]
+    },
+    {
+      "id": "thrombotic_risk",
+      "name": "Raised Fibrin Degradation Signal",
+      "category": "Coagulation",
+      "description": "D-dimer above the exclusion threshold. Useful for ruling thromboembolism out; on its own it does not rule it in.",
+      "profiles_touched": [
+        "Blood Clotting"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "d_dimer",
+        "pt",
+        "platelet_count"
+      ],
+      "triggers": [
+        {
+          "parameter": "d_dimer",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "D-dimer above the exclusion threshold"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "d_dimer",
+          "condition": {
+            "gte": 2.0
+          },
+          "weight": 0.6,
+          "label": "D-dimer markedly raised"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Thrombocytopenia - raises concern for consumption"
+        },
+        {
+          "parameter": "crp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.2,
+          "label": "CRP raised - inflammation also raises D-dimer"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Wells PS et al., N Engl J Med 2003;349:1227-35",
+          "note": "D-dimer combined with clinical probability to exclude deep vein thrombosis; a raised result is non-specific."
+        },
+        {
+          "citation": "Konstantinides SV et al., 2019 ESC Guidelines on Acute Pulmonary Embolism, Eur Heart J 2020;41:543-603",
+          "note": "D-dimer has high sensitivity and low specificity; imaging is required to confirm."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Venous Thromboembolism (VTE)",
+          "role": "primary",
+          "weight": 0.5,
+          "dm_basis": "High-Risk Indicators: 'Elevated D-Dimer with clinical signs of DVT/PE'; Related Markers/Tests: D-Dimer, PT TEST. Weight held at moderate because the Disease Master indicator requires clinical signs the lab data cannot supply."
+        },
+        {
+          "name": "Disseminated Intravascular Coagulation (DIC)",
+          "role": "supporting",
+          "weight": 0.22,
+          "dm_basis": "High-Risk Indicators include 'elevated D-dimer' as one of four components"
+        }
+      ]
+    },
+    {
+      "id": "hemolysis_pattern",
+      "name": "Haemolysis Pattern",
+      "category": "Haematology",
+      "description": "Anaemia with raised unconjugated bilirubin, raised LDH and a reticulocyte response - indicating red cell destruction rather than underproduction.",
+      "profiles_touched": [
+        "Blood Counts",
+        "Anemia Studies",
+        "Liver Profile",
+        "Hemoglobin Electrophoresis"
+      ],
+      "cross_profile_rationale": "Haemolysis can only be recognised by combining Blood Counts (haemoglobin, reticulocytes) with Liver Profile (indirect bilirubin) and LDH. No single profile carries the pattern.",
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "hemoglobin",
+        "indirect_bilirubin",
+        "total_bilirubin",
+        "ldh",
+        "reticulocyte_pct"
+      ],
+      "triggers": [
+        {
+          "parameter": "indirect_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Indirect (unconjugated) bilirubin raised"
+        },
+        {
+          "parameter": "ldh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "LDH raised"
+        },
+        {
+          "parameter": "reticulocyte_pct",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Reticulocyte count raised - marrow response to red cell loss"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Haemoglobin below the sex-specific range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "g6pd",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "G6PD enzyme activity low"
+        },
+        {
+          "parameter": "sickle_solubility",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Sickling test positive"
+        },
+        {
+          "parameter": "hb_electrophoresis",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.8,
+          "label": "Abnormal haemoglobin fraction on electrophoresis"
+        },
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Total bilirubin raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Barcellini W, Fattizzo B, Dis Markers 2015;2015:635670",
+          "note": "Raised LDH and unconjugated bilirubin with reticulocytosis and low haptoglobin as the standard haemolysis marker set."
+        },
+        {
+          "citation": "Luzzatto L, Ally M, Notaro R, Blood 2020;136:1225-40",
+          "note": "G6PD deficiency: episodic haemolysis triggered by oxidative stress."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "G6PD Deficiency",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Low quantitative G6PD enzyme level'; Severity/Urgency: 'urgent during acute hemolytic episode'",
+          "requires_any": [
+            "g6pd"
+          ]
+        },
+        {
+          "name": "Sickle Cell Disease",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Positive sickling test confirmed on electrophoresis'",
+          "requires_any": [
+            "sickle_solubility",
+            "hb_electrophoresis"
+          ]
+        },
+        {
+          "name": "Thalassemia (Trait/Major)",
+          "role": "supporting",
+          "weight": 0.3,
+          "dm_basis": "Related Markers/Tests: Hemoglobin, RBC indices, Hemoglobin electrophoresis - ineffective erythropoiesis produces a similar biochemical picture",
+          "requires_any": [
+            "hb_electrophoresis"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g6pd_deficiency",
+      "name": "G6PD Enzyme Deficiency",
+      "category": "Haematology",
+      "description": "Low quantitative G6PD activity, which predisposes to oxidative haemolysis after specific drug, food or infection triggers.",
+      "profiles_touched": [
+        "Anemia Studies"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "g6pd"
+      ],
+      "triggers": [
+        {
+          "parameter": "g6pd",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "Quantitative G6PD enzyme activity below range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Concurrent anaemia"
+        },
+        {
+          "parameter": "indirect_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Indirect bilirubin raised - active haemolysis"
+        },
+        {
+          "parameter": "reticulocyte_pct",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Reticulocytosis"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Luzzatto L, Ally M, Notaro R, Blood 2020;136:1225-40",
+          "note": "Quantitative enzyme assay as the diagnostic test; results can be falsely normal during an acute haemolytic episode."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "G6PD Deficiency",
+          "role": "primary",
+          "weight": 0.9,
+          "dm_basis": "High-Risk Indicators: 'Low quantitative G6PD enzyme level'; Related Markers/Tests: G6PD (Quantitative)"
+        }
+      ]
+    },
+    {
+      "id": "haemoglobinopathy_screen",
+      "name": "Abnormal Haemoglobin Fraction",
+      "category": "Haematology",
+      "description": "A structurally abnormal haemoglobin or an abnormal fraction on electrophoresis.",
+      "profiles_touched": [
+        "Hemoglobin Electrophoresis",
+        "Anemia Studies",
+        "Blood Disorder"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "sickle_solubility",
+        "hb_electrophoresis",
+        "hba2",
+        "hbf",
+        "mcv",
+        "hemoglobin"
+      ],
+      "triggers": [
+        {
+          "parameter": "sickle_solubility",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Sickle cell solubility test positive"
+        },
+        {
+          "parameter": "hb_electrophoresis",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Abnormal haemoglobin fraction on electrophoresis"
+        },
+        {
+          "parameter": "hba2",
+          "condition": {
+            "gte": 4.0
+          },
+          "weight": 0.9,
+          "label": "HbA2 at or above 4%"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "hbf",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "HbF raised"
+        },
+        {
+          "parameter": "mcv",
+          "condition": {
+            "lt": 80
+          },
+          "weight": 0.5,
+          "label": "Microcytosis"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Anaemia"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Kato GJ et al., Nat Rev Dis Primers 2018;4:18010",
+          "note": "Sickle cell disease: solubility screening confirmed by electrophoresis or HPLC."
+        },
+        {
+          "citation": "Ryan K et al., BCSH Significant Haemoglobinopathies Guideline, Br J Haematol 2010;149:35-49",
+          "note": "HbA2 and HbF quantitation in the laboratory diagnosis of haemoglobinopathies."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Sickle Cell Disease",
+          "role": "primary",
+          "weight": 0.82,
+          "dm_basis": "High-Risk Indicators: 'Positive sickling test confirmed on electrophoresis'; Related Markers/Tests: Sickle Cell Solubility Test, Hemoglobin Electrophoresis",
+          "requires_any": [
+            "sickle_solubility",
+            "hb_electrophoresis"
+          ]
+        },
+        {
+          "name": "Thalassemia (Trait/Major)",
+          "role": "primary",
+          "weight": 0.62,
+          "dm_basis": "Related Markers/Tests: Hemoglobin, RBC indices, Hemoglobin electrophoresis",
+          "requires_any": [
+            "hba2",
+            "hb_electrophoresis",
+            "hbf"
+          ]
+        },
+        {
+          "name": "Hemoglobin C/E Disease (HbC/HbE)",
+          "role": "supporting",
+          "weight": 0.5,
+          "dm_basis": "High-Risk Indicators: 'Mild microcytic anemia with an abnormal hemoglobin fraction on electrophoresis not explained by iron deficiency or thalassemia alone'",
+          "requires_any": [
+            "hb_electrophoresis"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crab_pattern",
+      "name": "Monoclonal Gammopathy (CRAB) Pattern",
+      "category": "Haematology",
+      "description": "Raised total protein and globulin with hypercalcaemia, renal impairment or anaemia - the CRAB features named in the Disease Master.",
+      "profiles_touched": [
+        "Blood Disorder",
+        "Cancer Profile",
+        "Blood Counts",
+        "Liver Profile",
+        "Electrolyte Profile",
+        "Kidney Profile"
+      ],
+      "cross_profile_rationale": "The CRAB acronym is inherently cross-profile: Calcium from Electrolyte Profile, Renal from Kidney Profile, Anaemia from Blood Counts, and the paraprotein signal from Total Protein/Globulin in the Liver Profile.",
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "urgency_override": "specialist",
+      "expected_parameters": [
+        "total_protein",
+        "globulin",
+        "ag_ratio",
+        "calcium",
+        "creatinine",
+        "hemoglobin",
+        "esr"
+      ],
+      "triggers": [
+        {
+          "parameter": "globulin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Globulin above range"
+        },
+        {
+          "parameter": "total_protein",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "Total protein above range"
+        },
+        {
+          "parameter": "ag_ratio",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.9,
+          "label": "Albumin/globulin ratio reversed"
+        },
+        {
+          "parameter": "calcium",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "Calcium raised (the C of CRAB)"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "creatinine",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "Creatinine raised (the R of CRAB)"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Anaemia (the A of CRAB)"
+        },
+        {
+          "parameter": "esr",
+          "condition": {
+            "gte": 60
+          },
+          "weight": 0.5,
+          "label": "ESR markedly raised - typical of a paraproteinaemia"
+        },
+        {
+          "parameter": "rdw_sd",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.2,
+          "label": "RDW-SD raised (noted in the Disease Master as prognostic in known cases, not a screening marker)"
+        },
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Albumin low"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Rajkumar SV et al., International Myeloma Working Group updated criteria, Lancet Oncol 2014;15:e538-48",
+          "note": "CRAB criteria (hyperCalcaemia, Renal insufficiency, Anaemia, Bone lesions) define myeloma requiring therapy."
+        },
+        {
+          "citation": "Kyle RA, Rajkumar SV, N Engl J Med 2004;351:1860-73",
+          "note": "Serum protein abnormalities as the initial laboratory clue to monoclonal gammopathy."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Multiple Myeloma",
+          "role": "primary",
+          "weight": 0.72,
+          "dm_basis": "High-Risk Indicators: 'Elevated total protein/globulin with hypercalcemia, anemia, or unexplained bone pain - the classic CRAB pattern (Calcium, Renal, Anemia, Bone)'; Related Markers/Tests: Total Protein, Globulin, Calcium, RDW-SD"
+        },
+        {
+          "name": "Hyperparathyroidism",
+          "role": "differential",
+          "weight": 0.25,
+          "dm_basis": "High-Risk Indicators: 'Elevated calcium with elevated PTH, especially with low phosphorus' - the main alternative explanation for hypercalcaemia"
+        }
+      ]
+    },
+    {
+      "id": "rh_negative_status",
+      "name": "Rh-Negative Blood Group",
+      "category": "Haematology",
+      "description": "Rh-negative status, relevant to pregnancy planning because of the risk of alloimmunisation against an Rh-positive fetus.",
+      "profiles_touched": [
+        "Blood Group"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "rh_factor",
+        "blood_group_abo"
+      ],
+      "triggers": [
+        {
+          "parameter": "rh_factor",
+          "condition": {
+            "category_in": [
+              "negative",
+              "neg",
+              "-ve",
+              "-",
+              "rh negative"
+            ]
+          },
+          "weight": 1.0,
+          "label": "Rh factor negative"
+        }
+      ],
+      "supporting": [],
+      "evidence": [
+        {
+          "citation": "Qureshi H et al., BCSH Guideline for the Use of Anti-D Immunoglobulin, Transfus Med 2014;24:8-20",
+          "note": "Rh-negative status in pregnancy and the role of anti-D prophylaxis in preventing haemolytic disease of the fetus and newborn."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Rh Incompatibility/Hemolytic Disease of the Newborn",
+          "role": "primary",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Rh-negative mother carrying an Rh-positive fetus, especially with a positive antibody screen'; Related Markers/Tests: Blood Group, Rh Factor. Weight held at moderate because pregnancy status and fetal Rh type are not lab-derivable."
+        }
+      ]
+    }
+  ]
+}

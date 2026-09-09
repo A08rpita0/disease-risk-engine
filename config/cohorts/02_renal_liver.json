@@ -1,0 +1,1020 @@
+{
+  "domain": "Renal, Hepatic and Pancreatic",
+  "cohorts": [
+    {
+      "id": "renal_impairment",
+      "name": "Reduced Kidney Function",
+      "category": "Renal",
+      "description": "Reduced filtration with nitrogenous retention. Grading follows the KDIGO eGFR categories used in the Disease Master CKD row.",
+      "profiles_touched": [
+        "Kidney Profile",
+        "Blood Counts",
+        "Electrolyte Profile"
+      ],
+      "cross_profile_rationale": "Anaemia (Blood Counts) and mineral disturbance (Electrolyte Profile) are admitted as supporting signals because they are established consequences of declining kidney function, not independent findings.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "egfr",
+        "creatinine",
+        "blood_urea",
+        "bun",
+        "urine_acr",
+        "urine_microalbumin"
+      ],
+      "triggers": [
+        {
+          "parameter": "egfr",
+          "condition": {
+            "lt": 60
+          },
+          "weight": 1.0,
+          "label": "eGFR below 60 mL/min/1.73m2"
+        },
+        {
+          "parameter": "creatinine",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "Serum creatinine above the sex-specific reference range"
+        },
+        {
+          "parameter": "blood_urea",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Blood urea above range"
+        },
+        {
+          "parameter": "bun",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "BUN above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "urine_acr",
+          "condition": {
+            "gte": 30
+          },
+          "weight": 0.8,
+          "label": "Albuminuria at or above 30 mg/g"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Anaemia - a recognised consequence of chronic kidney disease"
+        },
+        {
+          "parameter": "phosphorus",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.35,
+          "label": "Phosphate retention"
+        },
+        {
+          "parameter": "potassium",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Hyperkalaemia - reduced renal excretion"
+        },
+        {
+          "parameter": "calcium",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.3,
+          "label": "Hypocalcaemia - mineral and bone disorder of CKD"
+        },
+        {
+          "parameter": "bicarbonate",
+          "condition": {
+            "lt": 22
+          },
+          "weight": 0.3,
+          "label": "Low bicarbonate - metabolic acidosis of CKD"
+        },
+        {
+          "parameter": "uric_acid",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.25,
+          "label": "Urate retention"
+        },
+        {
+          "parameter": "urine_microalbumin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Urine microalbumin raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "KDIGO 2012 Clinical Practice Guideline for CKD, Kidney Int Suppl 2013;3:1-150",
+          "note": "eGFR (G1-G5) and albuminuria (A1-A3) categories underpinning the thresholds used here."
+        },
+        {
+          "citation": "KDIGO 2024 CKD Guideline, Kidney Int 2024;105(4S):S117-S314",
+          "note": "Confirms combined eGFR + albuminuria staging as the basis for CKD risk."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Chronic Kidney Disease (CKD)",
+          "role": "primary",
+          "weight": 0.9,
+          "dm_basis": "High-Risk Indicators: 'Low eGFR with elevated creatinine and albuminuria together'; Related Markers/Tests: Serum Creatinine, Blood Urea, Glomerular Filtration Rate, Albuminuria"
+        },
+        {
+          "name": "Hypertension (incl. Secondary/Renin-Mediated)",
+          "role": "supporting",
+          "weight": 0.28,
+          "dm_basis": "Renal impairment is a recognised secondary cause; the Disease Master row covers secondary/renin-mediated hypertension"
+        },
+        {
+          "name": "Cardiovascular / Coronary Artery Disease",
+          "role": "downstream_risk",
+          "weight": 0.25,
+          "dm_basis": "Possible Complications on the CKD row include cardiovascular disease and CKD-associated hyperlipidaemia (per the 'Unclear Mappings - Resolved' sheet)"
+        }
+      ]
+    },
+    {
+      "id": "glomerular_pattern",
+      "name": "Glomerular Injury Pattern",
+      "category": "Renal",
+      "description": "Protein and blood in the urine together with rising creatinine, suggesting injury at the glomerulus rather than a simple pre-renal or infective cause.",
+      "profiles_touched": [
+        "Urinalysis",
+        "Kidney Profile",
+        "Autoimmune Disorders"
+      ],
+      "cross_profile_rationale": "The Disease Master ANCA-Associated Vasculitis row itself spans Autoimmune Disorders and Kidney Profile and names 'Positive ANCA with abnormal urinalysis (blood/protein) and elevated creatinine'. This cohort implements that exact cross-profile pattern.",
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "urine_protein",
+        "urine_blood",
+        "urine_acr",
+        "creatinine",
+        "egfr",
+        "anca",
+        "ana",
+        "urine_microalbumin"
+      ],
+      "triggers": [
+        {
+          "parameter": "urine_protein",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Protein detected in urine"
+        },
+        {
+          "parameter": "urine_blood",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Blood detected in urine"
+        },
+        {
+          "parameter": "urine_acr",
+          "condition": {
+            "gte": 300
+          },
+          "weight": 1.0,
+          "label": "Severely increased albuminuria (A3)"
+        },
+        {
+          "parameter": "creatinine",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "Creatinine above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "anca",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "ANCA positive"
+        },
+        {
+          "parameter": "ana",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.6,
+          "label": "ANA positive - possible lupus nephritis"
+        },
+        {
+          "parameter": "egfr",
+          "condition": {
+            "lt": 60
+          },
+          "weight": 0.6,
+          "label": "eGFR reduced"
+        },
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Serum albumin low - urinary protein loss"
+        },
+        {
+          "parameter": "urine_microalbumin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Urine microalbumin raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "KDIGO 2021 Glomerular Diseases Guideline, Kidney Int 2021;100(4S):S1-S276",
+          "note": "Haematuria with proteinuria and declining GFR as the hallmark of glomerular disease."
+        },
+        {
+          "citation": "Jennette JC et al., Arthritis Rheum 2013;65:1-11",
+          "note": "Chapel Hill consensus on ANCA-associated vasculitis and its renal presentation."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "ANCA-Associated Vasculitis",
+          "role": "primary",
+          "weight": 0.7,
+          "dm_basis": "High-Risk Indicators: 'Positive ANCA with abnormal urinalysis (blood/protein) and elevated creatinine'; Related Markers/Tests: ANCA, Urinalysis, Serum Creatinine",
+          "requires_any": [
+            "anca"
+          ]
+        },
+        {
+          "name": "Chronic Kidney Disease (CKD)",
+          "role": "supporting",
+          "weight": 0.5,
+          "dm_basis": "Related Markers/Tests names Albuminuria; High-Risk Indicators combine albuminuria with reduced eGFR"
+        },
+        {
+          "name": "Systemic Lupus Erythematosus",
+          "role": "differential",
+          "weight": 0.4,
+          "dm_basis": "Related Markers/Tests lists ANA, CBC and Urinalysis; High-Risk Indicators name 'multi-system symptoms (joint, skin, renal, hematologic)'",
+          "requires_any": [
+            "ana"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hyperuricemia",
+      "name": "Hyperuricaemia",
+      "category": "Renal",
+      "description": "Serum urate above the sex-specific range. Relevant to crystal arthropathy risk and, in combination, to metabolic and renal disease.",
+      "profiles_touched": [
+        "Kidney Profile",
+        "Lipid Profile",
+        "Diabetes Monitoring"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "uric_acid",
+        "egfr",
+        "creatinine"
+      ],
+      "triggers": [
+        {
+          "parameter": "uric_acid",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Uric acid above the sex-specific reference range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "egfr",
+          "condition": {
+            "lt": 60
+          },
+          "weight": 0.5,
+          "label": "Reduced eGFR - impaired urate excretion"
+        },
+        {
+          "parameter": "triglycerides",
+          "condition": {
+            "gte": 150
+          },
+          "weight": 0.25,
+          "label": "Raised triglycerides - metabolic clustering"
+        },
+        {
+          "parameter": "bmi",
+          "condition": {
+            "gte": 25
+          },
+          "weight": 0.2,
+          "label": "Raised BMI - metabolic clustering"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "FitzGerald JD et al., 2020 ACR Guideline for the Management of Gout, Arthritis Care Res 2020;72:744-60",
+          "note": "Serum urate thresholds and their relationship to gout risk."
+        },
+        {
+          "citation": "Dalbeth N et al., Lancet 2021;397:1843-55",
+          "note": "Hyperuricaemia as a necessary but not sufficient condition for gout; association with CKD and metabolic syndrome."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Gout",
+          "role": "primary",
+          "weight": 0.72,
+          "dm_basis": "High-Risk Indicators: 'Uric Acid markedly elevated with recurrent joint symptoms'; Related Markers/Tests: Uric Acid"
+        },
+        {
+          "name": "Chronic Kidney Disease (CKD)",
+          "role": "supporting",
+          "weight": 0.22,
+          "dm_basis": "Urate retention is a recognised feature of reduced filtration; both rows sit in the Kidney Profile"
+        },
+        {
+          "name": "Metabolic Syndrome",
+          "role": "supporting",
+          "weight": 0.18,
+          "dm_basis": "Other Important Factors on the Metabolic Syndrome row note clustering of metabolic abnormalities"
+        }
+      ]
+    },
+    {
+      "id": "hepatocellular_injury",
+      "name": "Hepatocellular Injury Pattern",
+      "category": "Hepatic",
+      "description": "Transaminases raised out of proportion to the cholestatic enzymes, indicating injury to liver cells.",
+      "profiles_touched": [
+        "Liver Profile",
+        "Hepatitis",
+        "Autoimmune Disorders",
+        "Mineral Profile"
+      ],
+      "cross_profile_rationale": "Viral serology (Hepatitis), autoantibodies (Autoimmune Disorders) and copper studies (Mineral Profile) are admitted as supporting signals because the Disease Master rows for Hepatitis A/B/C, Autoimmune Hepatitis and Wilson's Disease all pair liver enzymes with a profile-specific confirmatory marker.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "sgpt_alt",
+        "sgot_ast",
+        "total_bilirubin",
+        "alkaline_phosphatase",
+        "ggt"
+      ],
+      "triggers": [
+        {
+          "parameter": "sgpt_alt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "ALT (SGPT) above range"
+        },
+        {
+          "parameter": "sgot_ast",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "AST (SGOT) above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Total bilirubin raised - jaundice range"
+        },
+        {
+          "parameter": "ggt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "GGT raised"
+        },
+        {
+          "parameter": "hbsag",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "HBsAg positive"
+        },
+        {
+          "parameter": "anti_hcv",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Anti-HCV positive"
+        },
+        {
+          "parameter": "anti_hav_igm",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Anti-HAV IgM positive"
+        },
+        {
+          "parameter": "ana",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.6,
+          "label": "ANA positive - possible autoimmune aetiology"
+        },
+        {
+          "parameter": "globulin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Globulin raised - supports an autoimmune pattern"
+        },
+        {
+          "parameter": "copper",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Serum copper raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Kwo PY et al., ACG Clinical Guideline: Evaluation of Abnormal Liver Chemistries, Am J Gastroenterol 2017;112:18-35",
+          "note": "Hepatocellular versus cholestatic pattern definition and the diagnostic algorithm from raised aminotransferases."
+        },
+        {
+          "citation": "EASL Clinical Practice Guidelines on Autoimmune Hepatitis, J Hepatol 2015;63:971-1004",
+          "note": "Raised transaminases with elevated globulin/IgG and positive ANA as the autoimmune hepatitis pattern."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Hepatitis B",
+          "role": "primary",
+          "weight": 0.55,
+          "dm_basis": "High-Risk Indicators: 'Positive HBsAg with elevated liver enzymes'; Related Markers/Tests: HBsAg, Liver function markers (SGOT, SGPT)",
+          "requires_any": [
+            "hbsag"
+          ]
+        },
+        {
+          "name": "Hepatitis C",
+          "role": "primary",
+          "weight": 0.55,
+          "dm_basis": "High-Risk Indicators: 'Positive Anti-HCV with elevated liver enzymes'; Related Markers/Tests: Liver function markers (SGOT, SGPT)",
+          "requires_any": [
+            "anti_hcv"
+          ]
+        },
+        {
+          "name": "Hepatitis A",
+          "role": "primary",
+          "weight": 0.5,
+          "dm_basis": "High-Risk Indicators: 'Markedly elevated SGOT/SGPT with jaundice and positive Anti-HAV IgM'",
+          "requires_any": [
+            "anti_hav_igm"
+          ]
+        },
+        {
+          "name": "Autoimmune Hepatitis",
+          "role": "primary",
+          "weight": 0.48,
+          "dm_basis": "High-Risk Indicators: 'Elevated liver enzymes with positive ANA and elevated globulin, after excluding viral hepatitis'"
+        },
+        {
+          "name": "Wilson's Disease",
+          "role": "differential",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Elevated serum copper with abnormal LFTs and/or neurological symptoms in a young patient'",
+          "requires_any": [
+            "copper"
+          ]
+        },
+        {
+          "name": "Metabolic Syndrome",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "Related Profile(s) on the Metabolic Syndrome row includes Liver Profile, reflecting metabolic dysfunction-associated steatotic liver disease as a common cause of raised ALT"
+        }
+      ]
+    },
+    {
+      "id": "cholestatic_pattern",
+      "name": "Cholestatic Pattern",
+      "category": "Hepatic",
+      "description": "Alkaline phosphatase and GGT raised disproportionately to the transaminases, with or without conjugated hyperbilirubinaemia - a pattern of impaired bile flow.",
+      "profiles_touched": [
+        "Liver Profile",
+        "Tumour Marker Test",
+        "Cancer Profile"
+      ],
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "alkaline_phosphatase",
+        "ggt",
+        "direct_bilirubin",
+        "total_bilirubin"
+      ],
+      "triggers": [
+        {
+          "parameter": "alkaline_phosphatase",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Alkaline phosphatase above range"
+        },
+        {
+          "parameter": "ggt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "GGT above range"
+        },
+        {
+          "parameter": "direct_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "Direct (conjugated) bilirubin raised"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Total bilirubin raised"
+        },
+        {
+          "parameter": "ca_19_9",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "CA 19-9 raised - pancreatico-biliary marker"
+        },
+        {
+          "parameter": "afp",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "AFP raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Kwo PY et al., Am J Gastroenterol 2017;112:18-35",
+          "note": "Defines the cholestatic pattern by the R-ratio and the ALP/GGT relationship."
+        },
+        {
+          "citation": "EASL Clinical Practice Guidelines: Management of Cholestatic Liver Diseases, J Hepatol 2009;51:237-67",
+          "note": "ALP with GGT confirmation as the biochemical signature of cholestasis."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Liver Cancer (Hepatocellular Carcinoma)",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "Related Markers/Tests: 'Alfa Feto Protein (AFP), LFT markers'; High-Risk Indicators: 'Rising or markedly elevated AFP in a patient with chronic liver disease'",
+          "requires_any": [
+            "afp"
+          ]
+        },
+        {
+          "name": "Pancreatic Cancer",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'New unexplained jaundice/weight loss with elevated tumor marker and imaging findings'",
+          "requires_any": [
+            "ca_19_9"
+          ]
+        },
+        {
+          "name": "Paget's Disease of Bone",
+          "role": "differential",
+          "weight": 0.22,
+          "dm_basis": "High-Risk Indicators: 'Normal calcium/phosphorus but clinical suspicion ... particularly with an elevated alkaline phosphatase on other testing' - a non-hepatic source of raised ALP"
+        }
+      ]
+    },
+    {
+      "id": "hepatic_synthetic_dysfunction",
+      "name": "Impaired Hepatic Synthetic Function",
+      "category": "Hepatic",
+      "description": "Low albumin with a prolonged prothrombin time indicates the liver has lost synthetic capacity - a marker of severity rather than of cause.",
+      "profiles_touched": [
+        "Liver Profile",
+        "Prothrombin Time",
+        "Blood Clotting"
+      ],
+      "cross_profile_rationale": "The Disease Master Liver-related Coagulopathy row itself spans Prothrombin Time and Liver Profile, and names 'Prolonged PT/INR with abnormal LFTs (low albumin, elevated bilirubin/transaminases)'.",
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "albumin",
+        "pt",
+        "inr",
+        "total_bilirubin",
+        "sgpt_alt"
+      ],
+      "triggers": [
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "Serum albumin below range"
+        },
+        {
+          "parameter": "inr",
+          "condition": {
+            "gt": 1.2
+          },
+          "weight": 1.0,
+          "label": "INR prolonged"
+        },
+        {
+          "parameter": "pt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "Prothrombin time prolonged"
+        },
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "Total bilirubin raised"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "sgpt_alt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "ALT raised - concurrent hepatocellular injury"
+        },
+        {
+          "parameter": "platelet_count",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Thrombocytopenia - may reflect portal hypertension"
+        },
+        {
+          "parameter": "ag_ratio",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.35,
+          "label": "Reversed albumin/globulin ratio"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Tripodi A, Mannucci PM, N Engl J Med 2011;365:147-56",
+          "note": "Coagulopathy of liver disease: prolonged PT/INR reflects reduced synthesis of clotting factors."
+        },
+        {
+          "citation": "EASL Clinical Practice Guidelines for Decompensated Cirrhosis, J Hepatol 2018;69:406-60",
+          "note": "Albumin and INR as core measures of hepatic synthetic function."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Liver-related Coagulopathy",
+          "role": "primary",
+          "weight": 0.82,
+          "dm_basis": "High-Risk Indicators: 'Prolonged PT/INR with abnormal LFTs (low albumin, elevated bilirubin/transaminases)'; Related Markers/Tests: PT, PT-INR, LFT markers"
+        },
+        {
+          "name": "Vitamin K Deficiency",
+          "role": "differential",
+          "weight": 0.3,
+          "dm_basis": "High-Risk Indicators: 'Prolonged PT/INR responsive to vitamin K supplementation' - distinguished from liver disease by the albumin result and by response to vitamin K",
+          "requires_any": [
+            "pt",
+            "inr"
+          ]
+        },
+        {
+          "name": "Autoimmune Hepatitis",
+          "role": "supporting",
+          "weight": 0.22,
+          "dm_basis": "Possible Complications on that row include progression to cirrhosis with synthetic failure"
+        }
+      ]
+    },
+    {
+      "id": "copper_dysregulation",
+      "name": "Copper Handling Abnormality",
+      "category": "Hepatic",
+      "description": "Abnormal copper with liver enzyme derangement, the screening pattern for a hepatic copper storage disorder in a younger patient.",
+      "profiles_touched": [
+        "Mineral Profile",
+        "Liver Profile"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "copper",
+        "ceruloplasmin",
+        "sgpt_alt",
+        "sgot_ast"
+      ],
+      "triggers": [
+        {
+          "parameter": "copper",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 1.0,
+          "label": "Serum copper outside the reference range"
+        },
+        {
+          "parameter": "ceruloplasmin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "Ceruloplasmin below range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "sgpt_alt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "ALT raised"
+        },
+        {
+          "parameter": "sgot_ast",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "AST raised"
+        },
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Bilirubin raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "EASL Clinical Practice Guidelines: Wilson's Disease, J Hepatol 2012;56:671-85",
+          "note": "Low ceruloplasmin with abnormal copper handling and hepatic involvement as the screening pattern."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Wilson's Disease",
+          "role": "primary",
+          "weight": 0.68,
+          "dm_basis": "High-Risk Indicators: 'Elevated serum copper with abnormal LFTs and/or neurological symptoms in a young patient'; Related Markers/Tests: Copper (serum), LFT markers"
+        }
+      ]
+    },
+    {
+      "id": "pancreatic_enzyme_elevation",
+      "name": "Raised Pancreatic Enzymes",
+      "category": "Pancreatic",
+      "description": "Amylase and/or lipase elevated, most significant when at least three times the upper reference limit.",
+      "profiles_touched": [
+        "Pancreas",
+        "Cancer Profile"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "amylase",
+        "lipase"
+      ],
+      "triggers": [
+        {
+          "parameter": "lipase",
+          "condition": {
+            "gte": 180
+          },
+          "weight": 1.0,
+          "label": "Lipase at or above three times the upper reference limit"
+        },
+        {
+          "parameter": "amylase",
+          "condition": {
+            "gte": 330
+          },
+          "weight": 0.95,
+          "label": "Amylase at or above three times the upper reference limit"
+        },
+        {
+          "parameter": "amylase",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Amylase above range"
+        },
+        {
+          "parameter": "lipase",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.65,
+          "label": "Lipase above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "triglycerides",
+          "condition": {
+            "gte": 500
+          },
+          "weight": 0.7,
+          "label": "Triglycerides above 500 mg/dL - a recognised precipitant of pancreatitis"
+        },
+        {
+          "parameter": "ca_19_9",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "CA 19-9 raised"
+        },
+        {
+          "parameter": "total_bilirubin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Bilirubin raised - possible biliary obstruction"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Banks PA et al., Classification of Acute Pancreatitis (Revised Atlanta), Gut 2013;62:102-11",
+          "note": "Lipase or amylase at least three times the upper limit of normal is one of the three diagnostic criteria."
+        },
+        {
+          "citation": "Tenner S et al., ACG Guideline: Acute Pancreatitis, Am J Gastroenterol 2013;108:1400-15",
+          "note": "Enzyme thresholds and hypertriglyceridaemia as a precipitant."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Pancreatitis",
+          "role": "primary",
+          "weight": 0.8,
+          "dm_basis": "High-Risk Indicators: 'Amylase markedly elevated with severe abdominal pain'; Related Markers/Tests: Amylase"
+        },
+        {
+          "name": "Pancreatic Cancer",
+          "role": "differential",
+          "weight": 0.28,
+          "dm_basis": "Related Markers/Tests: 'Amylase, tumor markers if included in panel (e.g., CA 19-9)'",
+          "requires_any": [
+            "ca_19_9"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "diabetes_insipidus_pattern",
+      "name": "Dilute Urine with Hypernatraemia",
+      "category": "Renal",
+      "description": "Inappropriately dilute urine alongside a rising serum sodium and a normal glucose - the screening pattern for a water-handling disorder.",
+      "profiles_touched": [
+        "Urinalysis",
+        "Hormones",
+        "Electrolyte Profile"
+      ],
+      "cross_profile_rationale": "The Disease Master Diabetes Insipidus row itself spans Urinalysis and Hormones and names urine specific gravity together with serum sodium and glucose.",
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "urine_specific_gravity",
+        "sodium",
+        "fasting_glucose",
+        "random_glucose"
+      ],
+      "triggers": [
+        {
+          "parameter": "urine_specific_gravity",
+          "condition": {
+            "lt": 1.005
+          },
+          "weight": 1.0,
+          "label": "Urine specific gravity below 1.005 - inappropriately dilute"
+        },
+        {
+          "parameter": "sodium",
+          "condition": {
+            "gt": 145
+          },
+          "weight": 1.0,
+          "label": "Serum sodium above 145 mmol/L"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "fasting_glucose",
+          "condition": {
+            "lt": 126
+          },
+          "weight": 0.4,
+          "label": "Glucose not in the diabetic range - argues against osmotic diuresis"
+        },
+        {
+          "parameter": "potassium",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.2,
+          "label": "Hypokalaemia - can itself impair urinary concentration"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Robertson GL, Endocrinol Metab Clin North Am 2016;45:377-90",
+          "note": "Dilute urine with hypernatraemia and normal glucose as the biochemical hallmark of arginine vasopressin deficiency/resistance."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Diabetes Insipidus",
+          "role": "primary",
+          "weight": 0.75,
+          "dm_basis": "High-Risk Indicators: 'Very low urine specific gravity with high serum sodium and normal blood glucose'; Related Markers/Tests: Specific Gravity (urine), Sodium, Urine osmolality"
+        },
+        {
+          "name": "Sodium Imbalance (Hyponatremia/Hypernatremia)",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Sodium persistently outside 136-145 mmol/L, especially with associated symptoms or rapid change'"
+        }
+      ]
+    }
+  ]
+}

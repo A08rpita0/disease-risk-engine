@@ -1,0 +1,2151 @@
+{
+  "domain": "Endocrine, Bone, Nutrition and Toxic Elements",
+  "cohorts": [
+    {
+      "id": "primary_hypothyroid_pattern",
+      "name": "Primary Hypothyroid Pattern",
+      "category": "Endocrine",
+      "description": "Raised TSH with a low or low-normal free T4 - the pituitary driving a failing thyroid gland.",
+      "profiles_touched": [
+        "Thyroid Profile",
+        "Autoimmune Disorders",
+        "Lipid Profile"
+      ],
+      "cross_profile_rationale": "Thyroid autoantibodies sit in both Thyroid Profile and Autoimmune Disorders in the Disease Master. Lipid parameters are admitted as supporting signals because untreated hypothyroidism raises LDL and is a reversible cause of dyslipidaemia.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "tsh",
+        "free_t4",
+        "free_t3",
+        "anti_tpo",
+        "anti_thyroglobulin"
+      ],
+      "triggers": [
+        {
+          "parameter": "tsh",
+          "condition": {
+            "gte": 10.0
+          },
+          "weight": 1.0,
+          "label": "TSH at or above 10 mIU/L"
+        },
+        {
+          "parameter": "tsh",
+          "condition": {
+            "between": [
+              4.0,
+              9.99
+            ]
+          },
+          "weight": 0.7,
+          "label": "TSH 4-10 mIU/L (subclinical range)"
+        },
+        {
+          "parameter": "free_t4",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "Free T4 below range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "free_t3",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.5,
+          "label": "Free T3 below range"
+        },
+        {
+          "parameter": "anti_tpo",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "Anti-TPO antibodies raised - autoimmune aetiology"
+        },
+        {
+          "parameter": "anti_thyroglobulin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "Anti-thyroglobulin antibodies raised - autoimmune aetiology"
+        },
+        {
+          "parameter": "ldl_cholesterol",
+          "condition": {
+            "gte": 130
+          },
+          "weight": 0.25,
+          "label": "LDL raised - a recognised consequence of untreated hypothyroidism"
+        },
+        {
+          "parameter": "total_cholesterol",
+          "condition": {
+            "gte": 240
+          },
+          "weight": 0.2,
+          "label": "Total cholesterol raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Jonklaas J et al., ATA Guidelines for the Treatment of Hypothyroidism, Thyroid 2014;24:1670-1751",
+          "note": "TSH with free T4 as the primary diagnostic pair; TSH >10 mIU/L marks overt disease."
+        },
+        {
+          "citation": "Chaker L et al., Lancet 2017;390:1550-62",
+          "note": "Subclinical versus overt hypothyroidism and the role of TPO antibodies in predicting progression."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Hypothyroidism",
+          "role": "primary",
+          "weight": 0.9,
+          "dm_basis": "High-Risk Indicators: 'High TSH with Low FT3/FT4; TSH + Anti-Thyroglobulin Abs both abnormal (suggests autoimmune origin)'; Related Markers/Tests: TSH, Free T4, Free T3, Anti-Thyroglobulin Antibodies"
+        },
+        {
+          "name": "Autoimmune thyroiditis (Hashimoto's)",
+          "role": "primary",
+          "weight": 0.62,
+          "dm_basis": "High-Risk Indicators: 'TSH + Anti-Thyroglobulin Abs both abnormal'; Related Markers/Tests: TSH, Free T4, Anti-Thyroglobulin Antibodies, Anti-TPO Antibodies",
+          "requires_any": [
+            "anti_tpo",
+            "anti_thyroglobulin"
+          ]
+        },
+        {
+          "name": "Atherogenic Dyslipidemia",
+          "role": "differential",
+          "weight": 0.15,
+          "dm_basis": "Cross-linked as a reversible secondary cause; the Disease Master Cardiovascular row treats lipid abnormality as the risk signal, and hypothyroidism must be excluded before attributing it to primary dyslipidaemia"
+        }
+      ]
+    },
+    {
+      "id": "hyperthyroid_pattern",
+      "name": "Hyperthyroid Pattern",
+      "category": "Endocrine",
+      "description": "Suppressed TSH with raised free T3 or free T4 - excess circulating thyroid hormone.",
+      "profiles_touched": [
+        "Thyroid Profile"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "tsh",
+        "free_t4",
+        "free_t3",
+        "total_t3",
+        "total_t4"
+      ],
+      "triggers": [
+        {
+          "parameter": "tsh",
+          "condition": {
+            "lt": 0.4
+          },
+          "weight": 1.0,
+          "label": "TSH suppressed below 0.4 mIU/L"
+        },
+        {
+          "parameter": "free_t4",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Free T4 above range"
+        },
+        {
+          "parameter": "free_t3",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Free T3 above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "tsh",
+          "condition": {
+            "lt": 0.1
+          },
+          "weight": 0.7,
+          "label": "TSH markedly suppressed"
+        },
+        {
+          "parameter": "total_t3",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Total T3 above range"
+        },
+        {
+          "parameter": "total_t4",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Total T4 above range"
+        },
+        {
+          "parameter": "alkaline_phosphatase",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.2,
+          "label": "ALP raised - accelerated bone turnover in thyrotoxicosis"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Ross DS et al., ATA Guidelines for Diagnosis and Management of Hyperthyroidism, Thyroid 2016;26:1343-1421",
+          "note": "Suppressed TSH with raised free hormones as the biochemical definition; aetiology requires further testing."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Hyperthyroidism",
+          "role": "primary",
+          "weight": 0.9,
+          "dm_basis": "High-Risk Indicators: 'Low/suppressed TSH with High FT3/FT4'; Related Markers/Tests: TSH, Free T4, Free T3; Severity/Urgency: 'urgent if thyroid storm suspected'"
+        }
+      ]
+    },
+    {
+      "id": "hyperandrogenic_pcos",
+      "name": "Hyperandrogenic / Insulin-Resistant Ovarian Pattern",
+      "category": "Endocrine",
+      "description": "Androgen excess with a raised LH/FSH ratio and metabolic features - the biochemical picture that supports polycystic ovary syndrome in a female patient.",
+      "profiles_touched": [
+        "Hormones",
+        "Diabetes Monitoring",
+        "Lipid Profile"
+      ],
+      "cross_profile_rationale": "The Disease Master PCOS row itself lists Insulin (Fasting) and Fasting Blood Glucose alongside the hormone markers, so Diabetes Monitoring parameters contribute directly to this Hormones-profile cohort.",
+      "sex_restriction": "female",
+      "min_triggers": 1,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "testosterone_total",
+        "free_testosterone",
+        "lh",
+        "fsh",
+        "lh_fsh_ratio",
+        "fasting_insulin",
+        "homa_ir",
+        "shbg",
+        "amh"
+      ],
+      "triggers": [
+        {
+          "parameter": "testosterone_total",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Total testosterone above the female reference range"
+        },
+        {
+          "parameter": "free_testosterone",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Free testosterone above the female reference range"
+        },
+        {
+          "parameter": "lh_fsh_ratio",
+          "condition": {
+            "gte": 2.0
+          },
+          "weight": 0.8,
+          "label": "LH/FSH ratio at or above 2.0"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "dheas",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "DHEA-S raised - adrenal androgen contribution"
+        },
+        {
+          "parameter": "shbg",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.6,
+          "label": "SHBG low - raises free androgen availability"
+        },
+        {
+          "parameter": "homa_ir",
+          "condition": {
+            "gte": 2.9
+          },
+          "weight": 0.7,
+          "label": "HOMA-IR consistent with insulin resistance"
+        },
+        {
+          "parameter": "fasting_insulin",
+          "condition": {
+            "gte": 12
+          },
+          "weight": 0.6,
+          "label": "Fasting insulin raised"
+        },
+        {
+          "parameter": "amh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "AMH raised - reflects increased antral follicle count"
+        },
+        {
+          "parameter": "fasting_glucose",
+          "condition": {
+            "gte": 100
+          },
+          "weight": 0.4,
+          "label": "Fasting glucose in the impaired range"
+        },
+        {
+          "parameter": "tg_hdl_ratio",
+          "condition": {
+            "gte": 3.0
+          },
+          "weight": 0.3,
+          "label": "TG/HDL ratio raised"
+        },
+        {
+          "parameter": "prolactin",
+          "condition": {
+            "abnormal": "none"
+          },
+          "weight": 0.2,
+          "label": "Prolactin normal - argues against hyperprolactinaemia as the cause of cycle disturbance"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Teede HJ et al., International Evidence-Based Guideline for the Assessment and Management of PCOS, 2023",
+          "note": "Rotterdam criteria; biochemical hyperandrogenism plus ovulatory dysfunction, with insulin resistance as a common metabolic feature. AMH may substitute for follicle count in adults."
+        },
+        {
+          "citation": "Rotterdam ESHRE/ASRM-Sponsored PCOS Consensus Workshop Group, Fertil Steril 2004;81:19-25",
+          "note": "Original consensus definition requiring two of three criteria."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "PCOS",
+          "role": "primary",
+          "weight": 0.8,
+          "dm_basis": "High-Risk Indicators: 'Elevated androgens with irregular cycles and insulin resistance markers'; Related Markers/Tests: Testosterone, LH, FSH, Insulin (Fasting), Fasting Blood Glucose"
+        },
+        {
+          "name": "Amenorrhea (General/Secondary)",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Any hormone panel abnormality in the context of absent periods warrants further evaluation'; Related Markers/Tests: LH, FSH, Prolactin, TSH, Testosterone"
+        },
+        {
+          "name": "Congenital Adrenal Hyperplasia",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "High-Risk Indicators: 'Elevated 17-OHP with clinical signs of androgen excess' - non-classic CAH is the principal differential for biochemical hyperandrogenism"
+        },
+        {
+          "name": "Prediabetes",
+          "role": "downstream_risk",
+          "weight": 0.25,
+          "dm_basis": "Possible Complications on the PCOS row name progression to impaired glucose tolerance and type 2 diabetes"
+        }
+      ]
+    },
+    {
+      "id": "cah_pattern",
+      "name": "Adrenal Steroid Excess Pattern",
+      "category": "Endocrine",
+      "description": "Raised 17-hydroxyprogesterone with androgen excess, the screening pattern for congenital adrenal hyperplasia.",
+      "profiles_touched": [
+        "Hormones"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "hydroxyprogesterone_17",
+        "testosterone_total",
+        "dheas"
+      ],
+      "triggers": [
+        {
+          "parameter": "hydroxyprogesterone_17",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "17-hydroxyprogesterone above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "testosterone_total",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "Testosterone raised"
+        },
+        {
+          "parameter": "dheas",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "DHEA-S raised"
+        },
+        {
+          "parameter": "sodium",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.5,
+          "label": "Sodium low - salt-wasting form"
+        },
+        {
+          "parameter": "potassium",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Potassium raised - salt-wasting form"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Speiser PW et al., Endocrine Society Clinical Practice Guideline: Congenital Adrenal Hyperplasia due to 21-Hydroxylase Deficiency, J Clin Endocrinol Metab 2018;103:4043-88",
+          "note": "Early morning 17-OHP as the first-line screening test, with ACTH stimulation for confirmation."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Congenital Adrenal Hyperplasia",
+          "role": "primary",
+          "weight": 0.75,
+          "dm_basis": "High-Risk Indicators: 'Elevated 17-OHP with clinical signs of androgen excess'; Related Markers/Tests: 17-hydroxyprogesterone, Testosterone; Severity/Urgency: 'emergency in salt-wasting neonatal crisis'"
+        }
+      ]
+    },
+    {
+      "id": "hypogonadotropic_pattern",
+      "name": "Low Gonadotropin Pattern",
+      "category": "Endocrine",
+      "description": "Low or inappropriately normal LH and FSH alongside low sex steroids - failure at the hypothalamic or pituitary level rather than the gonad.",
+      "profiles_touched": [
+        "Hormones",
+        "Semen Analysis"
+      ],
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "lh",
+        "fsh",
+        "estradiol",
+        "testosterone_total",
+        "prolactin"
+      ],
+      "triggers": [
+        {
+          "parameter": "lh",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "LH below range"
+        },
+        {
+          "parameter": "fsh",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "FSH below range"
+        },
+        {
+          "parameter": "estradiol",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.9,
+          "label": "Estradiol below range"
+        },
+        {
+          "parameter": "testosterone_total",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.9,
+          "label": "Testosterone below range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "prolactin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "Prolactin raised - can suppress the gonadotropin axis"
+        },
+        {
+          "parameter": "tsh",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 0.3,
+          "label": "TSH abnormal - thyroid dysfunction can disturb the cycle"
+        },
+        {
+          "parameter": "bmi",
+          "condition": {
+            "lt": 18.5
+          },
+          "weight": 0.6,
+          "label": "BMI below 18.5 - low energy availability"
+        },
+        {
+          "parameter": "sperm_concentration",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.5,
+          "label": "Sperm concentration low"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Gordon CM et al., Endocrine Society Clinical Practice Guideline: Functional Hypothalamic Amenorrhea, J Clin Endocrinol Metab 2017;102:1413-39",
+          "note": "Low/normal gonadotropins with low estradiol in the setting of energy deficit, exercise or stress."
+        },
+        {
+          "citation": "Bhasin S et al., Endocrine Society Clinical Practice Guideline: Testosterone Therapy in Men with Hypogonadism, J Clin Endocrinol Metab 2018;103:1715-44",
+          "note": "Low testosterone with low/normal LH and FSH defines secondary hypogonadism."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Functional Hypothalamic Amenorrhea",
+          "role": "primary",
+          "weight": 0.7,
+          "dm_basis": "High-Risk Indicators: 'Low gonadotropins with low estrogen in the context of low body weight/excessive exercise/stress'; Related Markers/Tests: LH, FSH, Estradiol"
+        },
+        {
+          "name": "Male Hypogonadism",
+          "role": "primary",
+          "weight": 0.68,
+          "dm_basis": "High-Risk Indicators: 'Low testosterone with abnormal LH/FSH and symptomatic presentation'; Related Markers/Tests: Testosterone, LH, FSH, Semen Analysis parameters"
+        },
+        {
+          "name": "Amenorrhea (General/Secondary)",
+          "role": "supporting",
+          "weight": 0.4,
+          "dm_basis": "High-Risk Indicators: 'Any hormone panel abnormality in the context of absent periods warrants further evaluation for the specific underlying cause'"
+        },
+        {
+          "name": "Hyperprolactinemia",
+          "role": "differential",
+          "weight": 0.25,
+          "dm_basis": "High-Risk Indicators: 'Significantly elevated prolactin with compatible symptoms' - a treatable cause of gonadotropin suppression"
+        }
+      ]
+    },
+    {
+      "id": "hypergonadotropic_pattern",
+      "name": "High Gonadotropin Pattern",
+      "category": "Endocrine",
+      "description": "Raised LH and FSH with low sex steroids - the gonad is failing and the pituitary is compensating.",
+      "profiles_touched": [
+        "Hormones",
+        "Semen Analysis"
+      ],
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "fsh",
+        "lh",
+        "estradiol",
+        "testosterone_total",
+        "amh"
+      ],
+      "triggers": [
+        {
+          "parameter": "fsh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "FSH above range"
+        },
+        {
+          "parameter": "lh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "LH above range"
+        },
+        {
+          "parameter": "estradiol",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.9,
+          "label": "Estradiol below range"
+        },
+        {
+          "parameter": "testosterone_total",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.9,
+          "label": "Testosterone below range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "amh",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "AMH low - diminished ovarian reserve"
+        },
+        {
+          "parameter": "sperm_concentration",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.6,
+          "label": "Sperm concentration low - primary testicular failure pattern"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Harlow SD et al., STRAW+10 Staging of Reproductive Aging, J Clin Endocrinol Metab 2012;97:1159-68",
+          "note": "Rising FSH with falling estradiol across the menopausal transition."
+        },
+        {
+          "citation": "Bhasin S et al., J Clin Endocrinol Metab 2018;103:1715-44",
+          "note": "Low testosterone with raised LH/FSH defines primary (testicular) hypogonadism."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Menopause/Perimenopause",
+          "role": "primary",
+          "weight": 0.72,
+          "dm_basis": "High-Risk Indicators: 'Elevated FSH with low estradiol and 12+ months of absent periods (confirms menopause)'; Related Markers/Tests: FSH, Estradiol"
+        },
+        {
+          "name": "Male Hypogonadism",
+          "role": "primary",
+          "weight": 0.65,
+          "dm_basis": "High-Risk Indicators: 'Low testosterone with abnormal LH/FSH and symptomatic presentation'"
+        },
+        {
+          "name": "Amenorrhea (General/Secondary)",
+          "role": "supporting",
+          "weight": 0.32,
+          "dm_basis": "Related Markers/Tests: LH, FSH, Prolactin, TSH, Testosterone as the initial hormonal workup panel"
+        },
+        {
+          "name": "Precocious Puberty",
+          "role": "differential",
+          "weight": 0.15,
+          "dm_basis": "High-Risk Indicators: 'Elevated LH/FSH with physical pubertal signs well before expected age' - applies only to paediatric patients, which this cohort cannot establish from lab data alone"
+        }
+      ]
+    },
+    {
+      "id": "hyperprolactinemia",
+      "name": "Raised Prolactin",
+      "category": "Endocrine",
+      "description": "Prolactin above range, which suppresses the gonadotropin axis and is a common reversible cause of cycle disturbance and infertility.",
+      "profiles_touched": [
+        "Hormones",
+        "Thyroid Profile"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "prolactin",
+        "tsh"
+      ],
+      "triggers": [
+        {
+          "parameter": "prolactin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Prolactin above the sex-specific range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "prolactin",
+          "condition": {
+            "gte": 100
+          },
+          "weight": 0.8,
+          "label": "Prolactin markedly raised"
+        },
+        {
+          "parameter": "tsh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "TSH raised - primary hypothyroidism is a recognised cause of secondary hyperprolactinaemia"
+        },
+        {
+          "parameter": "lh",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "LH suppressed"
+        },
+        {
+          "parameter": "estradiol",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Estradiol suppressed"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Melmed S et al., Endocrine Society Clinical Practice Guideline: Diagnosis and Treatment of Hyperprolactinemia, J Clin Endocrinol Metab 2011;96:273-88",
+          "note": "Confirmation on a repeat sample, exclusion of hypothyroidism, medication and macroprolactin before imaging."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Hyperprolactinemia",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Significantly elevated prolactin with compatible symptoms'; Related Markers/Tests: Prolactin"
+        },
+        {
+          "name": "Amenorrhea (General/Secondary)",
+          "role": "supporting",
+          "weight": 0.4,
+          "dm_basis": "Related Markers/Tests lists Prolactin among the initial hormonal workup panel for absent periods"
+        },
+        {
+          "name": "Hypothyroidism",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "Cross-linked because primary hypothyroidism can raise prolactin; the TSH result distinguishes the two"
+        }
+      ]
+    },
+    {
+      "id": "cortisol_excess",
+      "name": "Cortisol Excess Pattern",
+      "category": "Endocrine",
+      "description": "Cortisol above range. Screening only - the Disease Master requires dynamic suppression testing to confirm.",
+      "profiles_touched": [
+        "Hormones"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "cortisol",
+        "acth"
+      ],
+      "triggers": [
+        {
+          "parameter": "cortisol",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Cortisol above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "acth",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 0.5,
+          "label": "ACTH abnormal - helps localise the source"
+        },
+        {
+          "parameter": "potassium",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Hypokalaemia - mineralocorticoid effect of cortisol excess"
+        },
+        {
+          "parameter": "fasting_glucose",
+          "condition": {
+            "gte": 100
+          },
+          "weight": 0.35,
+          "label": "Glucose raised - steroid effect on glucose handling"
+        },
+        {
+          "parameter": "systolic_bp",
+          "condition": {
+            "gte": 140
+          },
+          "weight": 0.3,
+          "label": "Blood pressure raised"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Nieman LK et al., Endocrine Society Clinical Practice Guideline: The Diagnosis of Cushing's Syndrome, J Clin Endocrinol Metab 2008;93:1526-40",
+          "note": "A single random cortisol is insufficient; 1 mg dexamethasone suppression, late-night salivary cortisol or 24-h urinary free cortisol are required."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Cushing's Syndrome",
+          "role": "primary",
+          "weight": 0.48,
+          "dm_basis": "High-Risk Indicators: 'Elevated cortisol not suppressed by dexamethasone testing, with classic physical features'; Related Markers/Tests: Cortisol (serum/salivary), ACTH. Weight held moderate because the indicator requires dynamic testing this cohort cannot perform."
+        }
+      ]
+    },
+    {
+      "id": "adrenal_insufficiency_pattern",
+      "name": "Adrenal Insufficiency Pattern",
+      "category": "Endocrine",
+      "description": "Low sodium with raised potassium and a low cortisol - the electrolyte and hormone signature of mineralocorticoid and glucocorticoid deficiency.",
+      "profiles_touched": [
+        "Hormones",
+        "Electrolyte Profile"
+      ],
+      "cross_profile_rationale": "The Disease Master Addison's Disease row itself spans Hormones and Electrolyte Profile and names 'Low sodium with high potassium and low cortisol' - a pattern that cannot be seen from either profile alone.",
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "urgency_override": "specialist",
+      "expected_parameters": [
+        "sodium",
+        "potassium",
+        "cortisol",
+        "acth"
+      ],
+      "triggers": [
+        {
+          "parameter": "sodium",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "Sodium below range"
+        },
+        {
+          "parameter": "potassium",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Potassium above range"
+        },
+        {
+          "parameter": "cortisol",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "Cortisol below range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "acth",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "ACTH raised - primary adrenal failure"
+        },
+        {
+          "parameter": "fasting_glucose",
+          "condition": {
+            "lt": 70
+          },
+          "weight": 0.4,
+          "label": "Hypoglycaemia"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Bornstein SR et al., Endocrine Society Clinical Practice Guideline: Primary Adrenal Insufficiency, J Clin Endocrinol Metab 2016;101:364-89",
+          "note": "Hyponatraemia with hyperkalaemia and low morning cortisol; ACTH stimulation testing confirms."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Addison's Disease",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Low sodium with high potassium and low cortisol'; Related Markers/Tests: Cortisol, Sodium, Potassium, ACTH; Severity/Urgency: 'emergency if adrenal crisis'"
+        },
+        {
+          "name": "Sodium Imbalance (Hyponatremia/Hypernatremia)",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Sodium persistently outside 136-145 mmol/L'"
+        },
+        {
+          "name": "Potassium Imbalance (Hyperkalemia/Hypokalemia)",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Potassium significantly outside the reference range'"
+        }
+      ]
+    },
+    {
+      "id": "gh_excess",
+      "name": "Growth Hormone Axis Excess",
+      "category": "Endocrine",
+      "description": "Raised IGF-1, the integrated marker of growth hormone secretion.",
+      "profiles_touched": [
+        "Hormones"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "igf_1",
+        "growth_hormone"
+      ],
+      "triggers": [
+        {
+          "parameter": "igf_1",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "IGF-1 above the age-referenced range"
+        },
+        {
+          "parameter": "growth_hormone",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "Growth hormone above range (a single random level is of limited value)"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "fasting_glucose",
+          "condition": {
+            "gte": 100
+          },
+          "weight": 0.35,
+          "label": "Glucose raised - growth hormone antagonises insulin"
+        },
+        {
+          "parameter": "prolactin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "Prolactin raised - co-secreting pituitary lesions occur"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Katznelson L et al., Endocrine Society Clinical Practice Guideline: Acromegaly, J Clin Endocrinol Metab 2014;99:3933-51",
+          "note": "Age-normalised IGF-1 as the screening test; random GH is unreliable, oral glucose suppression confirms."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Acromegaly",
+          "role": "primary",
+          "weight": 0.7,
+          "dm_basis": "High-Risk Indicators: 'Elevated IGF-1/GH with characteristic physical changes'; Related Markers/Tests: Growth Hormone, IGF-1"
+        }
+      ]
+    },
+    {
+      "id": "bone_mineral_deficiency",
+      "name": "Bone Mineral Deficiency Pattern",
+      "category": "Bone and Mineral",
+      "description": "Vitamin D deficiency with low or low-normal calcium and phosphate, with or without a compensatory rise in PTH - the pattern behind defective bone mineralisation.",
+      "profiles_touched": [
+        "Vitamin Profile",
+        "Bone Health",
+        "Electrolyte Profile",
+        "Liver Profile"
+      ],
+      "cross_profile_rationale": "The Disease Master Osteomalacia/Rickets row spans Bone Health and Vitamin Profile and names Vitamin D, Calcium and Phosphorus together - drawing on the Vitamin Profile and Electrolyte Profile at once. Alkaline phosphatase from the Liver Profile is admitted as a bone-turnover marker.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "vitamin_d",
+        "calcium",
+        "phosphorus",
+        "pth",
+        "alkaline_phosphatase"
+      ],
+      "triggers": [
+        {
+          "parameter": "vitamin_d",
+          "condition": {
+            "lt": 20
+          },
+          "weight": 1.0,
+          "label": "Vitamin D below 20 ng/mL - deficient"
+        },
+        {
+          "parameter": "vitamin_d",
+          "condition": {
+            "between": [
+              20,
+              29.9
+            ]
+          },
+          "weight": 0.6,
+          "label": "Vitamin D 20-30 ng/mL - insufficient"
+        },
+        {
+          "parameter": "calcium",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.8,
+          "label": "Calcium below range"
+        },
+        {
+          "parameter": "phosphorus",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "Phosphorus below range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "pth",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "PTH raised - secondary hyperparathyroidism compensating for low vitamin D"
+        },
+        {
+          "parameter": "alkaline_phosphatase",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Alkaline phosphatase raised - increased bone turnover"
+        },
+        {
+          "parameter": "magnesium",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.3,
+          "label": "Magnesium low - impairs PTH action"
+        },
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.25,
+          "label": "Albumin low - total calcium under-reads true ionised calcium"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Holick MF et al., Endocrine Society Clinical Practice Guideline: Evaluation, Treatment, and Prevention of Vitamin D Deficiency, J Clin Endocrinol Metab 2011;96:1911-30",
+          "note": "25(OH)D thresholds: deficiency <20 ng/mL, insufficiency 21-29 ng/mL."
+        },
+        {
+          "citation": "Uday S, Hogler W, Calcif Tissue Int 2020;106:14-29",
+          "note": "Biochemical staging of nutritional rickets/osteomalacia: raised ALP and PTH with low or low-normal calcium and phosphate."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Vitamin D Deficiency",
+          "role": "primary",
+          "weight": 0.9,
+          "dm_basis": "High-Risk Indicators: 'Vitamin D level in the deficient range, especially with elevated PTH or low calcium'; Related Markers/Tests: Vitamin D (25-Hydroxy)"
+        },
+        {
+          "name": "Osteomalacia/Rickets",
+          "role": "primary",
+          "weight": 0.58,
+          "dm_basis": "High-Risk Indicators: 'Low Vitamin D with low or low-normal Calcium/Phosphorus, especially with bone pain'; Related Markers/Tests: Vitamin D, Calcium, Phosphorus"
+        },
+        {
+          "name": "Osteoporosis",
+          "role": "downstream_risk",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Low bone-relevant markers (e.g. Vitamin D) in an at-risk individual'; Related Markers/Tests: Calcium, Vitamin D, Phosphorus"
+        },
+        {
+          "name": "Hyperparathyroidism",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "Secondary hyperparathyroidism from vitamin D deficiency must be distinguished from the primary form, where calcium is high rather than low"
+        },
+        {
+          "name": "Malabsorption Syndrome",
+          "role": "differential",
+          "weight": 0.18,
+          "dm_basis": "Related Markers/Tests lists 'Vitamin D/B12/Folate' among the malabsorption marker set"
+        }
+      ]
+    },
+    {
+      "id": "isolated_alp_elevation",
+      "name": "Raised Alkaline Phosphatase with Normal Calcium and Phosphate",
+      "category": "Bone and Mineral",
+      "description": "Alkaline phosphatase raised while calcium and phosphate stay normal - the biochemical signature of increased bone turnover rather than a mineral deficiency or a parathyroid problem.",
+      "profiles_touched": [
+        "Bone Health",
+        "Liver Profile",
+        "Electrolyte Profile"
+      ],
+      "cross_profile_rationale": "Alkaline phosphatase sits in the Liver Profile but is a bone turnover marker too. Reading it against Calcium and Phosphorus from the Electrolyte Profile is what separates a bone source from a hepatobiliary one.",
+      "min_triggers": 1,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "alkaline_phosphatase",
+        "calcium",
+        "phosphorus",
+        "ggt",
+        "vitamin_d"
+      ],
+      "triggers": [
+        {
+          "parameter": "alkaline_phosphatase",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Alkaline phosphatase above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "calcium",
+          "condition": {
+            "abnormal": "none"
+          },
+          "weight": 0.9,
+          "label": "Calcium normal - argues against hyperparathyroidism and malignancy"
+        },
+        {
+          "parameter": "phosphorus",
+          "condition": {
+            "abnormal": "none"
+          },
+          "weight": 0.8,
+          "label": "Phosphorus normal - argues against osteomalacia"
+        },
+        {
+          "parameter": "ggt",
+          "condition": {
+            "abnormal": "none"
+          },
+          "weight": 0.7,
+          "label": "GGT normal - points to a bone rather than hepatobiliary source of the ALP"
+        },
+        {
+          "parameter": "vitamin_d",
+          "condition": {
+            "abnormal": "none"
+          },
+          "weight": 0.5,
+          "label": "Vitamin D adequate - argues against osteomalacia as the cause"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Ralston SH et al., Diagnosis and Management of Paget's Disease of Bone in Adults, J Bone Miner Res 2019;34:579-604",
+          "note": "Raised total alkaline phosphatase with normal calcium and phosphate is the characteristic biochemical picture; radionuclide bone scan and radiographs confirm."
+        },
+        {
+          "citation": "Singer FR et al., Endocrine Society Clinical Practice Guideline: Paget's Disease of Bone, J Clin Endocrinol Metab 2014;99:4408-22",
+          "note": "ALP as the primary biochemical marker of disease activity, with a bone-specific isoenzyme or GGT used to exclude a hepatic source."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Paget's Disease of Bone",
+          "role": "primary",
+          "weight": 0.55,
+          "dm_basis": "High-Risk Indicators: 'Normal calcium/phosphorus but clinical suspicion (bone pain/deformity) in an older adult, particularly with an elevated alkaline phosphatase on other testing'; Related Markers/Tests: Calcium, Phosphorus",
+          "requires_any": [
+            "alkaline_phosphatase"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hypercalcemia_pattern",
+      "name": "Hypercalcaemia Pattern",
+      "category": "Bone and Mineral",
+      "description": "Raised calcium. The accompanying PTH and phosphate determine whether this is parathyroid-driven or something else.",
+      "profiles_touched": [
+        "Electrolyte Profile",
+        "Bone Health",
+        "Blood Disorder"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "calcium",
+        "phosphorus",
+        "pth",
+        "total_protein",
+        "globulin"
+      ],
+      "triggers": [
+        {
+          "parameter": "calcium",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Calcium above range"
+        },
+        {
+          "parameter": "ionized_calcium",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Ionised calcium above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "pth",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "PTH raised despite hypercalcaemia - inappropriate, suggests a parathyroid source"
+        },
+        {
+          "parameter": "phosphorus",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.8,
+          "label": "Phosphorus low - the classic accompaniment of parathyroid hormone excess"
+        },
+        {
+          "parameter": "calcium",
+          "condition": {
+            "gte": 12.0
+          },
+          "weight": 0.7,
+          "label": "Calcium at or above 12 mg/dL - severe"
+        },
+        {
+          "parameter": "globulin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.7,
+          "label": "Globulin raised - consider a paraproteinaemia instead"
+        },
+        {
+          "parameter": "total_protein",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.6,
+          "label": "Total protein raised - together with hypercalcaemia this points toward a paraproteinaemia"
+        },
+        {
+          "parameter": "creatinine",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.4,
+          "label": "Creatinine raised"
+        },
+        {
+          "parameter": "alkaline_phosphatase",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "ALP raised - increased bone turnover"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Bilezikian JP et al., Evaluation and Management of Primary Hyperparathyroidism: 2022 Workshop Guidelines, J Bone Miner Res 2022;37:2293-2314",
+          "note": "Raised calcium with a non-suppressed PTH and low phosphate defines primary hyperparathyroidism."
+        },
+        {
+          "citation": "Rajkumar SV et al., Lancet Oncol 2014;15:e538-48",
+          "note": "Hypercalcaemia as a CRAB feature of myeloma - the principal PTH-independent differential."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Hyperparathyroidism",
+          "role": "primary",
+          "weight": 0.78,
+          "dm_basis": "High-Risk Indicators: 'Elevated calcium with elevated PTH, especially with low phosphorus'; Related Markers/Tests: Calcium, Phosphorus; Severity/Urgency: 'urgent if severe hypercalcemia'"
+        },
+        {
+          "name": "Multiple Myeloma",
+          "role": "differential",
+          "weight": 0.35,
+          "dm_basis": "High-Risk Indicators: 'Elevated total protein/globulin with hypercalcemia, anemia, or unexplained bone pain'",
+          "requires_any": [
+            "globulin",
+            "total_protein"
+          ]
+        },
+        {
+          "name": "Paget's Disease of Bone",
+          "role": "differential",
+          "weight": 0.15,
+          "dm_basis": "High-Risk Indicators note calcium and phosphorus are 'usually normal' in Paget's, with ALP the abnormal marker"
+        }
+      ]
+    },
+    {
+      "id": "sodium_imbalance",
+      "name": "Sodium Imbalance",
+      "category": "Electrolyte",
+      "description": "Sodium outside 136-145 mmol/L, the band named in the Disease Master. Rate of change matters as much as the absolute value.",
+      "profiles_touched": [
+        "Electrolyte Profile",
+        "Hormones",
+        "Urinalysis"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "sodium",
+        "potassium",
+        "urine_specific_gravity"
+      ],
+      "triggers": [
+        {
+          "parameter": "sodium",
+          "condition": {
+            "outside": [
+              136,
+              145
+            ]
+          },
+          "weight": 1.0,
+          "label": "Sodium outside 136-145 mmol/L"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "sodium",
+          "condition": {
+            "lt": 125
+          },
+          "weight": 0.9,
+          "label": "Sodium below 125 mmol/L - severe, neurological risk"
+        },
+        {
+          "parameter": "sodium",
+          "condition": {
+            "gte": 155
+          },
+          "weight": 0.9,
+          "label": "Sodium at or above 155 mmol/L - severe"
+        },
+        {
+          "parameter": "urine_specific_gravity",
+          "condition": {
+            "gte": 1.02
+          },
+          "weight": 0.6,
+          "label": "Concentrated urine despite hyponatraemia - consistent with inappropriate ADH"
+        },
+        {
+          "parameter": "cortisol",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.6,
+          "label": "Cortisol low - consider adrenal insufficiency"
+        },
+        {
+          "parameter": "tsh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "TSH raised - hypothyroidism can cause hyponatraemia"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Spasovski G et al., Clinical Practice Guideline on Diagnosis and Treatment of Hyponatraemia, Eur J Endocrinol 2014;170:G1-47",
+          "note": "Severity bands and the diagnostic algorithm including urine osmolality and volume status."
+        },
+        {
+          "citation": "Verbalis JG et al., Am J Med 2013;126(10 Suppl 1):S1-42",
+          "note": "Diagnosis and management of hyponatraemia including SIADH criteria."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Sodium Imbalance (Hyponatremia/Hypernatremia)",
+          "role": "primary",
+          "weight": 0.88,
+          "dm_basis": "High-Risk Indicators: 'Sodium persistently outside 136-145 mmol/L, especially with associated symptoms or rapid change'; Related Markers/Tests: Sodium (Na+)"
+        },
+        {
+          "name": "SIADH (Syndrome of Inappropriate Antidiuretic Hormone Secretion)",
+          "role": "supporting",
+          "weight": 0.4,
+          "dm_basis": "High-Risk Indicators: 'Hyponatremia with concentrated urine (high urine osmolality) despite normal volume status'; Related Markers/Tests: Sodium (Na+)",
+          "requires_any": [
+            "urine_specific_gravity",
+            "sodium"
+          ]
+        },
+        {
+          "name": "Addison's Disease",
+          "role": "differential",
+          "weight": 0.25,
+          "dm_basis": "High-Risk Indicators: 'Low sodium with high potassium and low cortisol'",
+          "requires_any": [
+            "cortisol"
+          ]
+        },
+        {
+          "name": "Diabetes Insipidus",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "High-Risk Indicators: 'Very low urine specific gravity with high serum sodium'",
+          "requires_any": [
+            "urine_specific_gravity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "potassium_imbalance",
+      "name": "Potassium Imbalance",
+      "category": "Electrolyte",
+      "description": "Potassium outside range. Significant because of the effect on cardiac conduction rather than symptoms.",
+      "profiles_touched": [
+        "Electrolyte Profile",
+        "Kidney Profile",
+        "Hormones"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "urgency_override_when": {
+        "parameter": "potassium",
+        "condition": {
+          "gte": 6.0
+        },
+        "tier": "emergency"
+      },
+      "expected_parameters": [
+        "potassium",
+        "creatinine",
+        "egfr",
+        "sodium"
+      ],
+      "triggers": [
+        {
+          "parameter": "potassium",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 1.0,
+          "label": "Potassium outside the reference range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "potassium",
+          "condition": {
+            "gte": 6.0
+          },
+          "weight": 1.0,
+          "label": "Potassium at or above 6.0 mmol/L - risk of cardiac arrhythmia"
+        },
+        {
+          "parameter": "potassium",
+          "condition": {
+            "lt": 2.5
+          },
+          "weight": 1.0,
+          "label": "Potassium below 2.5 mmol/L - severe depletion"
+        },
+        {
+          "parameter": "egfr",
+          "condition": {
+            "lt": 60
+          },
+          "weight": 0.6,
+          "label": "Reduced eGFR - impaired potassium excretion"
+        },
+        {
+          "parameter": "creatinine",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Creatinine raised"
+        },
+        {
+          "parameter": "cortisol",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.5,
+          "label": "Cortisol low - consider adrenal insufficiency"
+        },
+        {
+          "parameter": "bicarbonate",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 0.3,
+          "label": "Bicarbonate abnormal - acid-base shifts move potassium across cell membranes"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Palmer BF, Clegg DJ, N Engl J Med 2015;373:60-72",
+          "note": "Hyperkalaemia: renal impairment and drug effects as leading causes; ECG changes drive urgency."
+        },
+        {
+          "citation": "Kardalas E et al., Endocr Connect 2018;7:R135-46",
+          "note": "Hypokalaemia: causes, thresholds and cardiac consequences."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Potassium Imbalance (Hyperkalemia/Hypokalemia)",
+          "role": "primary",
+          "weight": 0.88,
+          "dm_basis": "High-Risk Indicators: 'Potassium significantly outside the reference range, particularly with ECG changes or use of potassium-affecting medications'; Related Markers/Tests: Potassium (K+)"
+        },
+        {
+          "name": "Chronic Kidney Disease (CKD)",
+          "role": "supporting",
+          "weight": 0.25,
+          "dm_basis": "Impaired potassium excretion is a recognised feature of reduced filtration"
+        },
+        {
+          "name": "Addison's Disease",
+          "role": "differential",
+          "weight": 0.22,
+          "dm_basis": "High-Risk Indicators: 'Low sodium with high potassium and low cortisol'",
+          "requires_any": [
+            "cortisol"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "acid_base_disturbance",
+      "name": "Acid-Base Disturbance",
+      "category": "Electrolyte",
+      "description": "Bicarbonate or pH outside range, with the anion gap used to separate the causes.",
+      "profiles_touched": [
+        "Electrolyte Profile",
+        "Kidney Profile",
+        "Diabetes Monitoring"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "bicarbonate",
+        "blood_ph",
+        "anion_gap",
+        "sodium",
+        "chloride"
+      ],
+      "triggers": [
+        {
+          "parameter": "bicarbonate",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 1.0,
+          "label": "Bicarbonate outside range"
+        },
+        {
+          "parameter": "blood_ph",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 1.0,
+          "label": "Blood pH outside 7.35-7.45"
+        },
+        {
+          "parameter": "anion_gap",
+          "condition": {
+            "gt": 12
+          },
+          "weight": 0.9,
+          "label": "Anion gap above 12 mmol/L"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "urine_ketones",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.8,
+          "label": "Ketones present - ketoacidosis"
+        },
+        {
+          "parameter": "egfr",
+          "condition": {
+            "lt": 60
+          },
+          "weight": 0.5,
+          "label": "Reduced eGFR - renal acidosis"
+        },
+        {
+          "parameter": "potassium",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 0.4,
+          "label": "Potassium abnormal"
+        },
+        {
+          "parameter": "chloride",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 0.3,
+          "label": "Chloride abnormal"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Berend K, de Vries APJ, Gans ROB, N Engl J Med 2014;371:1434-45",
+          "note": "Physiological approach to acid-base disorders using bicarbonate, pH and the anion gap."
+        },
+        {
+          "citation": "Kraut JA, Madias NE, Nat Rev Nephrol 2010;6:274-85",
+          "note": "Metabolic acidosis: classification by anion gap and clinical context."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Metabolic Acidosis/Alkalosis",
+          "role": "primary",
+          "weight": 0.8,
+          "dm_basis": "High-Risk Indicators: 'Electrolyte pattern suggesting a wide anion gap or clinical context (vomiting, diarrhea, kidney disease, uncontrolled diabetes) consistent with acid-base disturbance'; Related Markers/Tests: Sodium, Potassium, Chloride (used to estimate anion gap)"
+        },
+        {
+          "name": "Diabetic Ketoacidosis (DKA)",
+          "role": "differential",
+          "weight": 0.3,
+          "dm_basis": "High-Risk Indicators: 'High glucose with positive urine ketones and low blood pH'",
+          "requires_any": [
+            "urine_ketones"
+          ]
+        },
+        {
+          "name": "Chronic Kidney Disease (CKD)",
+          "role": "differential",
+          "weight": 0.2,
+          "dm_basis": "Metabolic acidosis is a recognised complication of advanced CKD"
+        }
+      ]
+    },
+    {
+      "id": "zinc_deficiency",
+      "name": "Zinc Deficiency",
+      "category": "Nutrition",
+      "description": "Zinc below range, most often from poor intake or malabsorption.",
+      "profiles_touched": [
+        "Mineral Profile",
+        "Stool Analysis"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "zinc",
+        "albumin"
+      ],
+      "triggers": [
+        {
+          "parameter": "zinc",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "Zinc below range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "albumin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Albumin low - zinc is albumin-bound, and low albumin also suggests poor nutrition"
+        },
+        {
+          "parameter": "fecal_fat",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.6,
+          "label": "Steatorrhoea - malabsorption as the cause"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "King JC et al., J Nutr 2016;146:858S-885S",
+          "note": "Biomarkers of zinc status; serum zinc is the most practical though imperfect indicator."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Zinc Deficiency",
+          "role": "primary",
+          "weight": 0.82,
+          "dm_basis": "High-Risk Indicators: 'Low zinc level with matching clinical signs, especially in malabsorption or poor dietary intake'; Related Markers/Tests: Zinc (urine)"
+        },
+        {
+          "name": "Malabsorption Syndrome",
+          "role": "supporting",
+          "weight": 0.25,
+          "dm_basis": "High-Risk Indicators: 'Chronic diarrhea with steatorrhea plus multiple vitamin/mineral deficiencies'"
+        }
+      ]
+    },
+    {
+      "id": "malabsorption_pattern",
+      "name": "Multiple Micronutrient Deficiency Pattern",
+      "category": "Nutrition",
+      "description": "Several unrelated micronutrients low at once, which points to impaired absorption rather than a single dietary gap.",
+      "profiles_touched": [
+        "Vitamin Profile",
+        "Anemia Studies",
+        "Stool Analysis",
+        "Liver Profile",
+        "Electrolyte Profile",
+        "Mineral Profile"
+      ],
+      "cross_profile_rationale": "This cohort exists precisely because no single profile can identify malabsorption. The Disease Master row lists 'Stool analysis (fecal fat), Vitamin D/B12/Folate, Iron studies, Total Protein' - four different profiles in one marker set.",
+      "mode": "count_of",
+      "count_required": 2,
+      "min_parameters_present": 3,
+      "expected_parameters": [
+        "vitamin_d",
+        "vitamin_b12",
+        "folate",
+        "ferritin",
+        "calcium",
+        "albumin",
+        "zinc",
+        "fecal_fat"
+      ],
+      "components": [
+        {
+          "id": "low_vit_d",
+          "label": "Vitamin D deficient",
+          "any_of": [
+            {
+              "parameter": "vitamin_d",
+              "condition": {
+                "lt": 20
+              },
+              "label": "Vitamin D below 20 ng/mL"
+            }
+          ]
+        },
+        {
+          "id": "low_b12",
+          "label": "Vitamin B12 low",
+          "any_of": [
+            {
+              "parameter": "vitamin_b12",
+              "condition": {
+                "lt": 200
+              },
+              "label": "Vitamin B12 below 200 pg/mL"
+            }
+          ]
+        },
+        {
+          "id": "low_folate",
+          "label": "Folate low",
+          "any_of": [
+            {
+              "parameter": "folate",
+              "condition": {
+                "lt": 3.0
+              },
+              "label": "Folate below 3 ng/mL"
+            }
+          ]
+        },
+        {
+          "id": "low_iron_stores",
+          "label": "Iron stores depleted",
+          "any_of": [
+            {
+              "parameter": "ferritin",
+              "condition": {
+                "lt": 30
+              },
+              "label": "Ferritin below 30 ng/mL"
+            }
+          ]
+        },
+        {
+          "id": "low_calcium",
+          "label": "Calcium low",
+          "any_of": [
+            {
+              "parameter": "calcium",
+              "condition": {
+                "abnormal": "low"
+              },
+              "label": "Calcium below range"
+            }
+          ]
+        },
+        {
+          "id": "low_zinc",
+          "label": "Zinc low",
+          "any_of": [
+            {
+              "parameter": "zinc",
+              "condition": {
+                "abnormal": "low"
+              },
+              "label": "Zinc below range"
+            }
+          ]
+        },
+        {
+          "id": "low_protein",
+          "label": "Protein/albumin low",
+          "any_of": [
+            {
+              "parameter": "albumin",
+              "condition": {
+                "abnormal": "low"
+              },
+              "label": "Albumin below range"
+            },
+            {
+              "parameter": "total_protein",
+              "condition": {
+                "abnormal": "low"
+              },
+              "label": "Total protein below range"
+            }
+          ]
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "fecal_fat",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Faecal fat present - steatorrhoea"
+        },
+        {
+          "parameter": "anti_ttg_iga",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.9,
+          "label": "Anti-tTG IgA raised - coeliac disease as the cause"
+        },
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Anaemia"
+        },
+        {
+          "parameter": "bmi",
+          "condition": {
+            "lt": 18.5
+          },
+          "weight": 0.4,
+          "label": "BMI below 18.5"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Nikaki K, Gupte GL, Curr Opin Clin Nutr Metab Care 2016;19:309-14",
+          "note": "Multiple simultaneous micronutrient deficiencies as a marker of intestinal malabsorption."
+        },
+        {
+          "citation": "Rubio-Tapia A et al., ACG Clinical Guidelines: Diagnosis and Management of Celiac Disease, Am J Gastroenterol 2023;118:59-76",
+          "note": "tTG-IgA with total IgA as first-line coeliac serology in patients with malabsorptive features."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Malabsorption Syndrome",
+          "role": "primary",
+          "weight": 0.78,
+          "dm_basis": "High-Risk Indicators: 'Chronic diarrhea with steatorrhea plus multiple vitamin/mineral deficiencies or unexplained weight loss'; Related Markers/Tests: Stool analysis (fecal fat), Vitamin D/B12/Folate, Iron studies, Total Protein"
+        },
+        {
+          "name": "Celiac Disease",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators: 'Elevated tTG-IgA with compatible symptoms or unexplained iron/folate deficiency'",
+          "requires_any": [
+            "anti_ttg_iga",
+            "fecal_fat"
+          ]
+        },
+        {
+          "name": "Inflammatory Bowel Disease (Crohn's Disease/Ulcerative Colitis)",
+          "role": "differential",
+          "weight": 0.25,
+          "dm_basis": "Possible Complications on the IBD row include malabsorption and nutritional deficiency"
+        },
+        {
+          "name": "Vitamin B12 Deficiency",
+          "role": "supporting",
+          "weight": 0.3,
+          "dm_basis": "Related Markers/Tests: Vitamin B12",
+          "requires_any": [
+            "vitamin_b12"
+          ]
+        },
+        {
+          "name": "Vitamin D Deficiency",
+          "role": "supporting",
+          "weight": 0.28,
+          "dm_basis": "Related Markers/Tests: Vitamin D (25-Hydroxy)",
+          "requires_any": [
+            "vitamin_d"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "heavy_metal_burden",
+      "name": "Raised Heavy Metal Level",
+      "category": "Toxic Elements",
+      "description": "One or more toxic metals above the reference value, which should prompt a search for the exposure source.",
+      "profiles_touched": [
+        "Toxic elements",
+        "Mineral Profile"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "lead",
+        "mercury",
+        "arsenic",
+        "cadmium",
+        "aluminium",
+        "cobalt",
+        "thallium"
+      ],
+      "triggers": [
+        {
+          "parameter": "lead",
+          "condition": {
+            "gte": 3.5
+          },
+          "weight": 1.0,
+          "label": "Blood lead at or above the CDC reference value of 3.5 ug/dL"
+        },
+        {
+          "parameter": "mercury",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Blood mercury above range"
+        },
+        {
+          "parameter": "arsenic",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Blood arsenic above range"
+        },
+        {
+          "parameter": "cadmium",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Blood cadmium above range"
+        },
+        {
+          "parameter": "aluminium",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "Aluminium above range"
+        },
+        {
+          "parameter": "cobalt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "Cobalt above range"
+        },
+        {
+          "parameter": "thallium",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "Thallium above range"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "hemoglobin",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.4,
+          "label": "Anaemia - lead interferes with haem synthesis"
+        },
+        {
+          "parameter": "creatinine",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "Creatinine raised - cadmium and mercury are nephrotoxic"
+        },
+        {
+          "parameter": "egfr",
+          "condition": {
+            "lt": 60
+          },
+          "weight": 0.5,
+          "label": "Reduced eGFR"
+        },
+        {
+          "parameter": "urine_acr",
+          "condition": {
+            "gte": 30
+          },
+          "weight": 0.4,
+          "label": "Albuminuria - tubular injury marker in cadmium exposure"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "CDC, Blood Lead Reference Value, 2021 (3.5 ug/dL)",
+          "note": "Population-based reference value above which follow-up is recommended; there is no safe blood lead level."
+        },
+        {
+          "citation": "Satarug S et al., Environ Health Perspect 2010;118:182-90",
+          "note": "Cadmium exposure and renal tubular dysfunction at low body burdens."
+        },
+        {
+          "citation": "Bernhoft RA, J Environ Public Health 2012;2012:460508",
+          "note": "Mercury toxicity: neurological and renal manifestations."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Lead Poisoning",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Elevated blood Lead level, especially in children or occupationally exposed adults'; Related Markers/Tests: Lead (blood)",
+          "requires_any": [
+            "lead"
+          ]
+        },
+        {
+          "name": "Mercury Toxicity",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Elevated Mercury level with neurological or renal symptoms'; Related Markers/Tests: Mercury (blood)",
+          "requires_any": [
+            "mercury"
+          ]
+        },
+        {
+          "name": "Arsenic Poisoning",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Elevated Arsenic level with consistent GI or skin symptoms'; Related Markers/Tests: Arsenic (blood)",
+          "requires_any": [
+            "arsenic"
+          ]
+        },
+        {
+          "name": "Cadmium Toxicity",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Elevated Cadmium level with signs of renal impairment'; Related Markers/Tests: Cadmium (blood/serum)",
+          "requires_any": [
+            "cadmium"
+          ]
+        },
+        {
+          "name": "Chronic Heavy Metal Exposure (Aluminum/Cobalt/Thallium)",
+          "role": "primary",
+          "weight": 0.75,
+          "dm_basis": "High-Risk Indicators: 'Elevated level on repeat testing with a plausible exposure source'; Related Markers/Tests: Aluminum, Cobalt, Thallium",
+          "requires_any": [
+            "aluminium",
+            "cobalt",
+            "thallium"
+          ]
+        }
+      ]
+    }
+  ]
+}

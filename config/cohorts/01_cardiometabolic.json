@@ -1,0 +1,1178 @@
+{
+  "domain": "Cardiometabolic",
+  "schema_note": "Each cohort lists triggers (conditions that fire the cluster) and supporting signals (add evidence weight but do not count toward min_triggers). Every disease link names the Disease Master row it maps to and quotes the field that justifies the link. Weights are the strength of THIS cluster as evidence for THAT condition, 0-1.",
+  "cohorts": [
+    {
+      "id": "atherogenic_dyslipidemia",
+      "name": "Atherogenic Dyslipidaemia Pattern",
+      "category": "Cardiometabolic",
+      "description": "The lipid triad: raised triglycerides, low HDL cholesterol and a shift toward small dense LDL particles. This is the lipid signature of insulin resistance rather than isolated hypercholesterolaemia.",
+      "profiles_touched": [
+        "Lipid Profile",
+        "Cardiac Profile",
+        "Diabetes Monitoring"
+      ],
+      "cross_profile_rationale": "The Disease Master already tags Atherogenic Dyslipidemia to both Lipid Profile and Cardiac Profile. Insulin-resistance markers from Diabetes Monitoring are admitted as supporting signals because the TG/HDL axis is driven by insulin resistance.",
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "expected_parameters": [
+        "triglycerides",
+        "hdl_cholesterol",
+        "ldl_cholesterol",
+        "total_cholesterol",
+        "tg_hdl_ratio",
+        "non_hdl_cholesterol"
+      ],
+      "triggers": [
+        {
+          "parameter": "triglycerides",
+          "condition": {
+            "gte": 150
+          },
+          "weight": 1.0,
+          "label": "Triglycerides at or above 150 mg/dL"
+        },
+        {
+          "parameter": "hdl_cholesterol",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 1.0,
+          "label": "HDL below the sex-specific cardioprotective threshold"
+        },
+        {
+          "parameter": "tg_hdl_ratio",
+          "condition": {
+            "gte": 3.0
+          },
+          "weight": 0.8,
+          "label": "Triglyceride/HDL ratio at or above 3.0"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "non_hdl_cholesterol",
+          "condition": {
+            "gte": 130
+          },
+          "weight": 0.5,
+          "label": "Non-HDL cholesterol at or above 130 mg/dL"
+        },
+        {
+          "parameter": "apo_b",
+          "condition": {
+            "gte": 110
+          },
+          "weight": 0.5,
+          "label": "ApoB elevated (atherogenic particle burden)"
+        },
+        {
+          "parameter": "vldl_cholesterol",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "VLDL above range"
+        },
+        {
+          "parameter": "homa_ir",
+          "condition": {
+            "gte": 2.9
+          },
+          "weight": 0.4,
+          "label": "HOMA-IR consistent with insulin resistance"
+        },
+        {
+          "parameter": "fasting_insulin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.3,
+          "label": "Fasting insulin elevated"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "NCEP ATP III (JAMA 2001;285:2486-97)",
+          "note": "Defines the atherogenic dyslipidaemia triad of raised TG, low HDL-C and small dense LDL as a lipid risk pattern distinct from raised LDL-C."
+        },
+        {
+          "citation": "Austin MA et al., Am J Cardiol 1998;81(4A):7B-12B",
+          "note": "Establishes the TG-rich lipoprotein / low HDL / small dense LDL cluster as an atherogenic phenotype."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Atherogenic Dyslipidemia",
+          "role": "primary",
+          "weight": 0.88,
+          "dm_basis": "High-Risk Indicators: 'High Triglycerides with Low HDL, particularly alongside insulin resistance or Metabolic Syndrome'"
+        },
+        {
+          "name": "Cardiovascular / Coronary Artery Disease",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "Related Markers/Tests lists Total Cholesterol, LDL, HDL, Triglycerides; High-Risk Indicators names 'High LDL + Low HDL + High Triglycerides together'"
+        },
+        {
+          "name": "Metabolic Syndrome",
+          "role": "supporting",
+          "weight": 0.4,
+          "dm_basis": "Related Markers/Tests lists Triglycerides and HDL as two of the five component markers"
+        }
+      ]
+    },
+    {
+      "id": "hypercholesterolaemia",
+      "name": "Elevated Atherogenic Cholesterol",
+      "category": "Cardiometabolic",
+      "description": "Raised LDL cholesterol and/or total cholesterol, the classic driver of atherosclerotic plaque burden.",
+      "profiles_touched": [
+        "Lipid Profile",
+        "Cardiac Profile"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "ldl_cholesterol",
+        "total_cholesterol",
+        "non_hdl_cholesterol",
+        "apo_b"
+      ],
+      "triggers": [
+        {
+          "parameter": "ldl_cholesterol",
+          "condition": {
+            "gte": 130
+          },
+          "weight": 1.0,
+          "label": "LDL cholesterol at or above 130 mg/dL"
+        },
+        {
+          "parameter": "total_cholesterol",
+          "condition": {
+            "gte": 240
+          },
+          "weight": 0.7,
+          "label": "Total cholesterol at or above 240 mg/dL"
+        },
+        {
+          "parameter": "non_hdl_cholesterol",
+          "condition": {
+            "gte": 160
+          },
+          "weight": 0.8,
+          "label": "Non-HDL cholesterol at or above 160 mg/dL"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "apo_b",
+          "condition": {
+            "gte": 110
+          },
+          "weight": 0.6,
+          "label": "ApoB elevated"
+        },
+        {
+          "parameter": "tc_hdl_ratio",
+          "condition": {
+            "gte": 5.0
+          },
+          "weight": 0.4,
+          "label": "Total cholesterol/HDL ratio at or above 5.0"
+        },
+        {
+          "parameter": "lipoprotein_a",
+          "condition": {
+            "gte": 50
+          },
+          "weight": 0.5,
+          "label": "Lipoprotein(a) elevated - independent genetic risk factor"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Ference BA et al., Eur Heart J 2017;38:2459-72",
+          "note": "Mendelian randomisation and trial evidence for a causal, dose-dependent LDL-C effect on atherosclerotic cardiovascular disease."
+        },
+        {
+          "citation": "Grundy SM et al., 2018 AHA/ACC Cholesterol Guideline, Circulation 2019;139:e1082",
+          "note": "LDL-C thresholds used for risk stratification and treatment decisions."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Cardiovascular / Coronary Artery Disease",
+          "role": "primary",
+          "weight": 0.72,
+          "dm_basis": "High-Risk Indicators: 'High LDL + Low HDL + High Triglycerides together (Critically High per risk summary)'; Related Markers/Tests lists Total Cholesterol, LDL, APO A, APO B"
+        },
+        {
+          "name": "Atherogenic Dyslipidemia",
+          "role": "differential",
+          "weight": 0.25,
+          "dm_basis": "Differentiated from the Disease Master's Atherogenic Dyslipidemia row, whose High-Risk Indicators require the TG/HDL pattern rather than isolated LDL elevation"
+        }
+      ]
+    },
+    {
+      "id": "apolipoprotein_imbalance",
+      "name": "Apolipoprotein Imbalance",
+      "category": "Cardiometabolic",
+      "description": "Raised ApoB relative to ApoA1 indicates a high count of atherogenic particles relative to protective ones, and can be abnormal even when LDL cholesterol is unremarkable.",
+      "profiles_touched": [
+        "Cardiac Profile",
+        "Lipid Profile"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "apo_b",
+        "apo_a1",
+        "apo_b_apo_a1_ratio",
+        "lipoprotein_a"
+      ],
+      "triggers": [
+        {
+          "parameter": "apo_b_apo_a1_ratio",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "ApoB/ApoA1 ratio above the sex-specific threshold"
+        },
+        {
+          "parameter": "apo_b",
+          "condition": {
+            "gte": 130
+          },
+          "weight": 0.8,
+          "label": "ApoB markedly elevated"
+        },
+        {
+          "parameter": "apo_a1",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.7,
+          "label": "ApoA1 below range - reduced protective particle pool"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "lipoprotein_a",
+          "condition": {
+            "gte": 50
+          },
+          "weight": 0.5,
+          "label": "Lipoprotein(a) elevated"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Yusuf S et al. (INTERHEART), Lancet 2004;364:937-52",
+          "note": "ApoB/ApoA1 ratio was the strongest lipid predictor of myocardial infarction across 52 countries."
+        },
+        {
+          "citation": "Sniderman AD et al., JAMA Cardiol 2019;4:1287-95",
+          "note": "ApoB as a superior marker of atherogenic particle burden versus LDL-C."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Cardiovascular / Coronary Artery Disease",
+          "role": "primary",
+          "weight": 0.68,
+          "dm_basis": "High-Risk Indicators explicitly names 'High APO B / Low APO A ratio'; Related Markers/Tests lists APO A and APO B"
+        }
+      ]
+    },
+    {
+      "id": "hyperhomocysteinaemia",
+      "name": "Raised Homocysteine",
+      "category": "Cardiometabolic",
+      "description": "Elevated homocysteine, an independent vascular risk marker that is frequently driven by B12 or folate deficiency and by impaired renal clearance.",
+      "profiles_touched": [
+        "Cardiac Profile",
+        "Vitamin Profile",
+        "Kidney Profile"
+      ],
+      "cross_profile_rationale": "Homocysteine sits in the Cardiac Profile in the Disease Master, but B12/folate (Vitamin Profile) and eGFR (Kidney Profile) are admitted as supporting signals because they are the dominant reversible causes of elevation.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "homocysteine",
+        "vitamin_b12",
+        "folate"
+      ],
+      "triggers": [
+        {
+          "parameter": "homocysteine",
+          "condition": {
+            "gt": 15
+          },
+          "weight": 1.0,
+          "label": "Homocysteine above 15 umol/L"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "vitamin_b12",
+          "condition": {
+            "lt": 300
+          },
+          "weight": 0.5,
+          "label": "Vitamin B12 low or borderline - a reversible cause"
+        },
+        {
+          "parameter": "folate",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.5,
+          "label": "Folate low - a reversible cause"
+        },
+        {
+          "parameter": "egfr",
+          "condition": {
+            "lt": 60
+          },
+          "weight": 0.4,
+          "label": "Reduced eGFR - impaired homocysteine clearance"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Homocysteine Studies Collaboration, JAMA 2002;288:2015-22",
+          "note": "Meta-analysis associating raised homocysteine with ischaemic heart disease and stroke risk."
+        },
+        {
+          "citation": "Refsum H et al., Annu Rev Med 1998;49:31-62",
+          "note": "B12/folate status and renal function as primary determinants of plasma homocysteine."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Cardiovascular / Coronary Artery Disease",
+          "role": "supporting",
+          "weight": 0.5,
+          "dm_basis": "High-Risk Indicators names 'High Homocysteine'; Related Markers/Tests lists Homocysteine"
+        },
+        {
+          "name": "Vitamin B12 Deficiency",
+          "role": "differential",
+          "weight": 0.3,
+          "dm_basis": "Cross-linked because raised homocysteine is a functional marker of B12 status; confirmed only when the B12 level itself is low",
+          "requires_any": [
+            "vitamin_b12"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "acute_myocardial_injury",
+      "name": "Acute Myocardial Injury Signal",
+      "category": "Cardiometabolic",
+      "description": "Cardiac troponin above the assay threshold indicates myocyte injury. This is a time-critical finding, not a screening result.",
+      "profiles_touched": [
+        "Cardiac Profile"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "urgency_override": "emergency",
+      "expected_parameters": [
+        "troponin_i",
+        "ck_mb",
+        "nt_probnp"
+      ],
+      "triggers": [
+        {
+          "parameter": "troponin_i",
+          "condition": {
+            "gt": 0.04
+          },
+          "weight": 1.0,
+          "label": "Troponin above the upper reference limit"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "ck_mb",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.5,
+          "label": "CK-MB elevated"
+        },
+        {
+          "parameter": "nt_probnp",
+          "condition": {
+            "gte": 125
+          },
+          "weight": 0.4,
+          "label": "NT-proBNP elevated - cardiac wall stress"
+        },
+        {
+          "parameter": "ldh",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.2,
+          "label": "LDH elevated (non-specific cell turnover)"
+        },
+        {
+          "parameter": "cpk_total",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.25,
+          "label": "Total creatine kinase raised - non-specific muscle injury"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Thygesen K et al., Fourth Universal Definition of Myocardial Infarction, Circulation 2018;138:e618-51",
+          "note": "Troponin above the 99th percentile upper reference limit defines myocardial injury."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Cardiovascular / Coronary Artery Disease",
+          "role": "primary",
+          "weight": 0.9,
+          "dm_basis": "High-Risk Indicators names 'High Troponin (acute)'; Severity/Urgency Level: 'Emergency if acute chest pain/suspected heart attack'"
+        }
+      ]
+    },
+    {
+      "id": "dysglycemia_insulin_resistance",
+      "name": "Impaired Glucose Regulation / Insulin Resistance",
+      "category": "Cardiometabolic",
+      "description": "Glucose and HbA1c in the intermediate range, with or without hyperinsulinaemia - the state that precedes type 2 diabetes and is reversible.",
+      "profiles_touched": [
+        "Diabetes Monitoring",
+        "Lipid Profile",
+        "BMI & BP"
+      ],
+      "cross_profile_rationale": "The Disease Master Prediabetes row names 'Fasting glucose in impaired range, especially combined with obesity'. BMI and the TG/HDL ratio are therefore admitted as supporting signals from other profiles.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "fasting_glucose",
+        "hba1c",
+        "postprandial_glucose",
+        "fasting_insulin",
+        "homa_ir"
+      ],
+      "triggers": [
+        {
+          "parameter": "fasting_glucose",
+          "condition": {
+            "between": [
+              100,
+              125.9
+            ]
+          },
+          "weight": 1.0,
+          "label": "Fasting glucose 100-125 mg/dL (impaired fasting glucose)"
+        },
+        {
+          "parameter": "hba1c",
+          "condition": {
+            "between": [
+              5.7,
+              6.49
+            ]
+          },
+          "weight": 1.0,
+          "label": "HbA1c 5.7-6.4% (prediabetes range)"
+        },
+        {
+          "parameter": "postprandial_glucose",
+          "condition": {
+            "between": [
+              140,
+              199.9
+            ]
+          },
+          "weight": 0.9,
+          "label": "Post-prandial glucose 140-199 mg/dL (impaired glucose tolerance)"
+        },
+        {
+          "parameter": "homa_ir",
+          "condition": {
+            "gte": 2.9
+          },
+          "weight": 0.8,
+          "label": "HOMA-IR at or above 2.9"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "fasting_insulin",
+          "condition": {
+            "gte": 12
+          },
+          "weight": 0.6,
+          "label": "Fasting insulin elevated - compensatory hyperinsulinaemia"
+        },
+        {
+          "parameter": "tg_hdl_ratio",
+          "condition": {
+            "gte": 3.0
+          },
+          "weight": 0.4,
+          "label": "TG/HDL ratio at or above 3.0 - lipid surrogate of insulin resistance"
+        },
+        {
+          "parameter": "bmi",
+          "condition": {
+            "gte": 25
+          },
+          "weight": 0.35,
+          "label": "BMI in the overweight/obese range"
+        },
+        {
+          "parameter": "waist_circumference",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.35,
+          "label": "Central obesity by waist circumference"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "American Diabetes Association, Standards of Care in Diabetes 2024, Diabetes Care 2024;47(Suppl 1):S20-S42",
+          "note": "Defines prediabetes as FPG 100-125 mg/dL, 2-h PG 140-199 mg/dL, or HbA1c 5.7-6.4%."
+        },
+        {
+          "citation": "Matthews DR et al., Diabetologia 1985;28:412-19",
+          "note": "Original derivation of HOMA-IR from fasting glucose and insulin."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Prediabetes",
+          "role": "primary",
+          "weight": 0.9,
+          "dm_basis": "High-Risk Indicators: 'Fasting glucose in impaired range, especially combined with obesity or family history'; Related Markers/Tests: Fasting Blood Glucose, HbA1c"
+        },
+        {
+          "name": "Metabolic Syndrome",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "Related Markers/Tests lists Fasting Glucose as one of the five component markers"
+        },
+        {
+          "name": "Atherogenic Dyslipidemia",
+          "role": "supporting",
+          "weight": 0.25,
+          "dm_basis": "High-Risk Indicators notes the pattern is significant 'particularly alongside insulin resistance'"
+        },
+        {
+          "name": "PCOS",
+          "role": "supporting",
+          "weight": 0.2,
+          "dm_basis": "Related Markers/Tests lists Insulin (Fasting) and Fasting Blood Glucose; High-Risk Indicators names 'insulin resistance markers'"
+        }
+      ]
+    },
+    {
+      "id": "overt_hyperglycemia",
+      "name": "Overt Hyperglycaemia",
+      "category": "Cardiometabolic",
+      "description": "Glucose and/or HbA1c at or above diagnostic thresholds for diabetes. A laboratory signal that requires clinical confirmation, typically on a repeat sample.",
+      "profiles_touched": [
+        "Diabetes Monitoring",
+        "Urinalysis"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "fasting_glucose",
+        "hba1c",
+        "postprandial_glucose",
+        "random_glucose",
+        "urine_glucose"
+      ],
+      "triggers": [
+        {
+          "parameter": "fasting_glucose",
+          "condition": {
+            "gte": 126
+          },
+          "weight": 1.0,
+          "label": "Fasting glucose at or above 126 mg/dL"
+        },
+        {
+          "parameter": "hba1c",
+          "condition": {
+            "gte": 6.5
+          },
+          "weight": 1.0,
+          "label": "HbA1c at or above 6.5%"
+        },
+        {
+          "parameter": "postprandial_glucose",
+          "condition": {
+            "gte": 200
+          },
+          "weight": 0.9,
+          "label": "Post-prandial glucose at or above 200 mg/dL"
+        },
+        {
+          "parameter": "random_glucose",
+          "condition": {
+            "gte": 200
+          },
+          "weight": 0.8,
+          "label": "Random glucose at or above 200 mg/dL"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "urine_glucose",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 0.5,
+          "label": "Glucose detected in urine"
+        },
+        {
+          "parameter": "fasting_insulin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.2,
+          "label": "Fasting insulin elevated"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "American Diabetes Association, Standards of Care in Diabetes 2024, Diabetes Care 2024;47(Suppl 1):S20-S42",
+          "note": "Diagnostic thresholds: FPG >=126 mg/dL, 2-h PG >=200 mg/dL, HbA1c >=6.5%, or random glucose >=200 mg/dL with symptoms."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Diabetes Mellitus",
+          "role": "primary",
+          "weight": 0.92,
+          "dm_basis": "High-Risk Indicators: 'Fasting Glucose + HbA1c both elevated; HbA1c alone above abnormal threshold; glucose in urine with high plasma glucose'"
+        },
+        {
+          "name": "Metabolic Syndrome",
+          "role": "supporting",
+          "weight": 0.4,
+          "dm_basis": "High-Risk Indicators: 'Fasting Glucose + HbA1c both elevated (Critically High)'"
+        },
+        {
+          "name": "Peripheral Neuropathy",
+          "role": "downstream_risk",
+          "weight": 0.3,
+          "dm_basis": "Related Markers/Tests lists 'HbA1c/Fasting Glucose (cross-link Diabetes)'; High-Risk Indicators names 'poorly controlled diabetes together with sensory symptoms'"
+        },
+        {
+          "name": "Chronic Kidney Disease (CKD)",
+          "role": "downstream_risk",
+          "weight": 0.2,
+          "dm_basis": "External Risk Factors on the CKD row name diabetes as a leading cause"
+        }
+      ]
+    },
+    {
+      "id": "dka_pattern",
+      "name": "Diabetic Ketoacidosis Pattern",
+      "category": "Cardiometabolic",
+      "description": "Marked hyperglycaemia with ketosis and acidosis. A medical emergency.",
+      "profiles_touched": [
+        "Diabetes Monitoring",
+        "Urinalysis",
+        "Electrolyte Profile"
+      ],
+      "cross_profile_rationale": "The Disease Master DKA row itself spans Diabetes Monitoring and Urinalysis, and names Electrolytes (Sodium, Potassium) and pH among its markers.",
+      "min_triggers": 2,
+      "min_parameters_present": 2,
+      "urgency_override": "emergency",
+      "expected_parameters": [
+        "random_glucose",
+        "fasting_glucose",
+        "urine_ketones",
+        "blood_ph",
+        "bicarbonate",
+        "potassium",
+        "sodium",
+        "anion_gap"
+      ],
+      "triggers": [
+        {
+          "parameter": "urine_ketones",
+          "condition": {
+            "status": "positive"
+          },
+          "weight": 1.0,
+          "label": "Ketones present in urine"
+        },
+        {
+          "parameter": "random_glucose",
+          "condition": {
+            "gte": 250
+          },
+          "weight": 1.0,
+          "label": "Glucose at or above 250 mg/dL"
+        },
+        {
+          "parameter": "fasting_glucose",
+          "condition": {
+            "gte": 250
+          },
+          "weight": 1.0,
+          "label": "Fasting glucose at or above 250 mg/dL"
+        },
+        {
+          "parameter": "blood_ph",
+          "condition": {
+            "lt": 7.3
+          },
+          "weight": 1.0,
+          "label": "Blood pH below 7.30"
+        },
+        {
+          "parameter": "bicarbonate",
+          "condition": {
+            "lt": 18
+          },
+          "weight": 0.9,
+          "label": "Bicarbonate below 18 mmol/L"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "anion_gap",
+          "condition": {
+            "gt": 12
+          },
+          "weight": 0.7,
+          "label": "Raised anion gap"
+        },
+        {
+          "parameter": "potassium",
+          "condition": {
+            "abnormal": "any"
+          },
+          "weight": 0.4,
+          "label": "Potassium outside range - total body deficit is typical even when serum level looks normal"
+        },
+        {
+          "parameter": "sodium",
+          "condition": {
+            "abnormal": "low"
+          },
+          "weight": 0.3,
+          "label": "Sodium low (often dilutional in hyperglycaemia)"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Kitabchi AE et al., Diabetes Care 2009;32:1335-43",
+          "note": "DKA diagnostic triad: hyperglycaemia, ketonaemia/ketonuria and high anion gap metabolic acidosis."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Diabetic Ketoacidosis (DKA)",
+          "role": "primary",
+          "weight": 0.93,
+          "dm_basis": "High-Risk Indicators: 'High glucose with positive urine ketones and low blood pH'; Related Markers/Tests: Blood Sugar (Random), Ketone (urine), pH, Electrolytes"
+        },
+        {
+          "name": "Diabetes Mellitus",
+          "role": "supporting",
+          "weight": 0.55,
+          "dm_basis": "Severity/Urgency Level on the Diabetes Mellitus row: 'urgent if very high glucose or ketones present'"
+        },
+        {
+          "name": "Metabolic Acidosis/Alkalosis",
+          "role": "supporting",
+          "weight": 0.45,
+          "dm_basis": "High-Risk Indicators names clinical context 'uncontrolled diabetes' as consistent with acid-base disturbance"
+        }
+      ]
+    },
+    {
+      "id": "metabolic_syndrome",
+      "name": "Metabolic Syndrome Cluster",
+      "category": "Cardiometabolic",
+      "description": "The harmonised five-component definition. Three or more of central obesity, raised triglycerides, low HDL, raised blood pressure and raised fasting glucose.",
+      "profiles_touched": [
+        "Lipid Profile",
+        "Diabetes Monitoring",
+        "BMI & BP",
+        "Liver Profile"
+      ],
+      "cross_profile_rationale": "This is the flagship cross-profile cohort. The Disease Master itself tags Metabolic Syndrome to four profiles - Lipid Profile, Diabetes Monitoring, Liver Profile and BMI & BP - so components are drawn from all of them.",
+      "mode": "count_of",
+      "count_required": 3,
+      "min_parameters_present": 3,
+      "expected_parameters": [
+        "waist_circumference",
+        "bmi",
+        "triglycerides",
+        "hdl_cholesterol",
+        "systolic_bp",
+        "diastolic_bp",
+        "fasting_glucose",
+        "hba1c"
+      ],
+      "components": [
+        {
+          "id": "central_obesity",
+          "label": "Central obesity",
+          "any_of": [
+            {
+              "parameter": "waist_circumference",
+              "condition": {
+                "abnormal": "high"
+              },
+              "label": "Waist circumference above the population cut-off"
+            },
+            {
+              "parameter": "bmi",
+              "condition": {
+                "gte": 25
+              },
+              "label": "BMI at or above 25 kg/m2 (surrogate where waist is not measured)"
+            }
+          ]
+        },
+        {
+          "id": "raised_triglycerides",
+          "label": "Raised triglycerides",
+          "any_of": [
+            {
+              "parameter": "triglycerides",
+              "condition": {
+                "gte": 150
+              },
+              "label": "Triglycerides at or above 150 mg/dL"
+            }
+          ]
+        },
+        {
+          "id": "low_hdl",
+          "label": "Reduced HDL cholesterol",
+          "any_of": [
+            {
+              "parameter": "hdl_cholesterol",
+              "condition": {
+                "abnormal": "low"
+              },
+              "label": "HDL below the sex-specific threshold (40 male / 50 female mg/dL)"
+            }
+          ]
+        },
+        {
+          "id": "raised_bp",
+          "label": "Raised blood pressure",
+          "any_of": [
+            {
+              "parameter": "systolic_bp",
+              "condition": {
+                "gte": 130
+              },
+              "label": "Systolic BP at or above 130 mmHg"
+            },
+            {
+              "parameter": "diastolic_bp",
+              "condition": {
+                "gte": 85
+              },
+              "label": "Diastolic BP at or above 85 mmHg"
+            }
+          ]
+        },
+        {
+          "id": "raised_glucose",
+          "label": "Raised fasting glucose",
+          "any_of": [
+            {
+              "parameter": "fasting_glucose",
+              "condition": {
+                "gte": 100
+              },
+              "label": "Fasting glucose at or above 100 mg/dL"
+            },
+            {
+              "parameter": "hba1c",
+              "condition": {
+                "gte": 5.7
+              },
+              "label": "HbA1c at or above 5.7% (surrogate where fasting glucose is absent)"
+            }
+          ]
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "sgpt_alt",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.35,
+          "label": "ALT elevated - possible metabolic dysfunction-associated steatotic liver disease"
+        },
+        {
+          "parameter": "uric_acid",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.25,
+          "label": "Uric acid elevated - commonly clusters with the syndrome"
+        },
+        {
+          "parameter": "homa_ir",
+          "condition": {
+            "gte": 2.9
+          },
+          "weight": 0.4,
+          "label": "HOMA-IR consistent with insulin resistance"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Alberti KGMM et al., Harmonizing the Metabolic Syndrome, Circulation 2009;120:1640-45",
+          "note": "Joint IDF/AHA/NHLBI statement: any 3 of 5 components, with population-specific waist cut-offs."
+        },
+        {
+          "citation": "Grundy SM et al., Circulation 2005;112:2735-52",
+          "note": "AHA/NHLBI scientific statement on the diagnosis and management of the metabolic syndrome."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Metabolic Syndrome",
+          "role": "primary",
+          "weight": 0.92,
+          "dm_basis": "Related Markers/Tests: 'Fasting Glucose, Triglycerides, HDL, Blood Pressure, Waist circumference (if tracked)' - this cohort implements exactly that marker set"
+        },
+        {
+          "name": "Cardiovascular / Coronary Artery Disease",
+          "role": "downstream_risk",
+          "weight": 0.5,
+          "dm_basis": "Possible Complications on the Metabolic Syndrome row names cardiovascular disease as the principal downstream outcome"
+        },
+        {
+          "name": "Diabetes Mellitus",
+          "role": "downstream_risk",
+          "weight": 0.42,
+          "dm_basis": "Possible Complications names progression to type 2 diabetes"
+        },
+        {
+          "name": "Atherogenic Dyslipidemia",
+          "role": "supporting",
+          "weight": 0.4,
+          "dm_basis": "High-Risk Indicators on the Atherogenic Dyslipidemia row: 'particularly alongside insulin resistance or Metabolic Syndrome'"
+        },
+        {
+          "name": "Prediabetes",
+          "role": "supporting",
+          "weight": 0.3,
+          "dm_basis": "Shared fasting-glucose component; Other Important Factors on the Prediabetes row link it to the metabolic syndrome cluster"
+        }
+      ]
+    },
+    {
+      "id": "hypertension_pattern",
+      "name": "Raised Blood Pressure",
+      "category": "Cardiometabolic",
+      "description": "Blood pressure readings in the hypertensive range, with renin used only where a secondary cause is being worked up.",
+      "profiles_touched": [
+        "Hypertension",
+        "BMI & BP",
+        "Kidney Profile"
+      ],
+      "cross_profile_rationale": "Renal parameters are admitted as supporting signals because chronic kidney disease is both a cause and a consequence of hypertension; the Disease Master CKD row lists hypertension among its risk factors.",
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "systolic_bp",
+        "diastolic_bp",
+        "plasma_renin"
+      ],
+      "triggers": [
+        {
+          "parameter": "systolic_bp",
+          "condition": {
+            "gte": 140
+          },
+          "weight": 1.0,
+          "label": "Systolic BP at or above 140 mmHg"
+        },
+        {
+          "parameter": "diastolic_bp",
+          "condition": {
+            "gte": 90
+          },
+          "weight": 1.0,
+          "label": "Diastolic BP at or above 90 mmHg"
+        },
+        {
+          "parameter": "plasma_renin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.8,
+          "label": "Plasma renin elevated - pattern suggesting a renin-mediated cause"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "systolic_bp",
+          "condition": {
+            "between": [
+              130,
+              139.9
+            ]
+          },
+          "weight": 0.5,
+          "label": "Systolic BP 130-139 mmHg (stage 1 range)"
+        },
+        {
+          "parameter": "egfr",
+          "condition": {
+            "lt": 60
+          },
+          "weight": 0.4,
+          "label": "Reduced eGFR - renal contribution or consequence"
+        },
+        {
+          "parameter": "urine_acr",
+          "condition": {
+            "gte": 30
+          },
+          "weight": 0.4,
+          "label": "Albuminuria - hypertensive kidney damage marker"
+        },
+        {
+          "parameter": "bmi",
+          "condition": {
+            "gte": 25
+          },
+          "weight": 0.25,
+          "label": "BMI raised - modifiable contributor"
+        },
+        {
+          "parameter": "urine_microalbumin",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 0.35,
+          "label": "Urine microalbumin raised - hypertensive kidney damage marker"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Whelton PK et al., 2017 ACC/AHA Blood Pressure Guideline, Hypertension 2018;71:e13-e115",
+          "note": "Blood pressure category thresholds used here."
+        },
+        {
+          "citation": "KDIGO 2021 Blood Pressure in CKD Guideline, Kidney Int 2021;99(3S):S1-S87",
+          "note": "Bidirectional relationship between raised blood pressure and kidney disease."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Hypertension (incl. Secondary/Renin-Mediated)",
+          "role": "primary",
+          "weight": 0.85,
+          "dm_basis": "High-Risk Indicators: 'Elevated Plasma Renin pattern suggesting a renin-mediated (renovascular) cause in a patient with confirmed hypertension'; Related Profile(s): Hypertension, BMI & BP"
+        },
+        {
+          "name": "Metabolic Syndrome",
+          "role": "supporting",
+          "weight": 0.35,
+          "dm_basis": "Related Markers/Tests lists Blood Pressure as one of the five component markers"
+        },
+        {
+          "name": "Cardiovascular / Coronary Artery Disease",
+          "role": "downstream_risk",
+          "weight": 0.38,
+          "dm_basis": "External Risk Factors on the Cardiovascular row name hypertension among the major modifiable contributors"
+        },
+        {
+          "name": "Chronic Kidney Disease (CKD)",
+          "role": "downstream_risk",
+          "weight": 0.25,
+          "dm_basis": "External Risk Factors on the CKD row name hypertension as a leading cause"
+        }
+      ]
+    },
+    {
+      "id": "vascular_inflammation",
+      "name": "Vascular Inflammatory Risk",
+      "category": "Cardiometabolic",
+      "description": "hs-CRP in the raised cardiovascular risk band, used as a residual-risk modifier rather than a standalone finding.",
+      "profiles_touched": [
+        "Cardiac Profile",
+        "Inflammation"
+      ],
+      "min_triggers": 1,
+      "min_parameters_present": 1,
+      "expected_parameters": [
+        "hs_crp",
+        "crp"
+      ],
+      "triggers": [
+        {
+          "parameter": "hs_crp",
+          "condition": {
+            "between": [
+              3.0,
+              9.99
+            ]
+          },
+          "weight": 1.0,
+          "label": "hs-CRP in the high cardiovascular risk band (3-10 mg/L)"
+        }
+      ],
+      "supporting": [
+        {
+          "parameter": "ldl_cholesterol",
+          "condition": {
+            "gte": 130
+          },
+          "weight": 0.4,
+          "label": "LDL cholesterol also raised - combined lipid and inflammatory risk"
+        },
+        {
+          "parameter": "hba1c",
+          "condition": {
+            "gte": 5.7
+          },
+          "weight": 0.3,
+          "label": "HbA1c raised - metabolic contribution to vascular inflammation"
+        }
+      ],
+      "evidence": [
+        {
+          "citation": "Ridker PM et al., N Engl J Med 2008;359:2195-207 (JUPITER)",
+          "note": "hs-CRP identifies residual cardiovascular risk independent of LDL cholesterol."
+        },
+        {
+          "citation": "Pearson TA et al., Circulation 2003;107:499-511",
+          "note": "AHA/CDC hs-CRP risk bands: <1 low, 1-3 average, >3 high."
+        }
+      ],
+      "diseases": [
+        {
+          "name": "Cardiovascular / Coronary Artery Disease",
+          "role": "supporting",
+          "weight": 0.4,
+          "dm_basis": "Other Important Factors and External Risk Factors on the Cardiovascular row treat inflammatory burden as a contributing factor; hs-CRP is a Cardiac Profile marker"
+        }
+      ]
+    }
+  ]
+}

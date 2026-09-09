@@ -1,0 +1,48 @@
+{
+  "note": "Conditions in the Disease Master that cannot be raised from laboratory data alone, with the reason drawn from the master's own fields. Listing them here makes the gap explicit and auditable rather than leaving it to look like an oversight. tools/consistency.py treats these as expected, so mapping coverage is measured against what is actually mappable.",
+
+  "conditions": [
+    {
+      "name": "Migraine",
+      "reason": "Disease Master Related Markers/Tests: 'No specific NG lab marker; diagnosis is clinical'. High-Risk Indicators: 'No lab-based high-risk indicator; based on headache pattern and frequency'.",
+      "would_need": "None. This is a clinical diagnosis by symptom pattern and should not be inferred from bloods."
+    },
+    {
+      "name": "Anaphylaxis",
+      "reason": "High-Risk Indicators are entirely event-based: 'Any history of a rapid multi-system reaction following exposure to a known/suspected allergen'. The master notes serum tryptase is informative only if drawn during or shortly after the event.",
+      "would_need": "Serum tryptase timed to the reaction, plus the event history. Carried only as a low-weight differential off the atopy cluster."
+    },
+    {
+      "name": "Drug Allergy",
+      "reason": "High-Risk Indicators require a 'Clear temporal relationship between drug exposure and reaction onset' - exposure history, not a laboratory result. The master also notes specific IgE testing is 'limited for many drugs'.",
+      "would_need": "Drug exposure timeline; drug-specific IgE where an assay exists."
+    },
+    {
+      "name": "Insect Sting Allergy",
+      "reason": "High-Risk Indicators: 'History of a systemic reaction to a sting, or elevated venom-specific IgE'. No venom-specific IgE assay exists in the parameter dictionary, so only the history arm is available and that is not lab data.",
+      "would_need": "Venom-specific IgE (bee, wasp) added to the test catalogue. It would then map exactly like the other specific-IgE conditions."
+    },
+    {
+      "name": "Irritable Bowel Syndrome (IBS)",
+      "reason": "High-Risk Indicators: 'Chronic pattern fits symptom-based criteria AND stool/blood tests show no red-flag findings'. Diagnosed by the ABSENCE of abnormality plus symptom criteria, so a finding-driven engine can only ever argue against it.",
+      "would_need": "Symptom criteria (Rome IV). The engine correctly links it as a differential that the GI inflammation cluster weakens rather than supports."
+    },
+    {
+      "name": "Precocious Puberty",
+      "reason": "High-Risk Indicators: 'Elevated LH/FSH with physical pubertal signs well before expected age'. Requires age and pubertal staging, which are demographic and examination findings rather than laboratory parameters.",
+      "would_need": "Patient age with Tanner staging. The hormone half of the pattern is already detected by the high-gonadotropin cluster."
+    },
+    {
+      "name": "Psoriatic Arthritis",
+      "reason": "High-Risk Indicators: 'Joint symptoms with an existing or family history of psoriasis, and a negative RA factor'. A seronegative condition defined by skin and joint findings; a negative test cannot establish it.",
+      "would_need": "Skin/joint examination and psoriasis history. Carried as a differential off the autoimmune serology cluster."
+    },
+    {
+      "name": "Tuberculosis",
+      "reason": "Disease Master Related Markers/Tests lists only 'Sputum/urine analysis where relevant, inflammatory markers'. No TB-specific assay exists in the parameter dictionary, and inflammatory markers alone are far too non-specific to anchor this condition.",
+      "would_need": "An IGRA (QuantiFERON/T-SPOT), sputum AFB smear or GeneXpert MTB/RIF in the test catalogue. Adding any of these would make it directly mappable."
+    }
+  ],
+
+  "notes_on_weak_links": "Some conditions above are still carried as low-weight differential links so they appear as 'consider and exclude' when a related cluster fires. Those links cannot reach the reporting threshold on their own by design; tools/consistency.py reports them as combination-only rather than as broken mappings."
+}

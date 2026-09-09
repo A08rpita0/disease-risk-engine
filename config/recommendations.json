@@ -1,0 +1,359 @@
+{
+  "meta": {
+    "purpose": "Action library for the recommendation engine. Recommendations are keyed by detected cohort or by individual abnormal parameter. Disease-level guidance is NOT stored here - it is read live from the Disease Master's own 'Prevention/Lifestyle Guidance' and 'Recommended Next Step' columns, so the master stays the single source of truth.",
+    "boundaries": "Nothing here names a drug, a dose, or a treatment decision. Everything is lifestyle, diet, activity, monitoring, retesting, or referral to a qualified clinician."
+  },
+
+  "urgency_actions": {
+    "emergency": {
+      "category": "Urgent",
+      "priority": "urgent",
+      "text": "One or more findings in this report fall in a range that needs same-day medical assessment. Contact a doctor or emergency service now rather than waiting for a routine appointment. Take this report with you."
+    },
+    "specialist": {
+      "category": "Consultation",
+      "priority": "high",
+      "text": "These findings need review by a relevant specialist rather than routine follow-up. Ask your doctor for a referral and bring this report to the appointment."
+    },
+    "monitoring": {
+      "category": "Monitoring",
+      "priority": "medium",
+      "text": "These findings should be rechecked on a defined schedule agreed with your doctor, so any trend is picked up early."
+    }
+  },
+
+  "cohort_actions": {
+    "atherogenic_dyslipidemia": [
+      {"category": "Diet", "priority": "high", "text": "Reduce refined carbohydrate and added sugar, which drive triglycerides more than dietary fat does. Replace sugary drinks and refined flour with whole grains, legumes and vegetables."},
+      {"category": "Activity", "priority": "high", "text": "Aim for 150 minutes a week of moderate aerobic activity. Regular activity raises HDL and lowers triglycerides more reliably than diet change alone."},
+      {"category": "Lifestyle", "priority": "medium", "text": "Reduce or stop alcohol. Alcohol raises triglycerides directly and is often the single largest reversible contributor."},
+      {"category": "Testing", "priority": "medium", "text": "Recheck the lipid panel after 8-12 weeks of consistent change, fasting, at the same laboratory so the numbers are comparable."}
+    ],
+    "hypercholesterolaemia": [
+      {"category": "Diet", "priority": "high", "text": "Cut saturated fat (fried food, ghee, butter, fatty meat, coconut oil) and add soluble fibre from oats, barley, beans and fruit, which measurably lowers LDL."},
+      {"category": "Consultation", "priority": "high", "text": "Ask your doctor to calculate your overall cardiovascular risk. LDL alone does not decide management - age, blood pressure, smoking, diabetes and family history all feed into the decision."}
+    ],
+    "apolipoprotein_imbalance": [
+      {"category": "Consultation", "priority": "high", "text": "Discuss the ApoB result with your doctor. It counts atherogenic particles and can indicate higher risk than the LDL number alone suggests."}
+    ],
+    "hyperhomocysteinaemia": [
+      {"category": "Testing", "priority": "high", "text": "Check vitamin B12 and folate if not already done. Deficiency in either is the commonest correctable cause of a raised homocysteine."},
+      {"category": "Diet", "priority": "medium", "text": "Include folate-rich foods - dark leafy greens, legumes, citrus - and, if vegetarian or vegan, discuss B12 supplementation with your doctor."}
+    ],
+    "acute_myocardial_injury": [
+      {"category": "Urgent", "priority": "urgent", "text": "A raised troponin means heart muscle injury and needs immediate hospital assessment. Do not drive yourself. If you have chest pain, breathlessness, sweating or arm/jaw pain, call emergency services now."}
+    ],
+    "dysglycemia_insulin_resistance": [
+      {"category": "Lifestyle", "priority": "high", "text": "This stage is reversible for many people. Structured lifestyle change has been shown to substantially reduce progression to type 2 diabetes - it is the single highest-value action available here."},
+      {"category": "Activity", "priority": "high", "text": "Build to 150 minutes a week of moderate activity plus two sessions of resistance training. Muscle is the main site of glucose disposal, so strength work matters as much as cardio."},
+      {"category": "Diet", "priority": "high", "text": "Reduce refined carbohydrate and sugary drinks; keep protein and fibre at every meal to blunt post-meal glucose peaks."},
+      {"category": "Testing", "priority": "medium", "text": "Repeat fasting glucose and HbA1c in 3-6 months to establish the direction of travel."}
+    ],
+    "overt_hyperglycemia": [
+      {"category": "Consultation", "priority": "high", "text": "Glucose in this range needs a doctor's confirmation on a repeat sample before any diagnosis is made, and a plan put in place. Book an appointment promptly."},
+      {"category": "Testing", "priority": "high", "text": "Ask about baseline complication screening: kidney function with urine ACR, a dilated eye examination, and a foot check."},
+      {"category": "Diet", "priority": "high", "text": "Ask for a referral to a dietitian. Individualised carbohydrate guidance works better than generic advice at this stage."}
+    ],
+    "dka_pattern": [
+      {"category": "Urgent", "priority": "urgent", "text": "High glucose together with ketones is a medical emergency. Go to an emergency department now - this can worsen within hours."}
+    ],
+    "metabolic_syndrome": [
+      {"category": "Lifestyle", "priority": "high", "text": "The components reinforce each other, so changes that address several at once give the best return: weight reduction of 5-10%, more activity, less alcohol, better sleep."},
+      {"category": "Activity", "priority": "high", "text": "Waist circumference responds to activity even when total weight does not move much. Track waist as well as weight."},
+      {"category": "Monitoring", "priority": "medium", "text": "Check blood pressure at home over a week and take the readings to your doctor - single clinic readings are less reliable."}
+    ],
+    "hypertension_pattern": [
+      {"category": "Monitoring", "priority": "high", "text": "Confirm with home readings twice daily for seven days, sitting and rested. A diagnosis should not rest on one reading."},
+      {"category": "Diet", "priority": "high", "text": "Reduce salt to under 5 g a day - most of it comes from processed food, pickles, papad and restaurant meals rather than the salt shaker."},
+      {"category": "Testing", "priority": "medium", "text": "Ask for kidney function and urine albumin testing, since raised blood pressure both causes and results from kidney damage."}
+    ],
+    "vascular_inflammation": [
+      {"category": "Consultation", "priority": "medium", "text": "Discuss this inflammatory marker in the context of your overall cardiovascular risk. It is a risk modifier, not a diagnosis, and can also be raised by any recent infection."}
+    ],
+    "renal_impairment": [
+      {"category": "Consultation", "priority": "high", "text": "Ask your doctor to confirm this on a repeat sample at least 3 months apart before it is called chronic, and to review every medicine you take for kidney safety."},
+      {"category": "Testing", "priority": "high", "text": "Request a urine albumin-to-creatinine ratio if not already done. Filtration rate and albuminuria together determine the stage - neither alone is enough."},
+      {"category": "Lifestyle", "priority": "medium", "text": "Avoid over-the-counter anti-inflammatory painkillers (ibuprofen, diclofenac) unless a doctor has cleared them, and stay well hydrated."}
+    ],
+    "glomerular_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "Blood and protein in the urine with a rising creatinine needs prompt nephrology assessment - this combination can progress quickly."}
+    ],
+    "hyperuricemia": [
+      {"category": "Diet", "priority": "medium", "text": "Reduce beer and spirits, sugary drinks sweetened with fructose, and organ meats and shellfish. These raise urate more than most people expect."},
+      {"category": "Lifestyle", "priority": "medium", "text": "Stay well hydrated. Dehydration concentrates urate and is a common trigger for an acute attack."}
+    ],
+    "hepatocellular_injury": [
+      {"category": "Lifestyle", "priority": "high", "text": "Stop alcohol completely until the cause is established, and review every supplement and herbal product you take - these are a frequent and easily missed cause of liver enzyme elevation."},
+      {"category": "Testing", "priority": "high", "text": "Ask for viral hepatitis serology and a repeat liver panel in 4-6 weeks to see whether this is transient or persistent."},
+      {"category": "Diet", "priority": "medium", "text": "If weight and metabolic markers are also raised, addressing those is the main lever - fatty liver is the commonest cause of a mildly raised ALT."}
+    ],
+    "cholestatic_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "This pattern points to bile flow rather than liver cell injury and usually needs imaging of the liver and bile ducts. Discuss with your doctor promptly."}
+    ],
+    "hepatic_synthetic_dysfunction": [
+      {"category": "Consultation", "priority": "high", "text": "Low albumin with a prolonged clotting time suggests the liver's synthetic function is affected. This needs specialist hepatology assessment rather than routine follow-up."}
+    ],
+    "copper_dysregulation": [
+      {"category": "Consultation", "priority": "high", "text": "Abnormal copper handling with liver derangement needs specialist assessment, particularly in a younger person, because the treatable window matters."}
+    ],
+    "pancreatic_enzyme_elevation": [
+      {"category": "Urgent", "priority": "high", "text": "If this is accompanied by severe abdominal pain radiating to the back, with or without vomiting, seek emergency assessment now."},
+      {"category": "Lifestyle", "priority": "high", "text": "Stop alcohol entirely. Alcohol and gallstones are the two commonest causes of pancreatic inflammation."}
+    ],
+    "iron_deficiency": [
+      {"category": "Consultation", "priority": "high", "text": "Iron deficiency is a finding, not a diagnosis - the important question is where the iron is going. In adult men and post-menopausal women it warrants investigation of the gut."},
+      {"category": "Diet", "priority": "medium", "text": "Pair iron-rich foods with a source of vitamin C, and keep tea and coffee away from meals - both markedly reduce iron absorption."},
+      {"category": "Testing", "priority": "medium", "text": "Ask about coeliac screening if the deficiency is unexplained or does not correct with supplementation."}
+    ],
+    "microcytic_non_iron_deficient": [
+      {"category": "Testing", "priority": "high", "text": "Ask for haemoglobin electrophoresis or HPLC if not already done. Small red cells with normal iron stores usually mean a haemoglobin variant rather than iron deficiency."},
+      {"category": "Consultation", "priority": "medium", "text": "If a thalassaemia trait is confirmed, partner screening is worth discussing before planning a pregnancy, since two carriers can have a severely affected child."},
+      {"category": "Lifestyle", "priority": "medium", "text": "Do not take iron supplements for this pattern unless a doctor confirms you are actually iron deficient - unnecessary iron can accumulate."}
+    ],
+    "macrocytic_anemia": [
+      {"category": "Consultation", "priority": "high", "text": "Ask your doctor to establish the cause before supplementing. B12 deficiency from absorption failure needs a different approach from dietary shortfall."},
+      {"category": "Diet", "priority": "medium", "text": "If you follow a vegetarian or vegan diet, B12 needs a reliable supplement or fortified food source - plant foods do not supply it."}
+    ],
+    "pancytopenia": [
+      {"category": "Consultation", "priority": "high", "text": "All three blood cell lines being low needs prompt haematology assessment. Do not wait for a routine appointment."},
+      {"category": "Lifestyle", "priority": "high", "text": "Until reviewed, take care to avoid infection and injury, and report any fever, unusual bruising or bleeding immediately."}
+    ],
+    "leukocyte_abnormality_screen": [
+      {"category": "Consultation", "priority": "high", "text": "A markedly abnormal white cell count needs a blood film and haematology review to establish the cause."}
+    ],
+    "polycythemia": [
+      {"category": "Testing", "priority": "medium", "text": "Ask for this to be confirmed on a repeat, well-hydrated sample. Dehydration alone can raise these values."},
+      {"category": "Lifestyle", "priority": "medium", "text": "If you smoke, stopping matters here specifically - smoking is a common cause of a raised red cell mass. Sleep apnoea is another that is often missed."}
+    ],
+    "thrombocytopenia": [
+      {"category": "Lifestyle", "priority": "high", "text": "Until reviewed, avoid contact sports and anti-inflammatory painkillers such as aspirin and ibuprofen, which further impair clotting."},
+      {"category": "Consultation", "priority": "high", "text": "Report any new bruising, nosebleeds, gum bleeding, or blood in urine or stool without delay."}
+    ],
+    "thrombocytosis": [
+      {"category": "Testing", "priority": "medium", "text": "Ask for iron studies and inflammatory markers if not already done - most raised platelet counts are reactive to one or the other."}
+    ],
+    "prolonged_pt_inr": [
+      {"category": "Consultation", "priority": "high", "text": "If you take an anticoagulant, contact your prescriber before your next dose. If you do not, this needs review to establish the cause."},
+      {"category": "Lifestyle", "priority": "high", "text": "Avoid anti-inflammatory painkillers and take care to avoid injury until this has been reviewed."}
+    ],
+    "isolated_aptt_prolongation": [
+      {"category": "Testing", "priority": "high", "text": "Ask for a mixing study and clotting factor assays, which distinguish a factor deficiency from an inhibitor."},
+      {"category": "Consultation", "priority": "high", "text": "Mention any history of heavy periods, prolonged bleeding after dental work or surgery, or a family history of bleeding - that history is central to the diagnosis."}
+    ],
+    "dic_pattern": [
+      {"category": "Urgent", "priority": "urgent", "text": "This combination of clotting abnormalities is a critical finding that requires immediate hospital assessment."}
+    ],
+    "thrombotic_risk": [
+      {"category": "Consultation", "priority": "high", "text": "A raised D-dimer is non-specific but should not be ignored. If you have leg swelling or pain, chest pain or breathlessness, seek assessment the same day."}
+    ],
+    "hemolysis_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "This pattern suggests red cells are being destroyed faster than usual and needs haematology assessment to find the cause."}
+    ],
+    "g6pd_deficiency": [
+      {"category": "Lifestyle", "priority": "high", "text": "Keep a written list of the drugs and foods that trigger haemolysis in G6PD deficiency - certain antimalarials, sulfa antibiotics, nitrofurantoin, and fava beans - and show it to every doctor, dentist and pharmacist who treats you."},
+      {"category": "Consultation", "priority": "medium", "text": "This is inherited. Discussing testing with close blood relatives is worthwhile."}
+    ],
+    "haemoglobinopathy_screen": [
+      {"category": "Consultation", "priority": "high", "text": "Ask for a genetic counselling discussion, particularly before planning a pregnancy - partner testing changes the risk to a child substantially."}
+    ],
+    "crab_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "This combination of protein, calcium and blood count changes needs haematology assessment with serum protein electrophoresis and free light chains."}
+    ],
+    "rh_negative_status": [
+      {"category": "Consultation", "priority": "medium", "text": "If you are pregnant or planning a pregnancy, tell your obstetrician you are Rh negative. Anti-D prophylaxis is highly effective at preventing complications, but has to be given at the right time."}
+    ],
+    "primary_hypothyroid_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "Ask for this to be confirmed on a repeat sample 6-8 weeks apart with free T4 before any treatment decision. A single raised TSH is often transient."},
+      {"category": "Testing", "priority": "medium", "text": "If thyroid antibodies have not been checked, they help establish whether this is autoimmune, which affects how likely it is to progress."},
+      {"category": "Lifestyle", "priority": "low", "text": "Take any thyroid medication on an empty stomach and separate it by at least 4 hours from iron and calcium supplements, which block absorption."}
+    ],
+    "hyperthyroid_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "Ask for endocrinology assessment to establish the cause. Untreated, this affects heart rhythm and bone density."},
+      {"category": "Lifestyle", "priority": "medium", "text": "Reduce caffeine and report palpitations, tremor, unexplained weight loss or heat intolerance to your doctor."}
+    ],
+    "hyperandrogenic_pcos": [
+      {"category": "Lifestyle", "priority": "high", "text": "Weight reduction of 5-10%, where relevant, restores ovulation in a substantial proportion of cases and improves the metabolic picture at the same time."},
+      {"category": "Activity", "priority": "high", "text": "Combine aerobic and resistance training. Improving insulin sensitivity addresses the underlying driver rather than just the symptoms."},
+      {"category": "Testing", "priority": "medium", "text": "Ask about a pelvic ultrasound and a glucose tolerance test - diagnosis rests on a combination of findings, not the hormone panel alone."}
+    ],
+    "cah_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "A raised 17-hydroxyprogesterone needs endocrinology assessment with a confirmatory stimulation test."}
+    ],
+    "hypogonadotropic_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "Low gonadotropins with low sex hormones points upstream to the pituitary or hypothalamus and needs endocrinology assessment."},
+      {"category": "Lifestyle", "priority": "medium", "text": "Where low body weight, heavy training load or significant stress are present, addressing energy availability is often what restores the axis."}
+    ],
+    "hypergonadotropic_pattern": [
+      {"category": "Consultation", "priority": "medium", "text": "Discuss these results with your doctor in the context of your symptoms and age, since the interpretation differs substantially between them."},
+      {"category": "Lifestyle", "priority": "medium", "text": "If this reflects the menopausal transition, bone and cardiovascular health become priorities - weight-bearing exercise and adequate calcium and vitamin D."}
+    ],
+    "hyperprolactinemia": [
+      {"category": "Testing", "priority": "high", "text": "Ask for a repeat sample taken rested, without recent breast stimulation or exercise, and for a macroprolactin check. Both cause spurious elevation."},
+      {"category": "Consultation", "priority": "high", "text": "Review your medicines with your doctor - several common drugs raise prolactin, and thyroid underactivity does too."}
+    ],
+    "cortisol_excess": [
+      {"category": "Testing", "priority": "high", "text": "A single cortisol cannot establish this. Ask about an overnight dexamethasone suppression test, late-night salivary cortisol, or a 24-hour urine collection."}
+    ],
+    "adrenal_insufficiency_pattern": [
+      {"category": "Urgent", "priority": "urgent", "text": "This combination can progress to an adrenal crisis, which is life-threatening. Seek medical assessment the same day, and go to an emergency department if you feel faint, are vomiting, or have severe weakness."}
+    ],
+    "gh_excess": [
+      {"category": "Consultation", "priority": "high", "text": "A raised IGF-1 needs endocrinology assessment with a glucose suppression test and pituitary imaging."}
+    ],
+    "bone_mineral_deficiency": [
+      {"category": "Lifestyle", "priority": "high", "text": "Get 15-30 minutes of sunlight on arms and face several times a week where practical. Sunscreen, indoor work and covering clothing all reduce skin synthesis."},
+      {"category": "Diet", "priority": "high", "text": "Include dairy or fortified alternatives, eggs, and oily fish. Diet alone rarely corrects a deficiency, but supports it once corrected."},
+      {"category": "Consultation", "priority": "high", "text": "Ask your doctor about a correction dose and how long to take it - the dose for deficiency is much higher than a maintenance dose, and should be followed by a recheck."},
+      {"category": "Testing", "priority": "medium", "text": "Recheck vitamin D, calcium and PTH after 8-12 weeks of supplementation to confirm the correction."}
+    ],
+    "hypercalcemia_pattern": [
+      {"category": "Testing", "priority": "high", "text": "Ask for PTH to be measured alongside calcium if not already done. PTH is what separates a parathyroid cause from every other cause."},
+      {"category": "Lifestyle", "priority": "medium", "text": "Stay well hydrated and review any calcium or vitamin D supplements with your doctor before continuing them."}
+    ],
+    "sodium_imbalance": [
+      {"category": "Consultation", "priority": "high", "text": "Ask your doctor to review your medicines - diuretics, some antidepressants and anticonvulsants are common causes."},
+      {"category": "Lifestyle", "priority": "high", "text": "Do not sharply change your fluid intake in either direction on your own. Correcting sodium too quickly is itself dangerous and needs medical supervision."}
+    ],
+    "potassium_imbalance": [
+      {"category": "Testing", "priority": "high", "text": "Ask for a repeat sample. A tight tourniquet, a clenched fist or a delayed sample can falsely raise potassium, and that should be excluded first."},
+      {"category": "Consultation", "priority": "high", "text": "Review your medicines and supplements - blood pressure medicines, potassium-sparing diuretics and salt substitutes are frequent contributors."}
+    ],
+    "acid_base_disturbance": [
+      {"category": "Consultation", "priority": "high", "text": "An acid-base disturbance is always secondary to something else. It needs a doctor to identify the underlying cause rather than treating the number."}
+    ],
+    "zinc_deficiency": [
+      {"category": "Diet", "priority": "medium", "text": "Include zinc-rich foods - legumes, nuts, seeds, whole grains, dairy, and meat if you eat it. Soaking and sprouting pulses improves absorption."},
+      {"category": "Consultation", "priority": "medium", "text": "If dietary intake looks adequate, ask about absorption - persistent deficiency usually points to a gut cause."}
+    ],
+    "malabsorption_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "Several unrelated nutrients being low at once points to absorption rather than diet. This needs gastroenterology assessment - correcting each deficiency separately misses the cause."},
+      {"category": "Testing", "priority": "high", "text": "Ask about coeliac serology, pancreatic function and, where relevant, small bowel imaging or endoscopy."}
+    ],
+    "heavy_metal_burden": [
+      {"category": "Lifestyle", "priority": "high", "text": "Identifying and removing the source matters more than anything else. Consider occupation, hobbies, water supply, cookware, traditional or imported remedies, cosmetics and old paint."},
+      {"category": "Consultation", "priority": "high", "text": "Ask for occupational health or toxicology input. Do not use over-the-counter detox or chelation products - unsupervised chelation causes harm."},
+      {"category": "Testing", "priority": "medium", "text": "Confirm on a repeat sample from a laboratory experienced in trace metal analysis, since contamination during collection is a common cause of spurious results."}
+    ],
+    "acute_inflammatory_response": [
+      {"category": "Consultation", "priority": "medium", "text": "These markers indicate the body is responding to something, but not what. They should be read alongside your symptoms rather than on their own."},
+      {"category": "Testing", "priority": "medium", "text": "Ask for a repeat once any current illness has settled, to confirm the markers return to normal."}
+    ],
+    "sepsis_pattern": [
+      {"category": "Urgent", "priority": "urgent", "text": "This combination is consistent with a severe systemic infection. Seek emergency assessment immediately - outcome depends heavily on how quickly treatment starts."}
+    ],
+    "chronic_inflammation": [
+      {"category": "Consultation", "priority": "medium", "text": "Persistently raised inflammatory markers without an obvious infection deserve a considered assessment rather than repeated testing alone."}
+    ],
+    "atopy_allergic": [
+      {"category": "Lifestyle", "priority": "medium", "text": "Sensitisation on a blood test only matters if it matches your symptoms. Keep a simple diary of symptoms against exposures - that is what makes the result actionable."},
+      {"category": "Consultation", "priority": "medium", "text": "Do not eliminate foods based on a blood test alone. Unnecessary exclusion carries its own nutritional risk; an allergist should interpret this alongside your history."}
+    ],
+    "eosinophilia_parasitic": [
+      {"category": "Testing", "priority": "medium", "text": "Ask for stool microscopy for ova and parasites if not already done, particularly if you have travelled or have gut symptoms."}
+    ],
+    "autoimmune_serology": [
+      {"category": "Consultation", "priority": "high", "text": "Autoantibodies are meaningful only alongside symptoms and examination - a positive ANA occurs in healthy people too. Ask for a rheumatology opinion rather than acting on the result alone."},
+      {"category": "Monitoring", "priority": "medium", "text": "Keep a record of joint pain, rashes, dryness, hair loss and fatigue with dates. This pattern over time is what makes the diagnosis, not a single blood test."}
+    ],
+    "celiac_serology": [
+      {"category": "Consultation", "priority": "high", "text": "Do not start a gluten-free diet before the diagnosis is confirmed. Removing gluten first makes both the blood test and the biopsy unreliable."},
+      {"category": "Testing", "priority": "high", "text": "Ask about a confirmatory duodenal biopsy while still eating gluten, which remains the standard for adults."}
+    ],
+    "humoral_immunodeficiency": [
+      {"category": "Consultation", "priority": "high", "text": "Low immunoglobulins need immunology assessment, particularly if you have had recurrent chest or sinus infections."},
+      {"category": "Lifestyle", "priority": "medium", "text": "If IgA deficiency is confirmed, carry that information with you - it matters for blood transfusion safety."}
+    ],
+    "hiv_immune_status": [
+      {"category": "Consultation", "priority": "high", "text": "A reactive screening test must be confirmed with a second, different test before it means anything. Arrange this promptly and confidentially with a doctor - modern treatment is highly effective and started early gives a normal life expectancy."}
+    ],
+    "sti_serology": [
+      {"category": "Consultation", "priority": "high", "text": "These infections are treatable. See a doctor for treatment, and ask about screening for the others - they frequently occur together."},
+      {"category": "Lifestyle", "priority": "high", "text": "Recent partners should be told so they can be tested and treated, otherwise reinfection is likely. Sexual health services can help do this anonymously."}
+    ],
+    "viral_hepatitis_serology": [
+      {"category": "Consultation", "priority": "high", "text": "Ask for hepatology or infectious diseases referral. Both hepatitis B and C are now well managed, and hepatitis C is curable in most cases."},
+      {"category": "Lifestyle", "priority": "high", "text": "Avoid alcohol entirely, and check with your doctor before any new medicine or supplement."},
+      {"category": "Consultation", "priority": "medium", "text": "Ask about testing and vaccination for household members and partners where relevant."}
+    ],
+    "acute_febrile_illness": [
+      {"category": "Consultation", "priority": "high", "text": "Start treatment under medical supervision. These infections can deteriorate quickly, and several need specific treatment rather than symptomatic care."},
+      {"category": "Monitoring", "priority": "high", "text": "Watch for warning signs - persistent vomiting, severe abdominal pain, bleeding from gums or nose, drowsiness, reduced urine output - and seek emergency care if any appear."},
+      {"category": "Lifestyle", "priority": "medium", "text": "Maintain fluid intake and rest. Avoid aspirin and ibuprofen where dengue is suspected, as they increase bleeding risk."}
+    ],
+    "covid_pattern": [
+      {"category": "Lifestyle", "priority": "medium", "text": "Follow current local isolation guidance and rest. Seek assessment if you become breathless or your oxygen saturation falls."}
+    ],
+    "h_pylori_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "This infection is treatable with a defined course prescribed by a doctor, and eradication should be confirmed afterwards with a repeat breath or stool test - not a blood antibody test, which stays positive."}
+    ],
+    "uti_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "See a doctor for treatment guided by the culture and sensitivity result rather than self-medicating, which drives resistance."},
+      {"category": "Urgent", "priority": "high", "text": "If you develop fever, back or flank pain, or vomiting, seek assessment the same day - that suggests the infection has reached the kidney."}
+    ],
+    "gi_inflammatory_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "Blood or inflammatory cells in the stool need gastroenterology assessment. Ask about faecal calprotectin, which distinguishes inflammatory bowel disease from irritable bowel syndrome."},
+      {"category": "Testing", "priority": "medium", "text": "Ask for iron studies and a full blood count to quantify any blood loss."}
+    ],
+    "parasitic_infection": [
+      {"category": "Consultation", "priority": "medium", "text": "Treatment is specific to the organism found, so see a doctor with the report rather than taking a general deworming tablet."},
+      {"category": "Lifestyle", "priority": "medium", "text": "Review drinking water, hand hygiene and food preparation, and consider whether household members need testing."}
+    ],
+    "semen_abnormality": [
+      {"category": "Testing", "priority": "high", "text": "Semen quality varies considerably between samples. Confirm on a repeat test after 2-7 days of abstinence before drawing conclusions."},
+      {"category": "Lifestyle", "priority": "medium", "text": "Stop smoking, reduce alcohol, avoid heat exposure to the scrotum from hot baths, saunas and laptops on the lap, and address weight where relevant. All have measurable effects on semen quality."},
+      {"category": "Consultation", "priority": "medium", "text": "Ask for a urology or andrology assessment including a physical examination - a varicocele is a common and treatable finding that no blood test detects."}
+    ],
+    "semen_infection": [
+      {"category": "Consultation", "priority": "high", "text": "See a doctor for treatment guided by the culture sensitivity, and ask about screening for sexually transmitted infections, which are a common cause."}
+    ],
+    "neuro_autoimmune": [
+      {"category": "Consultation", "priority": "high", "text": "These antibodies need neurology interpretation alongside your symptoms and examination. Do not act on the result alone."},
+      {"category": "Urgent", "priority": "high", "text": "Seek urgent care for new or worsening weakness, double vision, difficulty swallowing, or any difficulty breathing."}
+    ],
+    "neuropathy_risk": [
+      {"category": "Consultation", "priority": "high", "text": "Ask for a foot examination including sensation testing. Nerve damage is easier to prevent than to reverse, and early changes are often silent."},
+      {"category": "Lifestyle", "priority": "high", "text": "Check your feet daily for cuts, blisters and colour change, and wear well-fitting shoes. Reduced sensation means injuries go unnoticed."}
+    ],
+    "aed_monitoring": [
+      {"category": "Consultation", "priority": "high", "text": "Discuss this level with your prescriber before changing anything. Never stop or adjust an antiepileptic medicine on your own - withdrawal can provoke seizures."}
+    ],
+    "tumour_marker_elevation": [
+      {"category": "Consultation", "priority": "high", "text": "Tumour markers are not diagnostic on their own and are commonly raised by benign conditions. This needs a doctor to interpret alongside examination and, usually, imaging - not a conclusion drawn from the number."},
+      {"category": "Testing", "priority": "high", "text": "Ask for a repeat measurement. The trend over time is far more informative than a single value."}
+    ],
+    "lymphoproliferative_pattern": [
+      {"category": "Consultation", "priority": "high", "text": "This combination needs haematology assessment. Mention any lumps, night sweats, unexplained fever or weight loss - that history is central."}
+    ],
+    "prostate_screening": [
+      {"category": "Testing", "priority": "high", "text": "Ask for a repeat PSA after 4-6 weeks, avoiding cycling, ejaculation and any urinary infection beforehand - all raise the result."},
+      {"category": "Consultation", "priority": "high", "text": "Discuss with a urologist. Benign enlargement and prostatitis raise PSA far more often than cancer does, and the next step is a shared decision."}
+    ]
+  },
+
+  "parameter_actions": {
+    "vitamin_d": [{"category": "Lifestyle", "priority": "medium", "text": "Sunlight exposure and a supplement discussion with your doctor are the two levers here; diet alone rarely corrects a deficiency."}],
+    "vitamin_b12": [{"category": "Diet", "priority": "medium", "text": "B12 comes only from animal foods and fortified products. A vegetarian or vegan diet needs a reliable supplement."}],
+    "hemoglobin": [{"category": "Consultation", "priority": "medium", "text": "Anaemia is a finding, not a diagnosis. The cause determines the treatment, so ask for the cause to be established before supplementing."}],
+    "hba1c": [{"category": "Monitoring", "priority": "medium", "text": "HbA1c reflects roughly the last three months, so recheck no sooner than 3 months after any change."}],
+    "triglycerides": [{"category": "Diet", "priority": "medium", "text": "Triglycerides respond quickly to alcohol and refined carbohydrate reduction, often within weeks."}],
+    "uric_acid": [{"category": "Diet", "priority": "low", "text": "Fructose-sweetened drinks raise urate as much as beer does, and are easier to remove."}],
+    "creatinine": [{"category": "Testing", "priority": "medium", "text": "Creatinine is affected by muscle mass, protein intake and hydration. A single raised value should be confirmed."}],
+    "esr": [{"category": "Consultation", "priority": "low", "text": "ESR rises with age, anaemia and pregnancy as well as with inflammation, so it needs context."}],
+    "ferritin": [{"category": "Testing", "priority": "medium", "text": "Ferritin rises with any inflammation, so a normal value does not always exclude iron deficiency. Interpreted alongside CRP it is more reliable."}],
+    "psa_total": [{"category": "Testing", "priority": "medium", "text": "PSA is raised by cycling, ejaculation, infection and examination. Repeat under standard conditions before acting on it."}]
+  },
+
+  "general": [
+    {"category": "Consultation", "priority": "high",
+     "text": "Take this report to a qualified doctor. This analysis identifies patterns and risks from laboratory data - it cannot examine you, take your history, or make a diagnosis."},
+    {"category": "Monitoring", "priority": "low",
+     "text": "Keep your reports together over time. For most markers the trend across several tests tells a doctor more than any single result."}
+  ],
+
+  "no_abnormality": [
+    {"category": "Lifestyle", "priority": "low",
+     "text": "No abnormal patterns were detected in the parameters available. Continue regular activity, a varied diet, adequate sleep, and avoid tobacco."},
+    {"category": "Monitoring", "priority": "low",
+     "text": "Keep to the routine health check schedule your doctor recommends for your age and risk profile."}
+  ]
+}

@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.git/
+.gitignore
+.claude/
+.DS_Store
+Thumbs.db
+*.log
+
+# Dev-only: not needed to serve the app
+tests/
+.pytest_cache/
+
+# Keep tools/ — validate.py runs in the image build and is useful for debugging

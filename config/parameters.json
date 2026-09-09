@@ -1,0 +1,6588 @@
+{
+  "meta": {
+    "version": "1.0",
+    "purpose": "Parameter dictionary for normalization. Maps every alias a lab report or JSON may use onto a canonical parameter id, with canonical unit, unit conversions, sex-aware reference intervals and optional clinical severity bands.",
+    "grade_fallback": "Where a parameter has no explicit 'bands', the engine grades deviation from the reference interval: <25% of interval width = mild, 25-75% = moderate, >75% = severe.",
+    "band_semantics": "'bands' are ordered, non-overlapping. Each has optional 'lt' (value < lt) and 'gte' (value >= gte); the first band matching wins. 'grade' drives severity, 'label' is shown to the user.",
+    "reference_note": "Reference intervals are widely used adult intervals (Tietz / NCEP ATP III / ADA / KDIGO / WHO where noted per parameter). Any range supplied on the patient's own report overrides these."
+  },
+  "qualitative_vocabulary": {
+    "positive": [
+      "positive",
+      "pos",
+      "reactive",
+      "detected",
+      "present",
+      "abnormal",
+      "yes",
+      "seen",
+      "isolated",
+      "growth",
+      "significant growth",
+      "+",
+      "++",
+      "+++",
+      "++++"
+    ],
+    "negative": [
+      "negative",
+      "neg",
+      "non-reactive",
+      "nonreactive",
+      "not detected",
+      "absent",
+      "nil",
+      "none",
+      "no",
+      "normal",
+      "no growth",
+      "not seen",
+      "-"
+    ],
+    "indeterminate": [
+      "equivocal",
+      "borderline",
+      "indeterminate",
+      "inconclusive",
+      "grey zone",
+      "gray zone"
+    ]
+  },
+  "parameters": [
+    {
+      "id": "total_cholesterol",
+      "name": "Total Cholesterol",
+      "profile": "Lipid Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 38.67
+      },
+      "aliases": [
+        "cholesterol",
+        "cholesterol total",
+        "total cholesterol",
+        "serum cholesterol",
+        "s cholesterol",
+        "chol",
+        "tc"
+      ],
+      "ref": {
+        "default": [
+          125,
+          200
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "atherogenic_lipid",
+      "bands": [
+        {
+          "lt": 125,
+          "grade": "mild_low",
+          "label": "Below usual range"
+        },
+        {
+          "lt": 200,
+          "grade": "normal",
+          "label": "Desirable"
+        },
+        {
+          "lt": 240,
+          "grade": "mild_high",
+          "label": "Borderline high"
+        },
+        {
+          "lt": 300,
+          "grade": "moderate_high",
+          "label": "High"
+        },
+        {
+          "gte": 300,
+          "grade": "severe_high",
+          "label": "Very high"
+        }
+      ],
+      "source": "NCEP ATP III"
+    },
+    {
+      "id": "ldl_cholesterol",
+      "name": "LDL Cholesterol",
+      "profile": "Lipid Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 38.67
+      },
+      "aliases": [
+        "ldl",
+        "ldl-c",
+        "ldl cholesterol",
+        "ldl cholesterol direct",
+        "ldl direct",
+        "low density lipoprotein",
+        "low density lipoprotein cholesterol",
+        "cholesterol ldl",
+        "ldl calculated"
+      ],
+      "ref": {
+        "default": [
+          50,
+          100
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "atherogenic_lipid",
+      "bands": [
+        {
+          "lt": 100,
+          "grade": "normal",
+          "label": "Optimal"
+        },
+        {
+          "lt": 130,
+          "grade": "mild_high",
+          "label": "Near/above optimal"
+        },
+        {
+          "lt": 160,
+          "grade": "moderate_high",
+          "label": "Borderline high"
+        },
+        {
+          "lt": 190,
+          "grade": "severe_high",
+          "label": "High"
+        },
+        {
+          "gte": 190,
+          "grade": "critical_high",
+          "label": "Very high"
+        }
+      ],
+      "source": "NCEP ATP III"
+    },
+    {
+      "id": "hdl_cholesterol",
+      "name": "HDL Cholesterol",
+      "profile": "Lipid Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 38.67
+      },
+      "aliases": [
+        "hdl",
+        "hdl-c",
+        "hdl cholesterol",
+        "high density lipoprotein",
+        "high density lipoprotein cholesterol",
+        "cholesterol hdl"
+      ],
+      "ref": {
+        "male": [
+          40,
+          90
+        ],
+        "female": [
+          50,
+          90
+        ],
+        "default": [
+          40,
+          90
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "hdl",
+      "bands_by_sex": {
+        "male": [
+          {
+            "lt": 30,
+            "grade": "severe_low",
+            "label": "Markedly low"
+          },
+          {
+            "lt": 40,
+            "grade": "moderate_low",
+            "label": "Low (cardioprotective threshold not met)"
+          },
+          {
+            "lt": 60,
+            "grade": "normal",
+            "label": "Acceptable"
+          },
+          {
+            "gte": 60,
+            "grade": "protective",
+            "label": "Cardioprotective"
+          }
+        ],
+        "female": [
+          {
+            "lt": 35,
+            "grade": "severe_low",
+            "label": "Markedly low"
+          },
+          {
+            "lt": 50,
+            "grade": "moderate_low",
+            "label": "Low (cardioprotective threshold not met)"
+          },
+          {
+            "lt": 60,
+            "grade": "normal",
+            "label": "Acceptable"
+          },
+          {
+            "gte": 60,
+            "grade": "protective",
+            "label": "Cardioprotective"
+          }
+        ]
+      },
+      "source": "NCEP ATP III / IDF"
+    },
+    {
+      "id": "triglycerides",
+      "name": "Triglycerides",
+      "profile": "Lipid Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 88.57
+      },
+      "aliases": [
+        "triglyceride",
+        "triglycerides",
+        "tg",
+        "trig",
+        "serum triglycerides",
+        "triglycerides serum"
+      ],
+      "ref": {
+        "default": [
+          40,
+          150
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "triglyceride",
+      "bands": [
+        {
+          "lt": 150,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 200,
+          "grade": "mild_high",
+          "label": "Borderline high"
+        },
+        {
+          "lt": 500,
+          "grade": "moderate_high",
+          "label": "High"
+        },
+        {
+          "gte": 500,
+          "grade": "critical_high",
+          "label": "Very high (pancreatitis risk)"
+        }
+      ],
+      "source": "NCEP ATP III"
+    },
+    {
+      "id": "vldl_cholesterol",
+      "name": "VLDL Cholesterol",
+      "profile": "Lipid Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1
+      },
+      "aliases": [
+        "vldl",
+        "vldl cholesterol",
+        "very low density lipoprotein"
+      ],
+      "ref": {
+        "default": [
+          2,
+          30
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "triglyceride"
+    },
+    {
+      "id": "non_hdl_cholesterol",
+      "name": "Non-HDL Cholesterol",
+      "profile": "Lipid Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 38.67
+      },
+      "aliases": [
+        "non hdl",
+        "non-hdl",
+        "non hdl cholesterol",
+        "nonhdl cholesterol"
+      ],
+      "ref": {
+        "default": [
+          50,
+          130
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "atherogenic_lipid",
+      "derived_from": {
+        "formula": "total_cholesterol - hdl_cholesterol",
+        "inputs": [
+          "total_cholesterol",
+          "hdl_cholesterol"
+        ]
+      }
+    },
+    {
+      "id": "tc_hdl_ratio",
+      "name": "Total Cholesterol / HDL Ratio",
+      "profile": "Lipid Profile",
+      "type": "numeric",
+      "unit": "ratio",
+      "units": {
+        "ratio": 1
+      },
+      "aliases": [
+        "chol hdl ratio",
+        "cholesterol hdl ratio",
+        "tc hdl ratio",
+        "total cholesterol hdl ratio",
+        "chol/hdl ratio"
+      ],
+      "ref": {
+        "default": [
+          0,
+          4.5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "lipid_ratio",
+      "derived_from": {
+        "formula": "total_cholesterol / hdl_cholesterol",
+        "inputs": [
+          "total_cholesterol",
+          "hdl_cholesterol"
+        ]
+      }
+    },
+    {
+      "id": "tg_hdl_ratio",
+      "name": "Triglyceride / HDL Ratio",
+      "profile": "Lipid Profile",
+      "type": "numeric",
+      "unit": "ratio",
+      "units": {
+        "ratio": 1
+      },
+      "aliases": [
+        "tg hdl ratio",
+        "triglyceride hdl ratio",
+        "tg/hdl"
+      ],
+      "ref": {
+        "default": [
+          0,
+          3.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "lipid_ratio",
+      "derived_from": {
+        "formula": "triglycerides / hdl_cholesterol",
+        "inputs": [
+          "triglycerides",
+          "hdl_cholesterol"
+        ]
+      },
+      "note": "Surrogate marker of insulin resistance and small dense LDL burden."
+    },
+    {
+      "id": "apo_a1",
+      "name": "Apolipoprotein A1",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "g/l": 100
+      },
+      "aliases": [
+        "apo a",
+        "apo a1",
+        "apoa1",
+        "apolipoprotein a",
+        "apolipoprotein a1",
+        "apo-a1"
+      ],
+      "ref": {
+        "male": [
+          94,
+          178
+        ],
+        "female": [
+          101,
+          199
+        ],
+        "default": [
+          94,
+          199
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "apolipoprotein"
+    },
+    {
+      "id": "apo_b",
+      "name": "Apolipoprotein B",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "g/l": 100
+      },
+      "aliases": [
+        "apo b",
+        "apob",
+        "apolipoprotein b",
+        "apo-b",
+        "apo b100"
+      ],
+      "ref": {
+        "default": [
+          50,
+          100
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "apolipoprotein",
+      "bands": [
+        {
+          "lt": 90,
+          "grade": "normal",
+          "label": "Optimal"
+        },
+        {
+          "lt": 110,
+          "grade": "mild_high",
+          "label": "Above optimal"
+        },
+        {
+          "lt": 130,
+          "grade": "moderate_high",
+          "label": "High"
+        },
+        {
+          "gte": 130,
+          "grade": "severe_high",
+          "label": "Very high"
+        }
+      ]
+    },
+    {
+      "id": "apo_b_apo_a1_ratio",
+      "name": "ApoB / ApoA1 Ratio",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "ratio",
+      "units": {
+        "ratio": 1
+      },
+      "aliases": [
+        "apo b apo a1 ratio",
+        "apob apoa1 ratio",
+        "apo b/a1"
+      ],
+      "ref": {
+        "male": [
+          0,
+          0.9
+        ],
+        "female": [
+          0,
+          0.8
+        ],
+        "default": [
+          0,
+          0.9
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "apolipoprotein",
+      "derived_from": {
+        "formula": "apo_b / apo_a1",
+        "inputs": [
+          "apo_b",
+          "apo_a1"
+        ]
+      }
+    },
+    {
+      "id": "lipoprotein_a",
+      "name": "Lipoprotein (a)",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1
+      },
+      "aliases": [
+        "lp a",
+        "lp(a)",
+        "lipoprotein a",
+        "lipoprotein little a"
+      ],
+      "ref": {
+        "default": [
+          0,
+          30
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "lipoprotein_a"
+    },
+    {
+      "id": "homocysteine",
+      "name": "Homocysteine",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "umol/L",
+      "units": {
+        "umol/l": 1,
+        "µmol/l": 1,
+        "mcmol/l": 1,
+        "mg/l": 7.397
+      },
+      "aliases": [
+        "homocysteine",
+        "homocystein",
+        "serum homocysteine",
+        "total homocysteine",
+        "hcy"
+      ],
+      "ref": {
+        "default": [
+          5,
+          15
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "homocysteine",
+      "bands": [
+        {
+          "lt": 5,
+          "grade": "mild_low",
+          "label": "Below usual range"
+        },
+        {
+          "lt": 15,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 30,
+          "grade": "moderate_high",
+          "label": "Moderately elevated"
+        },
+        {
+          "lt": 100,
+          "grade": "severe_high",
+          "label": "Intermediate elevation"
+        },
+        {
+          "gte": 100,
+          "grade": "critical_high",
+          "label": "Severe elevation"
+        }
+      ]
+    },
+    {
+      "id": "troponin_i",
+      "name": "Troponin I",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1,
+        "µg/l": 1,
+        "pg/ml": 0.001,
+        "ng/l": 0.001
+      },
+      "aliases": [
+        "troponin",
+        "troponin i",
+        "trop i",
+        "cardiac troponin",
+        "cardiac troponin i",
+        "hs troponin i",
+        "high sensitivity troponin i",
+        "troponin t",
+        "trop t"
+      ],
+      "ref": {
+        "default": [
+          0,
+          0.04
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "myocardial_injury",
+      "bands": [
+        {
+          "lt": 0.04,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 0.4,
+          "grade": "severe_high",
+          "label": "Elevated - myocardial injury possible"
+        },
+        {
+          "gte": 0.4,
+          "grade": "critical_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "ck_mb",
+      "name": "CK-MB",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "u/l": 1
+      },
+      "aliases": [
+        "ck mb",
+        "ckmb",
+        "creatine kinase mb",
+        "cpk mb",
+        "ck-mb mass"
+      ],
+      "ref": {
+        "default": [
+          0,
+          6.6
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "myocardial_injury"
+    },
+    {
+      "id": "cpk_total",
+      "name": "Creatine Phosphokinase (Total)",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "U/L",
+      "units": {
+        "u/l": 1,
+        "iu/l": 1
+      },
+      "aliases": [
+        "cpk",
+        "cpk total",
+        "creatine kinase",
+        "creatine phosphokinase",
+        "ck total",
+        "ck"
+      ],
+      "ref": {
+        "male": [
+          39,
+          308
+        ],
+        "female": [
+          26,
+          192
+        ],
+        "default": [
+          30,
+          250
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "muscle_enzyme"
+    },
+    {
+      "id": "ldh",
+      "name": "Lactate Dehydrogenase (LDH)",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "U/L",
+      "units": {
+        "u/l": 1,
+        "iu/l": 1
+      },
+      "aliases": [
+        "ldh",
+        "lactate dehydrogenase",
+        "lactic dehydrogenase",
+        "l d h"
+      ],
+      "ref": {
+        "default": [
+          140,
+          280
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "cell_turnover"
+    },
+    {
+      "id": "nt_probnp",
+      "name": "NT-proBNP",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "pg/mL",
+      "units": {
+        "pg/ml": 1,
+        "ng/l": 1
+      },
+      "aliases": [
+        "nt probnp",
+        "nt-probnp",
+        "pro bnp",
+        "bnp",
+        "n terminal pro bnp"
+      ],
+      "ref": {
+        "default": [
+          0,
+          125
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "cardiac_strain"
+    },
+    {
+      "id": "fasting_glucose",
+      "name": "Fasting Blood Glucose",
+      "profile": "Diabetes Monitoring",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 18.016
+      },
+      "aliases": [
+        "fbs",
+        "fasting blood sugar",
+        "fasting blood glucose",
+        "glucose fasting",
+        "fasting glucose",
+        "fasting plasma glucose",
+        "fpg",
+        "blood sugar fasting",
+        "sugar fasting",
+        "glucose f"
+      ],
+      "ref": {
+        "default": [
+          70,
+          99
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "glycemia_fasting",
+      "bands": [
+        {
+          "lt": 54,
+          "grade": "critical_low",
+          "label": "Severe hypoglycaemia"
+        },
+        {
+          "lt": 70,
+          "grade": "moderate_low",
+          "label": "Hypoglycaemia"
+        },
+        {
+          "lt": 100,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 126,
+          "grade": "moderate_high",
+          "label": "Impaired fasting glucose (prediabetes range)"
+        },
+        {
+          "lt": 200,
+          "grade": "severe_high",
+          "label": "Diabetes range"
+        },
+        {
+          "gte": 200,
+          "grade": "critical_high",
+          "label": "Markedly elevated"
+        }
+      ],
+      "source": "ADA Standards of Care"
+    },
+    {
+      "id": "postprandial_glucose",
+      "name": "Post Prandial Blood Glucose",
+      "profile": "Diabetes Monitoring",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 18.016
+      },
+      "aliases": [
+        "ppbs",
+        "pp blood sugar",
+        "post prandial blood sugar",
+        "postprandial glucose",
+        "post prandial glucose",
+        "blood sugar pp",
+        "glucose pp",
+        "2 hour post prandial",
+        "sugar pp",
+        "ogtt 2 hour",
+        "glucose 2 hr"
+      ],
+      "ref": {
+        "default": [
+          70,
+          140
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "glycemia_post",
+      "bands": [
+        {
+          "lt": 70,
+          "grade": "moderate_low",
+          "label": "Low"
+        },
+        {
+          "lt": 140,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 200,
+          "grade": "moderate_high",
+          "label": "Impaired glucose tolerance range"
+        },
+        {
+          "lt": 300,
+          "grade": "severe_high",
+          "label": "Diabetes range"
+        },
+        {
+          "gte": 300,
+          "grade": "critical_high",
+          "label": "Markedly elevated"
+        }
+      ],
+      "source": "ADA Standards of Care"
+    },
+    {
+      "id": "random_glucose",
+      "name": "Random Blood Glucose",
+      "profile": "Diabetes Monitoring",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 18.016
+      },
+      "aliases": [
+        "rbs",
+        "random blood sugar",
+        "random blood glucose",
+        "blood sugar random",
+        "glucose random",
+        "casual glucose",
+        "blood glucose"
+      ],
+      "ref": {
+        "default": [
+          70,
+          140
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "glycemia_random",
+      "bands": [
+        {
+          "lt": 70,
+          "grade": "moderate_low",
+          "label": "Low"
+        },
+        {
+          "lt": 140,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 200,
+          "grade": "moderate_high",
+          "label": "Elevated"
+        },
+        {
+          "lt": 300,
+          "grade": "severe_high",
+          "label": "Diabetes range"
+        },
+        {
+          "gte": 300,
+          "grade": "critical_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "hba1c",
+      "name": "HbA1c (Glycated Haemoglobin)",
+      "profile": "Diabetes Monitoring",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "hba1c",
+        "hb a1c",
+        "glycated hemoglobin",
+        "glycosylated hemoglobin",
+        "glycated haemoglobin",
+        "a1c",
+        "hemoglobin a1c",
+        "haemoglobin a1c"
+      ],
+      "ref": {
+        "default": [
+          4.0,
+          5.6
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "glycemia_chronic",
+      "bands": [
+        {
+          "lt": 4.0,
+          "grade": "mild_low",
+          "label": "Below usual range"
+        },
+        {
+          "lt": 5.7,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 6.5,
+          "grade": "moderate_high",
+          "label": "Prediabetes range"
+        },
+        {
+          "lt": 8.0,
+          "grade": "severe_high",
+          "label": "Diabetes range"
+        },
+        {
+          "gte": 8.0,
+          "grade": "critical_high",
+          "label": "Poorly controlled range"
+        }
+      ],
+      "source": "ADA Standards of Care"
+    },
+    {
+      "id": "fasting_insulin",
+      "name": "Fasting Insulin",
+      "profile": "Diabetes Monitoring",
+      "type": "numeric",
+      "unit": "uIU/mL",
+      "units": {
+        "uiu/ml": 1,
+        "µiu/ml": 1,
+        "miu/l": 1,
+        "pmol/l": 0.1439
+      },
+      "aliases": [
+        "insulin",
+        "insulin fasting",
+        "fasting insulin",
+        "serum insulin",
+        "insulin f"
+      ],
+      "ref": {
+        "default": [
+          2.6,
+          12.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "insulin_resistance",
+      "bands": [
+        {
+          "lt": 2.6,
+          "grade": "mild_low",
+          "label": "Low"
+        },
+        {
+          "lt": 12.0,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 25.0,
+          "grade": "moderate_high",
+          "label": "Elevated - suggests insulin resistance"
+        },
+        {
+          "gte": 25.0,
+          "grade": "severe_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "homa_ir",
+      "name": "HOMA-IR",
+      "profile": "Diabetes Monitoring",
+      "type": "numeric",
+      "unit": "index",
+      "units": {
+        "index": 1
+      },
+      "aliases": [
+        "homa ir",
+        "homa-ir",
+        "homa index",
+        "insulin resistance index"
+      ],
+      "ref": {
+        "default": [
+          0,
+          2.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "insulin_resistance",
+      "derived_from": {
+        "formula": "(fasting_insulin * fasting_glucose) / 405",
+        "inputs": [
+          "fasting_insulin",
+          "fasting_glucose"
+        ]
+      },
+      "bands": [
+        {
+          "lt": 2.0,
+          "grade": "normal",
+          "label": "Normal insulin sensitivity"
+        },
+        {
+          "lt": 2.9,
+          "grade": "mild_high",
+          "label": "Borderline insulin resistance"
+        },
+        {
+          "gte": 2.9,
+          "grade": "moderate_high",
+          "label": "Insulin resistance likely"
+        }
+      ]
+    },
+    {
+      "id": "urine_glucose",
+      "name": "Urine Glucose",
+      "profile": "Urinalysis",
+      "type": "qualitative",
+      "aliases": [
+        "urine glucose",
+        "glucose urine",
+        "sugar urine",
+        "urine sugar",
+        "glycosuria"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "glycemia_urine"
+    },
+    {
+      "id": "urine_ketones",
+      "name": "Urine Ketones",
+      "profile": "Urinalysis",
+      "type": "qualitative",
+      "aliases": [
+        "ketone",
+        "ketones",
+        "urine ketone",
+        "urine ketones",
+        "ketone bodies",
+        "acetone"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "ketosis"
+    },
+    {
+      "id": "creatinine",
+      "name": "Serum Creatinine",
+      "profile": "Kidney Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "umol/l": 0.0113,
+        "µmol/l": 0.0113
+      },
+      "aliases": [
+        "creatinine",
+        "serum creatinine",
+        "s creatinine",
+        "creatinine serum",
+        "creat"
+      ],
+      "ref": {
+        "male": [
+          0.7,
+          1.3
+        ],
+        "female": [
+          0.6,
+          1.1
+        ],
+        "default": [
+          0.6,
+          1.3
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "renal_filtration"
+    },
+    {
+      "id": "blood_urea",
+      "name": "Blood Urea",
+      "profile": "Kidney Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 6.006
+      },
+      "aliases": [
+        "urea",
+        "blood urea",
+        "serum urea",
+        "b urea"
+      ],
+      "ref": {
+        "default": [
+          15,
+          45
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "renal_nitrogen"
+    },
+    {
+      "id": "bun",
+      "name": "Blood Urea Nitrogen (BUN)",
+      "profile": "Kidney Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 2.801
+      },
+      "aliases": [
+        "bun",
+        "blood urea nitrogen",
+        "urea nitrogen"
+      ],
+      "ref": {
+        "default": [
+          7,
+          20
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "renal_nitrogen"
+    },
+    {
+      "id": "egfr",
+      "name": "Estimated GFR",
+      "profile": "Kidney Profile",
+      "type": "numeric",
+      "unit": "mL/min/1.73m2",
+      "units": {
+        "ml/min/1.73m2": 1,
+        "ml/min": 1,
+        "ml/min/1.73 m2": 1
+      },
+      "aliases": [
+        "egfr",
+        "gfr",
+        "glomerular filtration rate",
+        "estimated gfr",
+        "e gfr",
+        "estimated glomerular filtration rate"
+      ],
+      "ref": {
+        "default": [
+          90,
+          140
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "renal_filtration",
+      "bands": [
+        {
+          "lt": 15,
+          "grade": "critical_low",
+          "label": "G5 - kidney failure range"
+        },
+        {
+          "lt": 30,
+          "grade": "severe_low",
+          "label": "G4 - severely decreased"
+        },
+        {
+          "lt": 45,
+          "grade": "severe_low",
+          "label": "G3b - moderately to severely decreased"
+        },
+        {
+          "lt": 60,
+          "grade": "moderate_low",
+          "label": "G3a - mildly to moderately decreased"
+        },
+        {
+          "lt": 90,
+          "grade": "mild_low",
+          "label": "G2 - mildly decreased"
+        },
+        {
+          "gte": 90,
+          "grade": "normal",
+          "label": "G1 - normal or high"
+        }
+      ],
+      "source": "KDIGO CKD staging"
+    },
+    {
+      "id": "uric_acid",
+      "name": "Uric Acid",
+      "profile": "Kidney Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "umol/l": 0.0168,
+        "µmol/l": 0.0168
+      },
+      "aliases": [
+        "uric acid",
+        "serum uric acid",
+        "s uric acid",
+        "urate"
+      ],
+      "ref": {
+        "male": [
+          3.4,
+          7.0
+        ],
+        "female": [
+          2.4,
+          6.0
+        ],
+        "default": [
+          2.4,
+          7.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "urate",
+      "bands": [
+        {
+          "lt": 2.4,
+          "grade": "mild_low",
+          "label": "Low"
+        },
+        {
+          "lt": 7.0,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 9.0,
+          "grade": "moderate_high",
+          "label": "Hyperuricaemia"
+        },
+        {
+          "gte": 9.0,
+          "grade": "severe_high",
+          "label": "Marked hyperuricaemia"
+        }
+      ]
+    },
+    {
+      "id": "urine_acr",
+      "name": "Urine Albumin/Creatinine Ratio",
+      "profile": "Kidney Profile",
+      "type": "numeric",
+      "unit": "mg/g",
+      "units": {
+        "mg/g": 1,
+        "mg/gm": 1,
+        "mg/mmol": 8.84
+      },
+      "aliases": [
+        "acr",
+        "urine acr",
+        "albumin creatinine ratio",
+        "urine albumin creatinine ratio",
+        "microalbumin creatinine ratio",
+        "uacr",
+        "albumin to creatinine ratio"
+      ],
+      "ref": {
+        "default": [
+          0,
+          30
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "albuminuria",
+      "bands": [
+        {
+          "lt": 30,
+          "grade": "normal",
+          "label": "A1 - normal to mildly increased"
+        },
+        {
+          "lt": 300,
+          "grade": "moderate_high",
+          "label": "A2 - moderately increased (microalbuminuria)"
+        },
+        {
+          "gte": 300,
+          "grade": "severe_high",
+          "label": "A3 - severely increased (macroalbuminuria)"
+        }
+      ],
+      "source": "KDIGO albuminuria categories"
+    },
+    {
+      "id": "urine_microalbumin",
+      "name": "Urine Microalbumin",
+      "profile": "Kidney Profile",
+      "type": "numeric",
+      "unit": "mg/L",
+      "units": {
+        "mg/l": 1
+      },
+      "aliases": [
+        "microalbumin",
+        "urine microalbumin",
+        "micro albumin",
+        "albuminuria"
+      ],
+      "ref": {
+        "default": [
+          0,
+          20
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "albuminuria"
+    },
+    {
+      "id": "urine_protein",
+      "name": "Urine Protein",
+      "profile": "Urinalysis",
+      "type": "qualitative",
+      "aliases": [
+        "urine protein",
+        "protein urine",
+        "proteinuria",
+        "albumin urine",
+        "urine albumin"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "albuminuria"
+    },
+    {
+      "id": "sgpt_alt",
+      "name": "SGPT / ALT",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "U/L",
+      "units": {
+        "u/l": 1,
+        "iu/l": 1
+      },
+      "aliases": [
+        "sgpt",
+        "alt",
+        "alanine aminotransferase",
+        "alanine transaminase",
+        "sgpt alt",
+        "alt sgpt",
+        "s g p t"
+      ],
+      "ref": {
+        "male": [
+          0,
+          50
+        ],
+        "female": [
+          0,
+          35
+        ],
+        "default": [
+          0,
+          45
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "transaminase",
+      "bands": [
+        {
+          "lt": 45,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 135,
+          "grade": "mild_high",
+          "label": "Mildly elevated (<3x upper limit)"
+        },
+        {
+          "lt": 450,
+          "grade": "moderate_high",
+          "label": "Moderately elevated (3-10x)"
+        },
+        {
+          "gte": 450,
+          "grade": "severe_high",
+          "label": "Markedly elevated (>10x)"
+        }
+      ]
+    },
+    {
+      "id": "sgot_ast",
+      "name": "SGOT / AST",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "U/L",
+      "units": {
+        "u/l": 1,
+        "iu/l": 1
+      },
+      "aliases": [
+        "sgot",
+        "ast",
+        "aspartate aminotransferase",
+        "aspartate transaminase",
+        "sgot ast",
+        "ast sgot",
+        "s g o t"
+      ],
+      "ref": {
+        "male": [
+          0,
+          40
+        ],
+        "female": [
+          0,
+          32
+        ],
+        "default": [
+          0,
+          40
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "transaminase",
+      "bands": [
+        {
+          "lt": 40,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 120,
+          "grade": "mild_high",
+          "label": "Mildly elevated (<3x upper limit)"
+        },
+        {
+          "lt": 400,
+          "grade": "moderate_high",
+          "label": "Moderately elevated (3-10x)"
+        },
+        {
+          "gte": 400,
+          "grade": "severe_high",
+          "label": "Markedly elevated (>10x)"
+        }
+      ]
+    },
+    {
+      "id": "alkaline_phosphatase",
+      "name": "Alkaline Phosphatase",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "U/L",
+      "units": {
+        "u/l": 1,
+        "iu/l": 1
+      },
+      "aliases": [
+        "alp",
+        "alkaline phosphatase",
+        "serum alkaline phosphatase",
+        "s alp",
+        "alk phos"
+      ],
+      "ref": {
+        "default": [
+          40,
+          129
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "cholestasis"
+    },
+    {
+      "id": "ggt",
+      "name": "Gamma GT (GGT)",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "U/L",
+      "units": {
+        "u/l": 1,
+        "iu/l": 1
+      },
+      "aliases": [
+        "ggt",
+        "gamma gt",
+        "gamma glutamyl transferase",
+        "gamma glutamyl transpeptidase",
+        "ggtp"
+      ],
+      "ref": {
+        "male": [
+          8,
+          61
+        ],
+        "female": [
+          5,
+          36
+        ],
+        "default": [
+          5,
+          55
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "cholestasis"
+    },
+    {
+      "id": "total_bilirubin",
+      "name": "Total Bilirubin",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "umol/l": 0.0585,
+        "µmol/l": 0.0585
+      },
+      "aliases": [
+        "bilirubin",
+        "total bilirubin",
+        "bilirubin total",
+        "s bilirubin total",
+        "t bilirubin"
+      ],
+      "ref": {
+        "default": [
+          0.3,
+          1.2
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "bilirubin"
+    },
+    {
+      "id": "direct_bilirubin",
+      "name": "Direct Bilirubin",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "umol/l": 0.0585,
+        "µmol/l": 0.0585
+      },
+      "aliases": [
+        "direct bilirubin",
+        "bilirubin direct",
+        "conjugated bilirubin"
+      ],
+      "ref": {
+        "default": [
+          0,
+          0.3
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "bilirubin_direct"
+    },
+    {
+      "id": "indirect_bilirubin",
+      "name": "Indirect Bilirubin",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "umol/l": 0.0585,
+        "µmol/l": 0.0585
+      },
+      "aliases": [
+        "indirect bilirubin",
+        "bilirubin indirect",
+        "unconjugated bilirubin"
+      ],
+      "ref": {
+        "default": [
+          0.1,
+          1.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "bilirubin_indirect"
+    },
+    {
+      "id": "total_protein",
+      "name": "Total Protein",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "g/dL",
+      "units": {
+        "g/dl": 1,
+        "g/l": 0.1
+      },
+      "aliases": [
+        "total protein",
+        "protein total",
+        "serum total protein",
+        "s protein"
+      ],
+      "ref": {
+        "default": [
+          6.4,
+          8.3
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "protein_total"
+    },
+    {
+      "id": "albumin",
+      "name": "Serum Albumin",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "g/dL",
+      "units": {
+        "g/dl": 1,
+        "g/l": 0.1
+      },
+      "aliases": [
+        "albumin",
+        "serum albumin",
+        "s albumin",
+        "alb"
+      ],
+      "ref": {
+        "default": [
+          3.5,
+          5.2
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "synthetic_function"
+    },
+    {
+      "id": "globulin",
+      "name": "Serum Globulin",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "g/dL",
+      "units": {
+        "g/dl": 1,
+        "g/l": 0.1
+      },
+      "aliases": [
+        "globulin",
+        "serum globulin",
+        "s globulin"
+      ],
+      "ref": {
+        "default": [
+          2.0,
+          3.5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "globulin"
+    },
+    {
+      "id": "ag_ratio",
+      "name": "Albumin / Globulin Ratio",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "ratio",
+      "units": {
+        "ratio": 1
+      },
+      "aliases": [
+        "a g ratio",
+        "a/g ratio",
+        "albumin globulin ratio",
+        "ag ratio"
+      ],
+      "ref": {
+        "default": [
+          1.0,
+          2.1
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "globulin",
+      "derived_from": {
+        "formula": "albumin / globulin",
+        "inputs": [
+          "albumin",
+          "globulin"
+        ]
+      }
+    },
+    {
+      "id": "tsh",
+      "name": "TSH",
+      "profile": "Thyroid Profile",
+      "type": "numeric",
+      "unit": "uIU/mL",
+      "units": {
+        "uiu/ml": 1,
+        "µiu/ml": 1,
+        "miu/l": 1,
+        "miu/ml": 1000
+      },
+      "aliases": [
+        "tsh",
+        "thyroid stimulating hormone",
+        "thyrotropin",
+        "s tsh",
+        "tsh ultrasensitive",
+        "tsh 3rd generation"
+      ],
+      "ref": {
+        "default": [
+          0.4,
+          4.0
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "thyroid_axis",
+      "bands": [
+        {
+          "lt": 0.1,
+          "grade": "severe_low",
+          "label": "Markedly suppressed"
+        },
+        {
+          "lt": 0.4,
+          "grade": "moderate_low",
+          "label": "Suppressed"
+        },
+        {
+          "lt": 4.0,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 10.0,
+          "grade": "moderate_high",
+          "label": "Elevated (subclinical range)"
+        },
+        {
+          "gte": 10.0,
+          "grade": "severe_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "free_t4",
+      "name": "Free T4",
+      "profile": "Thyroid Profile",
+      "type": "numeric",
+      "unit": "ng/dL",
+      "units": {
+        "ng/dl": 1,
+        "pmol/l": 0.0777
+      },
+      "aliases": [
+        "ft4",
+        "free t4",
+        "free thyroxine",
+        "t4 free",
+        "free t 4"
+      ],
+      "ref": {
+        "default": [
+          0.8,
+          1.8
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "thyroid_hormone"
+    },
+    {
+      "id": "free_t3",
+      "name": "Free T3",
+      "profile": "Thyroid Profile",
+      "type": "numeric",
+      "unit": "pg/mL",
+      "units": {
+        "pg/ml": 1,
+        "pmol/l": 0.651
+      },
+      "aliases": [
+        "ft3",
+        "free t3",
+        "free triiodothyronine",
+        "t3 free",
+        "free t 3"
+      ],
+      "ref": {
+        "default": [
+          2.3,
+          4.2
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "thyroid_hormone"
+    },
+    {
+      "id": "total_t4",
+      "name": "Total T4",
+      "profile": "Thyroid Profile",
+      "type": "numeric",
+      "unit": "ug/dL",
+      "units": {
+        "ug/dl": 1,
+        "µg/dl": 1,
+        "nmol/l": 0.0777
+      },
+      "aliases": [
+        "t4",
+        "total t4",
+        "thyroxine",
+        "t4 total"
+      ],
+      "ref": {
+        "default": [
+          4.5,
+          12.0
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "thyroid_hormone"
+    },
+    {
+      "id": "total_t3",
+      "name": "Total T3",
+      "profile": "Thyroid Profile",
+      "type": "numeric",
+      "unit": "ng/dL",
+      "units": {
+        "ng/dl": 1,
+        "nmol/l": 65.1
+      },
+      "aliases": [
+        "t3",
+        "total t3",
+        "triiodothyronine",
+        "t3 total"
+      ],
+      "ref": {
+        "default": [
+          80,
+          200
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "thyroid_hormone"
+    },
+    {
+      "id": "anti_tpo",
+      "name": "Anti-TPO Antibodies",
+      "profile": "Thyroid Profile",
+      "type": "numeric",
+      "unit": "IU/mL",
+      "units": {
+        "iu/ml": 1,
+        "u/ml": 1
+      },
+      "aliases": [
+        "anti tpo",
+        "anti-tpo",
+        "tpo antibody",
+        "thyroid peroxidase antibody",
+        "anti thyroid peroxidase",
+        "atpo"
+      ],
+      "ref": {
+        "default": [
+          0,
+          34
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "thyroid_autoantibody"
+    },
+    {
+      "id": "anti_thyroglobulin",
+      "name": "Anti-Thyroglobulin Antibodies",
+      "profile": "Thyroid Profile",
+      "type": "numeric",
+      "unit": "IU/mL",
+      "units": {
+        "iu/ml": 1,
+        "u/ml": 1
+      },
+      "aliases": [
+        "anti thyroglobulin",
+        "anti-tg",
+        "thyroglobulin antibody",
+        "atg",
+        "anti thyroglobulin antibody",
+        "tg antibody"
+      ],
+      "ref": {
+        "default": [
+          0,
+          115
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "thyroid_autoantibody"
+    },
+    {
+      "id": "hemoglobin",
+      "name": "Haemoglobin",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "g/dL",
+      "units": {
+        "g/dl": 1,
+        "g/l": 0.1,
+        "gm/dl": 1,
+        "gm%": 1
+      },
+      "aliases": [
+        "hb",
+        "hgb",
+        "haemoglobin",
+        "hemoglobin",
+        "haemoglobin hb",
+        "hemoglobin hb"
+      ],
+      "ref": {
+        "male": [
+          13.0,
+          17.0
+        ],
+        "female": [
+          12.0,
+          15.0
+        ],
+        "default": [
+          12.0,
+          17.0
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "red_cell_mass",
+      "bands_by_sex": {
+        "male": [
+          {
+            "lt": 8.0,
+            "grade": "critical_low",
+            "label": "Severe anaemia"
+          },
+          {
+            "lt": 11.0,
+            "grade": "severe_low",
+            "label": "Moderate anaemia"
+          },
+          {
+            "lt": 13.0,
+            "grade": "moderate_low",
+            "label": "Mild anaemia"
+          },
+          {
+            "lt": 17.0,
+            "grade": "normal",
+            "label": "Normal"
+          },
+          {
+            "lt": 18.5,
+            "grade": "mild_high",
+            "label": "Above range"
+          },
+          {
+            "gte": 18.5,
+            "grade": "severe_high",
+            "label": "Markedly elevated"
+          }
+        ],
+        "female": [
+          {
+            "lt": 7.0,
+            "grade": "critical_low",
+            "label": "Severe anaemia"
+          },
+          {
+            "lt": 10.0,
+            "grade": "severe_low",
+            "label": "Moderate anaemia"
+          },
+          {
+            "lt": 12.0,
+            "grade": "moderate_low",
+            "label": "Mild anaemia"
+          },
+          {
+            "lt": 15.0,
+            "grade": "normal",
+            "label": "Normal"
+          },
+          {
+            "lt": 16.5,
+            "grade": "mild_high",
+            "label": "Above range"
+          },
+          {
+            "gte": 16.5,
+            "grade": "severe_high",
+            "label": "Markedly elevated"
+          }
+        ]
+      },
+      "source": "WHO anaemia thresholds"
+    },
+    {
+      "id": "rbc_count",
+      "name": "RBC Count",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "million/uL",
+      "units": {
+        "million/ul": 1,
+        "10^6/ul": 1,
+        "x10^6/ul": 1,
+        "10^12/l": 1,
+        "mill/cumm": 1,
+        "million/cumm": 1
+      },
+      "aliases": [
+        "rbc",
+        "rbc count",
+        "red blood cell count",
+        "total rbc",
+        "erythrocyte count",
+        "red cell count"
+      ],
+      "ref": {
+        "male": [
+          4.5,
+          5.5
+        ],
+        "female": [
+          3.8,
+          4.8
+        ],
+        "default": [
+          3.8,
+          5.5
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "red_cell_mass"
+    },
+    {
+      "id": "hematocrit",
+      "name": "Haematocrit / PCV",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1,
+        "l/l": 100
+      },
+      "aliases": [
+        "hct",
+        "haematocrit",
+        "hematocrit",
+        "pcv",
+        "packed cell volume"
+      ],
+      "ref": {
+        "male": [
+          40,
+          50
+        ],
+        "female": [
+          36,
+          46
+        ],
+        "default": [
+          36,
+          50
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "red_cell_mass"
+    },
+    {
+      "id": "mcv",
+      "name": "MCV",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "fL",
+      "units": {
+        "fl": 1,
+        "um3": 1,
+        "µm3": 1
+      },
+      "aliases": [
+        "mcv",
+        "mean corpuscular volume",
+        "mean cell volume"
+      ],
+      "ref": {
+        "default": [
+          80,
+          100
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "red_cell_index",
+      "bands": [
+        {
+          "lt": 70,
+          "grade": "severe_low",
+          "label": "Markedly microcytic"
+        },
+        {
+          "lt": 80,
+          "grade": "moderate_low",
+          "label": "Microcytic"
+        },
+        {
+          "lt": 100,
+          "grade": "normal",
+          "label": "Normocytic"
+        },
+        {
+          "lt": 110,
+          "grade": "moderate_high",
+          "label": "Macrocytic"
+        },
+        {
+          "gte": 110,
+          "grade": "severe_high",
+          "label": "Markedly macrocytic"
+        }
+      ]
+    },
+    {
+      "id": "mch",
+      "name": "MCH",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "pg",
+      "units": {
+        "pg": 1
+      },
+      "aliases": [
+        "mch",
+        "mean corpuscular hemoglobin",
+        "mean corpuscular haemoglobin"
+      ],
+      "ref": {
+        "default": [
+          27,
+          32
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "red_cell_index"
+    },
+    {
+      "id": "mchc",
+      "name": "MCHC",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "g/dL",
+      "units": {
+        "g/dl": 1,
+        "%": 1
+      },
+      "aliases": [
+        "mchc",
+        "mean corpuscular hemoglobin concentration",
+        "mean corpuscular haemoglobin concentration"
+      ],
+      "ref": {
+        "default": [
+          32,
+          36
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "red_cell_index"
+    },
+    {
+      "id": "rdw_cv",
+      "name": "RDW-CV",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "rdw",
+        "rdw cv",
+        "rdw-cv",
+        "red cell distribution width",
+        "red blood cell distribution width"
+      ],
+      "ref": {
+        "default": [
+          11.5,
+          14.5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "anisocytosis"
+    },
+    {
+      "id": "rdw_sd",
+      "name": "RDW-SD",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "fL",
+      "units": {
+        "fl": 1
+      },
+      "aliases": [
+        "rdw sd",
+        "rdw-sd",
+        "red cell distribution width sd"
+      ],
+      "ref": {
+        "default": [
+          39,
+          46
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "anisocytosis"
+    },
+    {
+      "id": "wbc_count",
+      "name": "Total WBC Count",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "/uL",
+      "units": {
+        "/ul": 1,
+        "cells/ul": 1,
+        "/cumm": 1,
+        "cells/cumm": 1,
+        "10^3/ul": 1000,
+        "x10^3/ul": 1000,
+        "10^9/l": 1000,
+        "thou/ul": 1000
+      },
+      "aliases": [
+        "wbc",
+        "wbc count",
+        "total wbc",
+        "total wbc count",
+        "white blood cell count",
+        "total leucocyte count",
+        "tlc",
+        "leucocyte count",
+        "leukocyte count"
+      ],
+      "ref": {
+        "default": [
+          4000,
+          11000
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "leukocyte",
+      "bands": [
+        {
+          "lt": 1500,
+          "grade": "critical_low",
+          "label": "Severe leucopenia"
+        },
+        {
+          "lt": 4000,
+          "grade": "moderate_low",
+          "label": "Leucopenia"
+        },
+        {
+          "lt": 11000,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 20000,
+          "grade": "moderate_high",
+          "label": "Leucocytosis"
+        },
+        {
+          "lt": 50000,
+          "grade": "severe_high",
+          "label": "Marked leucocytosis"
+        },
+        {
+          "gte": 50000,
+          "grade": "critical_high",
+          "label": "Extreme leucocytosis"
+        }
+      ]
+    },
+    {
+      "id": "neutrophil_pct",
+      "name": "Neutrophils %",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "neutrophils",
+        "neutrophil",
+        "neutrophils percent",
+        "polymorphs",
+        "polymorphonuclear cells",
+        "neutrophil %",
+        "segmented neutrophils"
+      ],
+      "ref": {
+        "default": [
+          40,
+          75
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "neutrophil"
+    },
+    {
+      "id": "lymphocyte_pct",
+      "name": "Lymphocytes %",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "lymphocytes",
+        "lymphocyte",
+        "lymphocytes percent",
+        "lymphs",
+        "lymphocyte %"
+      ],
+      "ref": {
+        "default": [
+          20,
+          45
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "lymphocyte"
+    },
+    {
+      "id": "eosinophil_pct",
+      "name": "Eosinophils %",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "eosinophils",
+        "eosinophil",
+        "eosinophils percent",
+        "eos",
+        "eosinophil %"
+      ],
+      "ref": {
+        "default": [
+          1,
+          6
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "eosinophil",
+      "bands": [
+        {
+          "lt": 1,
+          "grade": "mild_low",
+          "label": "Low"
+        },
+        {
+          "lt": 6,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 12,
+          "grade": "moderate_high",
+          "label": "Eosinophilia"
+        },
+        {
+          "gte": 12,
+          "grade": "severe_high",
+          "label": "Marked eosinophilia"
+        }
+      ]
+    },
+    {
+      "id": "absolute_eosinophil_count",
+      "name": "Absolute Eosinophil Count",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "/uL",
+      "units": {
+        "/ul": 1,
+        "cells/ul": 1,
+        "/cumm": 1,
+        "10^9/l": 1000,
+        "10^3/ul": 1000
+      },
+      "aliases": [
+        "aec",
+        "absolute eosinophil count",
+        "eosinophils absolute",
+        "absolute eosinophils"
+      ],
+      "ref": {
+        "default": [
+          40,
+          440
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "eosinophil",
+      "bands": [
+        {
+          "lt": 500,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 1500,
+          "grade": "moderate_high",
+          "label": "Eosinophilia"
+        },
+        {
+          "gte": 1500,
+          "grade": "severe_high",
+          "label": "Hypereosinophilia"
+        }
+      ]
+    },
+    {
+      "id": "monocyte_pct",
+      "name": "Monocytes %",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "monocytes",
+        "monocyte",
+        "monocytes percent",
+        "mono",
+        "monocyte %"
+      ],
+      "ref": {
+        "default": [
+          2,
+          10
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "monocyte"
+    },
+    {
+      "id": "basophil_pct",
+      "name": "Basophils %",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "basophils",
+        "basophil",
+        "basophils percent",
+        "baso"
+      ],
+      "ref": {
+        "default": [
+          0,
+          1
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "basophil"
+    },
+    {
+      "id": "platelet_count",
+      "name": "Platelet Count",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "/uL",
+      "units": {
+        "/ul": 1,
+        "cells/ul": 1,
+        "/cumm": 1,
+        "lakhs/cumm": 100000,
+        "lakh/cumm": 100000,
+        "10^3/ul": 1000,
+        "x10^3/ul": 1000,
+        "10^9/l": 1000,
+        "thou/ul": 1000
+      },
+      "aliases": [
+        "platelet",
+        "platelets",
+        "platelet count",
+        "plt",
+        "total platelet count",
+        "thrombocyte count"
+      ],
+      "ref": {
+        "default": [
+          150000,
+          450000
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "platelet",
+      "bands": [
+        {
+          "lt": 20000,
+          "grade": "critical_low",
+          "label": "Severe thrombocytopenia (bleeding risk)"
+        },
+        {
+          "lt": 50000,
+          "grade": "severe_low",
+          "label": "Marked thrombocytopenia"
+        },
+        {
+          "lt": 150000,
+          "grade": "moderate_low",
+          "label": "Thrombocytopenia"
+        },
+        {
+          "lt": 450000,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 700000,
+          "grade": "moderate_high",
+          "label": "Thrombocytosis"
+        },
+        {
+          "gte": 700000,
+          "grade": "severe_high",
+          "label": "Marked thrombocytosis"
+        }
+      ]
+    },
+    {
+      "id": "mpv",
+      "name": "Mean Platelet Volume",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "fL",
+      "units": {
+        "fl": 1
+      },
+      "aliases": [
+        "mpv",
+        "mean platelet volume"
+      ],
+      "ref": {
+        "default": [
+          7.5,
+          11.5
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "platelet_index"
+    },
+    {
+      "id": "pdw",
+      "name": "Platelet Distribution Width",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "fl": 1
+      },
+      "aliases": [
+        "pdw",
+        "platelet distribution width"
+      ],
+      "ref": {
+        "default": [
+          9,
+          17
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "platelet_index"
+    },
+    {
+      "id": "esr",
+      "name": "ESR",
+      "profile": "Inflammation",
+      "type": "numeric",
+      "unit": "mm/hr",
+      "units": {
+        "mm/hr": 1,
+        "mm/1st hr": 1,
+        "mm/h": 1
+      },
+      "aliases": [
+        "esr",
+        "erythrocyte sedimentation rate",
+        "sed rate",
+        "esr westergren"
+      ],
+      "ref": {
+        "male": [
+          0,
+          15
+        ],
+        "female": [
+          0,
+          20
+        ],
+        "default": [
+          0,
+          20
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "acute_phase"
+    },
+    {
+      "id": "crp",
+      "name": "C-Reactive Protein (CRP)",
+      "profile": "Inflammation",
+      "type": "numeric",
+      "unit": "mg/L",
+      "units": {
+        "mg/l": 1,
+        "mg/dl": 10
+      },
+      "aliases": [
+        "crp",
+        "c reactive protein",
+        "c-reactive protein",
+        "quantitative crp",
+        "crp quantitative"
+      ],
+      "ref": {
+        "default": [
+          0,
+          5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "acute_phase",
+      "bands": [
+        {
+          "lt": 5,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 10,
+          "grade": "mild_high",
+          "label": "Mildly elevated"
+        },
+        {
+          "lt": 50,
+          "grade": "moderate_high",
+          "label": "Moderately elevated"
+        },
+        {
+          "gte": 50,
+          "grade": "severe_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "hs_crp",
+      "name": "hs-CRP",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "mg/L",
+      "units": {
+        "mg/l": 1,
+        "mg/dl": 10
+      },
+      "aliases": [
+        "hs crp",
+        "hs-crp",
+        "high sensitivity crp",
+        "highly sensitive crp",
+        "cardiac crp"
+      ],
+      "ref": {
+        "default": [
+          0,
+          1.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "acute_phase",
+      "bands": [
+        {
+          "lt": 1.0,
+          "grade": "normal",
+          "label": "Low cardiovascular risk band"
+        },
+        {
+          "lt": 3.0,
+          "grade": "mild_high",
+          "label": "Average cardiovascular risk band"
+        },
+        {
+          "lt": 10.0,
+          "grade": "moderate_high",
+          "label": "High cardiovascular risk band"
+        },
+        {
+          "gte": 10.0,
+          "grade": "severe_high",
+          "label": "Above vascular-risk range - consider acute inflammation"
+        }
+      ],
+      "source": "AHA/CDC hs-CRP risk bands"
+    },
+    {
+      "id": "procalcitonin",
+      "name": "Procalcitonin",
+      "profile": "Inflammation",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1,
+        "µg/l": 1
+      },
+      "aliases": [
+        "procalcitonin",
+        "pct"
+      ],
+      "ref": {
+        "default": [
+          0,
+          0.05
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "bacterial_marker",
+      "bands": [
+        {
+          "lt": 0.05,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 0.5,
+          "grade": "mild_high",
+          "label": "Mildly elevated"
+        },
+        {
+          "lt": 2.0,
+          "grade": "moderate_high",
+          "label": "Systemic bacterial infection likely"
+        },
+        {
+          "gte": 2.0,
+          "grade": "severe_high",
+          "label": "High - severe sepsis range"
+        }
+      ]
+    },
+    {
+      "id": "serum_iron",
+      "name": "Serum Iron",
+      "profile": "Anemia Studies",
+      "type": "numeric",
+      "unit": "ug/dL",
+      "units": {
+        "ug/dl": 1,
+        "µg/dl": 1,
+        "mcg/dl": 1,
+        "umol/l": 5.587,
+        "µmol/l": 5.587
+      },
+      "aliases": [
+        "iron",
+        "serum iron",
+        "s iron",
+        "fe"
+      ],
+      "ref": {
+        "male": [
+          65,
+          175
+        ],
+        "female": [
+          50,
+          170
+        ],
+        "default": [
+          50,
+          175
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "iron_status"
+    },
+    {
+      "id": "tibc",
+      "name": "TIBC",
+      "profile": "Anemia Studies",
+      "type": "numeric",
+      "unit": "ug/dL",
+      "units": {
+        "ug/dl": 1,
+        "µg/dl": 1,
+        "mcg/dl": 1,
+        "umol/l": 5.587
+      },
+      "aliases": [
+        "tibc",
+        "total iron binding capacity",
+        "iron binding capacity"
+      ],
+      "ref": {
+        "default": [
+          250,
+          450
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "iron_binding"
+    },
+    {
+      "id": "uibc",
+      "name": "UIBC",
+      "profile": "Anemia Studies",
+      "type": "numeric",
+      "unit": "ug/dL",
+      "units": {
+        "ug/dl": 1,
+        "µg/dl": 1,
+        "mcg/dl": 1
+      },
+      "aliases": [
+        "uibc",
+        "unsaturated iron binding capacity"
+      ],
+      "ref": {
+        "default": [
+          120,
+          380
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "iron_binding"
+    },
+    {
+      "id": "ferritin",
+      "name": "Ferritin",
+      "profile": "Anemia Studies",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1,
+        "µg/l": 1,
+        "mcg/l": 1
+      },
+      "aliases": [
+        "ferritin",
+        "serum ferritin",
+        "s ferritin"
+      ],
+      "ref": {
+        "male": [
+          30,
+          400
+        ],
+        "female": [
+          15,
+          150
+        ],
+        "default": [
+          15,
+          400
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "iron_stores",
+      "bands": [
+        {
+          "lt": 15,
+          "grade": "severe_low",
+          "label": "Depleted iron stores"
+        },
+        {
+          "lt": 30,
+          "grade": "moderate_low",
+          "label": "Low iron stores"
+        },
+        {
+          "lt": 400,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 1000,
+          "grade": "moderate_high",
+          "label": "Elevated (iron overload or acute-phase response)"
+        },
+        {
+          "gte": 1000,
+          "grade": "severe_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "transferrin_saturation",
+      "name": "Transferrin Saturation",
+      "profile": "Anemia Studies",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "transferrin saturation",
+        "tsat",
+        "t sat",
+        "iron saturation",
+        "transferrin sat",
+        "% saturation",
+        "percent saturation"
+      ],
+      "ref": {
+        "default": [
+          20,
+          50
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "iron_status",
+      "derived_from": {
+        "formula": "100 * serum_iron / tibc",
+        "inputs": [
+          "serum_iron",
+          "tibc"
+        ]
+      }
+    },
+    {
+      "id": "vitamin_b12",
+      "name": "Vitamin B12",
+      "profile": "Vitamin Profile",
+      "type": "numeric",
+      "unit": "pg/mL",
+      "units": {
+        "pg/ml": 1,
+        "ng/l": 1,
+        "pmol/l": 1.355
+      },
+      "aliases": [
+        "b12",
+        "vitamin b12",
+        "vit b12",
+        "cobalamin",
+        "vitamin b 12",
+        "cyanocobalamin"
+      ],
+      "ref": {
+        "default": [
+          200,
+          900
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "b12_status",
+      "bands": [
+        {
+          "lt": 150,
+          "grade": "severe_low",
+          "label": "Deficient"
+        },
+        {
+          "lt": 200,
+          "grade": "moderate_low",
+          "label": "Deficient"
+        },
+        {
+          "lt": 300,
+          "grade": "mild_low",
+          "label": "Borderline / possible deficiency"
+        },
+        {
+          "lt": 900,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "gte": 900,
+          "grade": "mild_high",
+          "label": "Above range"
+        }
+      ]
+    },
+    {
+      "id": "folate",
+      "name": "Folate (Vitamin B9)",
+      "profile": "Vitamin Profile",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1,
+        "nmol/l": 0.4413
+      },
+      "aliases": [
+        "folate",
+        "folic acid",
+        "vitamin b9",
+        "serum folate",
+        "vit b9"
+      ],
+      "ref": {
+        "default": [
+          3.0,
+          17.0
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "folate_status",
+      "bands": [
+        {
+          "lt": 3.0,
+          "grade": "severe_low",
+          "label": "Deficient"
+        },
+        {
+          "lt": 5.4,
+          "grade": "mild_low",
+          "label": "Borderline"
+        },
+        {
+          "lt": 17.0,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "gte": 17.0,
+          "grade": "normal",
+          "label": "Above range (usually not clinically significant)"
+        }
+      ]
+    },
+    {
+      "id": "vitamin_d",
+      "name": "Vitamin D (25-Hydroxy)",
+      "profile": "Vitamin Profile",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "nmol/l": 0.4006
+      },
+      "aliases": [
+        "vitamin d",
+        "vit d",
+        "25 oh vitamin d",
+        "25 hydroxy vitamin d",
+        "vitamin d 25 hydroxy",
+        "vitamin d total",
+        "25(oh)d",
+        "calcidiol"
+      ],
+      "ref": {
+        "default": [
+          30,
+          100
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "vitamin_d_status",
+      "bands": [
+        {
+          "lt": 10,
+          "grade": "critical_low",
+          "label": "Severely deficient"
+        },
+        {
+          "lt": 20,
+          "grade": "severe_low",
+          "label": "Deficient"
+        },
+        {
+          "lt": 30,
+          "grade": "moderate_low",
+          "label": "Insufficient"
+        },
+        {
+          "lt": 100,
+          "grade": "normal",
+          "label": "Sufficient"
+        },
+        {
+          "gte": 100,
+          "grade": "moderate_high",
+          "label": "Above sufficiency range"
+        }
+      ],
+      "source": "Endocrine Society vitamin D thresholds"
+    },
+    {
+      "id": "calcium",
+      "name": "Serum Calcium",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 4.008
+      },
+      "aliases": [
+        "calcium",
+        "serum calcium",
+        "s calcium",
+        "total calcium",
+        "ca"
+      ],
+      "ref": {
+        "default": [
+          8.6,
+          10.2
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "calcium_status",
+      "bands": [
+        {
+          "lt": 7.0,
+          "grade": "critical_low",
+          "label": "Severe hypocalcaemia"
+        },
+        {
+          "lt": 8.6,
+          "grade": "moderate_low",
+          "label": "Hypocalcaemia"
+        },
+        {
+          "lt": 10.2,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 12.0,
+          "grade": "moderate_high",
+          "label": "Hypercalcaemia"
+        },
+        {
+          "gte": 12.0,
+          "grade": "critical_high",
+          "label": "Severe hypercalcaemia"
+        }
+      ]
+    },
+    {
+      "id": "ionized_calcium",
+      "name": "Ionised Calcium",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 4.008
+      },
+      "aliases": [
+        "ionized calcium",
+        "ionised calcium",
+        "free calcium",
+        "ca ionized"
+      ],
+      "ref": {
+        "default": [
+          4.5,
+          5.3
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "calcium_status"
+    },
+    {
+      "id": "phosphorus",
+      "name": "Serum Phosphorus",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 3.097
+      },
+      "aliases": [
+        "phosphorus",
+        "phosphate",
+        "serum phosphorus",
+        "inorganic phosphorus",
+        "s phosphorus",
+        "po4"
+      ],
+      "ref": {
+        "default": [
+          2.5,
+          4.5
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "phosphate_status"
+    },
+    {
+      "id": "magnesium",
+      "name": "Serum Magnesium",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mmol/l": 2.431,
+        "meq/l": 1.215
+      },
+      "aliases": [
+        "magnesium",
+        "serum magnesium",
+        "s magnesium",
+        "mg"
+      ],
+      "ref": {
+        "default": [
+          1.7,
+          2.2
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "magnesium_status"
+    },
+    {
+      "id": "sodium",
+      "name": "Sodium (Na+)",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "mmol/L",
+      "units": {
+        "mmol/l": 1,
+        "meq/l": 1
+      },
+      "aliases": [
+        "sodium",
+        "na",
+        "na+",
+        "serum sodium",
+        "s sodium"
+      ],
+      "ref": {
+        "default": [
+          136,
+          145
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "sodium_status",
+      "bands": [
+        {
+          "lt": 125,
+          "grade": "critical_low",
+          "label": "Severe hyponatraemia"
+        },
+        {
+          "lt": 130,
+          "grade": "severe_low",
+          "label": "Moderate hyponatraemia"
+        },
+        {
+          "lt": 136,
+          "grade": "moderate_low",
+          "label": "Mild hyponatraemia"
+        },
+        {
+          "lt": 146,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 155,
+          "grade": "moderate_high",
+          "label": "Hypernatraemia"
+        },
+        {
+          "gte": 155,
+          "grade": "critical_high",
+          "label": "Severe hypernatraemia"
+        }
+      ],
+      "source": "Reference band cited in Disease Master 'Sodium Imbalance' row (136-145 mmol/L)"
+    },
+    {
+      "id": "potassium",
+      "name": "Potassium (K+)",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "mmol/L",
+      "units": {
+        "mmol/l": 1,
+        "meq/l": 1
+      },
+      "aliases": [
+        "potassium",
+        "k",
+        "k+",
+        "serum potassium",
+        "s potassium"
+      ],
+      "ref": {
+        "default": [
+          3.5,
+          5.1
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "potassium_status",
+      "bands": [
+        {
+          "lt": 2.5,
+          "grade": "critical_low",
+          "label": "Severe hypokalaemia"
+        },
+        {
+          "lt": 3.5,
+          "grade": "moderate_low",
+          "label": "Hypokalaemia"
+        },
+        {
+          "lt": 5.2,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 6.0,
+          "grade": "moderate_high",
+          "label": "Hyperkalaemia"
+        },
+        {
+          "gte": 6.0,
+          "grade": "critical_high",
+          "label": "Severe hyperkalaemia"
+        }
+      ]
+    },
+    {
+      "id": "chloride",
+      "name": "Chloride (Cl-)",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "mmol/L",
+      "units": {
+        "mmol/l": 1,
+        "meq/l": 1
+      },
+      "aliases": [
+        "chloride",
+        "cl",
+        "cl-",
+        "serum chloride",
+        "s chloride"
+      ],
+      "ref": {
+        "default": [
+          98,
+          107
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "chloride_status"
+    },
+    {
+      "id": "bicarbonate",
+      "name": "Bicarbonate (HCO3-)",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "mmol/L",
+      "units": {
+        "mmol/l": 1,
+        "meq/l": 1
+      },
+      "aliases": [
+        "bicarbonate",
+        "hco3",
+        "co2",
+        "total co2",
+        "serum bicarbonate"
+      ],
+      "ref": {
+        "default": [
+          22,
+          29
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "acid_base"
+    },
+    {
+      "id": "anion_gap",
+      "name": "Anion Gap",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "mmol/L",
+      "units": {
+        "mmol/l": 1,
+        "meq/l": 1
+      },
+      "aliases": [
+        "anion gap",
+        "ag"
+      ],
+      "ref": {
+        "default": [
+          8,
+          12
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "acid_base",
+      "derived_from": {
+        "formula": "sodium - chloride - bicarbonate",
+        "inputs": [
+          "sodium",
+          "chloride",
+          "bicarbonate"
+        ]
+      }
+    },
+    {
+      "id": "blood_ph",
+      "name": "Blood pH",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "pH",
+      "units": {
+        "ph": 1,
+        "": 1
+      },
+      "aliases": [
+        "ph",
+        "blood ph",
+        "arterial ph"
+      ],
+      "ref": {
+        "default": [
+          7.35,
+          7.45
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "acid_base"
+    },
+    {
+      "id": "zinc",
+      "name": "Zinc",
+      "profile": "Mineral Profile",
+      "type": "numeric",
+      "unit": "ug/dL",
+      "units": {
+        "ug/dl": 1,
+        "µg/dl": 1,
+        "mcg/dl": 1,
+        "umol/l": 6.538,
+        "ug/l": 0.1
+      },
+      "aliases": [
+        "zinc",
+        "serum zinc",
+        "zn",
+        "urine zinc"
+      ],
+      "ref": {
+        "default": [
+          70,
+          120
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "zinc_status"
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "profile": "Mineral Profile",
+      "type": "numeric",
+      "unit": "ug/dL",
+      "units": {
+        "ug/dl": 1,
+        "µg/dl": 1,
+        "mcg/dl": 1,
+        "umol/l": 6.355
+      },
+      "aliases": [
+        "copper",
+        "serum copper",
+        "cu"
+      ],
+      "ref": {
+        "default": [
+          70,
+          140
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "copper_status"
+    },
+    {
+      "id": "ceruloplasmin",
+      "name": "Ceruloplasmin",
+      "profile": "Mineral Profile",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "mg/l": 0.1
+      },
+      "aliases": [
+        "ceruloplasmin",
+        "caeruloplasmin"
+      ],
+      "ref": {
+        "default": [
+          20,
+          35
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "copper_status"
+    },
+    {
+      "id": "lead",
+      "name": "Lead (Blood)",
+      "profile": "Toxic elements",
+      "type": "numeric",
+      "unit": "ug/dL",
+      "units": {
+        "ug/dl": 1,
+        "µg/dl": 1,
+        "mcg/dl": 1,
+        "ug/l": 0.1,
+        "umol/l": 20.72
+      },
+      "aliases": [
+        "lead",
+        "blood lead",
+        "lead level",
+        "pb",
+        "lead blood"
+      ],
+      "ref": {
+        "default": [
+          0,
+          5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "heavy_metal",
+      "bands": [
+        {
+          "lt": 3.5,
+          "grade": "normal",
+          "label": "Below reference value"
+        },
+        {
+          "lt": 10,
+          "grade": "moderate_high",
+          "label": "Above CDC blood lead reference value"
+        },
+        {
+          "lt": 45,
+          "grade": "severe_high",
+          "label": "Substantially elevated"
+        },
+        {
+          "gte": 45,
+          "grade": "critical_high",
+          "label": "Markedly elevated"
+        }
+      ],
+      "source": "CDC blood lead reference value (3.5 ug/dL)"
+    },
+    {
+      "id": "mercury",
+      "name": "Mercury (Blood)",
+      "profile": "Toxic elements",
+      "type": "numeric",
+      "unit": "ug/L",
+      "units": {
+        "ug/l": 1,
+        "µg/l": 1,
+        "mcg/l": 1,
+        "ug/dl": 10
+      },
+      "aliases": [
+        "mercury",
+        "blood mercury",
+        "hg",
+        "mercury blood"
+      ],
+      "ref": {
+        "default": [
+          0,
+          10
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "heavy_metal"
+    },
+    {
+      "id": "arsenic",
+      "name": "Arsenic (Blood)",
+      "profile": "Toxic elements",
+      "type": "numeric",
+      "unit": "ug/L",
+      "units": {
+        "ug/l": 1,
+        "µg/l": 1,
+        "mcg/l": 1
+      },
+      "aliases": [
+        "arsenic",
+        "blood arsenic",
+        "as",
+        "arsenic blood"
+      ],
+      "ref": {
+        "default": [
+          0,
+          12
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "heavy_metal"
+    },
+    {
+      "id": "cadmium",
+      "name": "Cadmium (Blood)",
+      "profile": "Toxic elements",
+      "type": "numeric",
+      "unit": "ug/L",
+      "units": {
+        "ug/l": 1,
+        "µg/l": 1,
+        "mcg/l": 1
+      },
+      "aliases": [
+        "cadmium",
+        "blood cadmium",
+        "cd",
+        "cadmium blood"
+      ],
+      "ref": {
+        "default": [
+          0,
+          5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "heavy_metal"
+    },
+    {
+      "id": "aluminium",
+      "name": "Aluminium",
+      "profile": "Toxic elements",
+      "type": "numeric",
+      "unit": "ug/L",
+      "units": {
+        "ug/l": 1,
+        "µg/l": 1,
+        "mcg/l": 1
+      },
+      "aliases": [
+        "aluminium",
+        "aluminum",
+        "al",
+        "serum aluminium",
+        "serum aluminum"
+      ],
+      "ref": {
+        "default": [
+          0,
+          10
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "heavy_metal"
+    },
+    {
+      "id": "cobalt",
+      "name": "Cobalt",
+      "profile": "Toxic elements",
+      "type": "numeric",
+      "unit": "ug/L",
+      "units": {
+        "ug/l": 1,
+        "µg/l": 1,
+        "mcg/l": 1
+      },
+      "aliases": [
+        "cobalt",
+        "blood cobalt",
+        "co"
+      ],
+      "ref": {
+        "default": [
+          0,
+          1.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "heavy_metal"
+    },
+    {
+      "id": "thallium",
+      "name": "Thallium",
+      "profile": "Toxic elements",
+      "type": "numeric",
+      "unit": "ug/L",
+      "units": {
+        "ug/l": 1,
+        "µg/l": 1,
+        "mcg/l": 1
+      },
+      "aliases": [
+        "thallium",
+        "blood thallium",
+        "tl"
+      ],
+      "ref": {
+        "default": [
+          0,
+          2.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "heavy_metal"
+    },
+    {
+      "id": "pt",
+      "name": "Prothrombin Time (PT)",
+      "profile": "Prothrombin Time",
+      "type": "numeric",
+      "unit": "sec",
+      "units": {
+        "sec": 1,
+        "seconds": 1,
+        "s": 1
+      },
+      "aliases": [
+        "pt",
+        "prothrombin time",
+        "pt test",
+        "protime",
+        "pt sec"
+      ],
+      "ref": {
+        "default": [
+          11,
+          13.5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "extrinsic_pathway"
+    },
+    {
+      "id": "inr",
+      "name": "PT-INR",
+      "profile": "Prothrombin Time",
+      "type": "numeric",
+      "unit": "ratio",
+      "units": {
+        "ratio": 1,
+        "": 1
+      },
+      "aliases": [
+        "inr",
+        "pt inr",
+        "pt-inr",
+        "international normalized ratio",
+        "international normalised ratio"
+      ],
+      "ref": {
+        "default": [
+          0.8,
+          1.2
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "extrinsic_pathway",
+      "bands": [
+        {
+          "lt": 0.8,
+          "grade": "mild_low",
+          "label": "Below range"
+        },
+        {
+          "lt": 1.2,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 2.0,
+          "grade": "mild_high",
+          "label": "Mildly prolonged (therapeutic for some regimens)"
+        },
+        {
+          "lt": 3.5,
+          "grade": "moderate_high",
+          "label": "Prolonged"
+        },
+        {
+          "gte": 3.5,
+          "grade": "severe_high",
+          "label": "Markedly prolonged - bleeding risk"
+        }
+      ]
+    },
+    {
+      "id": "aptt",
+      "name": "APTT",
+      "profile": "Blood Clotting",
+      "type": "numeric",
+      "unit": "sec",
+      "units": {
+        "sec": 1,
+        "seconds": 1,
+        "s": 1
+      },
+      "aliases": [
+        "aptt",
+        "ptt",
+        "activated partial thromboplastin time",
+        "partial thromboplastin time",
+        "a ptt"
+      ],
+      "ref": {
+        "default": [
+          25,
+          35
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "intrinsic_pathway"
+    },
+    {
+      "id": "d_dimer",
+      "name": "D-Dimer",
+      "profile": "Blood Clotting",
+      "type": "numeric",
+      "unit": "ug/mL FEU",
+      "units": {
+        "ug/ml": 1,
+        "µg/ml": 1,
+        "mg/l": 1,
+        "ng/ml": 0.001,
+        "ug/l": 0.001
+      },
+      "aliases": [
+        "d dimer",
+        "d-dimer",
+        "ddimer",
+        "fibrin degradation product",
+        "fdp d dimer"
+      ],
+      "ref": {
+        "default": [
+          0,
+          0.5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "fibrinolysis",
+      "bands": [
+        {
+          "lt": 0.5,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 2.0,
+          "grade": "moderate_high",
+          "label": "Elevated"
+        },
+        {
+          "gte": 2.0,
+          "grade": "severe_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "fibrinogen",
+      "name": "Fibrinogen",
+      "profile": "Blood Clotting",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "g/l": 100
+      },
+      "aliases": [
+        "fibrinogen",
+        "fibrinogen level"
+      ],
+      "ref": {
+        "default": [
+          200,
+          400
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "clotting_factor"
+    },
+    {
+      "id": "lh",
+      "name": "LH",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "mIU/mL",
+      "units": {
+        "miu/ml": 1,
+        "iu/l": 1,
+        "u/l": 1
+      },
+      "aliases": [
+        "lh",
+        "luteinizing hormone",
+        "luteinising hormone",
+        "s lh"
+      ],
+      "ref": {
+        "male": [
+          1.7,
+          8.6
+        ],
+        "female": [
+          2.4,
+          12.6
+        ],
+        "default": [
+          1.7,
+          12.6
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "gonadotropin"
+    },
+    {
+      "id": "fsh",
+      "name": "FSH",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "mIU/mL",
+      "units": {
+        "miu/ml": 1,
+        "iu/l": 1,
+        "u/l": 1
+      },
+      "aliases": [
+        "fsh",
+        "follicle stimulating hormone",
+        "follicle-stimulating hormone",
+        "s fsh"
+      ],
+      "ref": {
+        "male": [
+          1.5,
+          12.4
+        ],
+        "female": [
+          3.5,
+          12.5
+        ],
+        "default": [
+          1.5,
+          12.5
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "gonadotropin"
+    },
+    {
+      "id": "lh_fsh_ratio",
+      "name": "LH / FSH Ratio",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "ratio",
+      "units": {
+        "ratio": 1
+      },
+      "aliases": [
+        "lh fsh ratio",
+        "lh/fsh ratio",
+        "lh fsh"
+      ],
+      "ref": {
+        "default": [
+          0,
+          2.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "gonadotropin_ratio",
+      "derived_from": {
+        "formula": "lh / fsh",
+        "inputs": [
+          "lh",
+          "fsh"
+        ]
+      }
+    },
+    {
+      "id": "prolactin",
+      "name": "Prolactin",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1,
+        "miu/l": 0.0472
+      },
+      "aliases": [
+        "prolactin",
+        "prl",
+        "serum prolactin"
+      ],
+      "ref": {
+        "male": [
+          4.0,
+          15.2
+        ],
+        "female": [
+          4.8,
+          23.3
+        ],
+        "default": [
+          4.0,
+          23.3
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "prolactin",
+      "bands": [
+        {
+          "lt": 25,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 100,
+          "grade": "moderate_high",
+          "label": "Elevated"
+        },
+        {
+          "gte": 100,
+          "grade": "severe_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "testosterone_total",
+      "name": "Total Testosterone",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "ng/dL",
+      "units": {
+        "ng/dl": 1,
+        "nmol/l": 28.84,
+        "ng/ml": 100
+      },
+      "aliases": [
+        "testosterone",
+        "total testosterone",
+        "testosterone total",
+        "serum testosterone",
+        "t testosterone"
+      ],
+      "ref": {
+        "male": [
+          300,
+          1000
+        ],
+        "female": [
+          15,
+          70
+        ],
+        "default": [
+          15,
+          1000
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "androgen"
+    },
+    {
+      "id": "free_testosterone",
+      "name": "Free Testosterone",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "pg/mL",
+      "units": {
+        "pg/ml": 1,
+        "pmol/l": 0.2884
+      },
+      "aliases": [
+        "free testosterone",
+        "testosterone free",
+        "ft"
+      ],
+      "ref": {
+        "male": [
+          50,
+          210
+        ],
+        "female": [
+          1.0,
+          8.5
+        ],
+        "default": [
+          1.0,
+          210
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "androgen"
+    },
+    {
+      "id": "dheas",
+      "name": "DHEA-S",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "ug/dL",
+      "units": {
+        "ug/dl": 1,
+        "µg/dl": 1,
+        "umol/l": 36.85
+      },
+      "aliases": [
+        "dheas",
+        "dhea s",
+        "dhea-s",
+        "dehydroepiandrosterone sulfate",
+        "dhea sulphate"
+      ],
+      "ref": {
+        "male": [
+          100,
+          500
+        ],
+        "female": [
+          35,
+          430
+        ],
+        "default": [
+          35,
+          500
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "adrenal_androgen"
+    },
+    {
+      "id": "shbg",
+      "name": "SHBG",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "nmol/L",
+      "units": {
+        "nmol/l": 1
+      },
+      "aliases": [
+        "shbg",
+        "sex hormone binding globulin"
+      ],
+      "ref": {
+        "male": [
+          10,
+          57
+        ],
+        "female": [
+          18,
+          144
+        ],
+        "default": [
+          10,
+          144
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "androgen_binding"
+    },
+    {
+      "id": "estradiol",
+      "name": "Estradiol (E2)",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "pg/mL",
+      "units": {
+        "pg/ml": 1,
+        "pmol/l": 0.2724
+      },
+      "aliases": [
+        "estradiol",
+        "oestradiol",
+        "e2",
+        "estradiol e2",
+        "serum estradiol"
+      ],
+      "ref": {
+        "male": [
+          10,
+          40
+        ],
+        "female": [
+          20,
+          145
+        ],
+        "default": [
+          10,
+          145
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "estrogen"
+    },
+    {
+      "id": "cortisol",
+      "name": "Cortisol (Morning)",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "ug/dL",
+      "units": {
+        "ug/dl": 1,
+        "µg/dl": 1,
+        "nmol/l": 0.03625
+      },
+      "aliases": [
+        "cortisol",
+        "serum cortisol",
+        "cortisol am",
+        "morning cortisol",
+        "cortisol 8am",
+        "plasma cortisol"
+      ],
+      "ref": {
+        "default": [
+          6.0,
+          23.0
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "cortisol_axis",
+      "bands": [
+        {
+          "lt": 3.0,
+          "grade": "severe_low",
+          "label": "Markedly low - adrenal insufficiency range"
+        },
+        {
+          "lt": 6.0,
+          "grade": "moderate_low",
+          "label": "Low"
+        },
+        {
+          "lt": 23.0,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 30.0,
+          "grade": "moderate_high",
+          "label": "Elevated"
+        },
+        {
+          "gte": 30.0,
+          "grade": "severe_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "acth",
+      "name": "ACTH",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "pg/mL",
+      "units": {
+        "pg/ml": 1,
+        "ng/l": 1,
+        "pmol/l": 4.541
+      },
+      "aliases": [
+        "acth",
+        "adrenocorticotropic hormone",
+        "corticotropin"
+      ],
+      "ref": {
+        "default": [
+          7,
+          63
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "cortisol_axis"
+    },
+    {
+      "id": "growth_hormone",
+      "name": "Growth Hormone",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1,
+        "miu/l": 0.3333
+      },
+      "aliases": [
+        "gh",
+        "growth hormone",
+        "hgh",
+        "somatotropin"
+      ],
+      "ref": {
+        "default": [
+          0,
+          5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "gh_axis"
+    },
+    {
+      "id": "igf_1",
+      "name": "IGF-1",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1,
+        "nmol/l": 7.649
+      },
+      "aliases": [
+        "igf 1",
+        "igf-1",
+        "insulin like growth factor 1",
+        "somatomedin c"
+      ],
+      "ref": {
+        "default": [
+          100,
+          300
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "gh_axis"
+    },
+    {
+      "id": "hydroxyprogesterone_17",
+      "name": "17-Hydroxyprogesterone",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "nmol/l": 0.3306,
+        "ng/dl": 0.01
+      },
+      "aliases": [
+        "17 ohp",
+        "17-ohp",
+        "17 hydroxyprogesterone",
+        "17 alpha hydroxyprogesterone",
+        "hydroxyprogesterone"
+      ],
+      "ref": {
+        "default": [
+          0,
+          2.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "adrenal_steroid"
+    },
+    {
+      "id": "pth",
+      "name": "Parathyroid Hormone (PTH)",
+      "profile": "Bone Health",
+      "type": "numeric",
+      "unit": "pg/mL",
+      "units": {
+        "pg/ml": 1,
+        "ng/l": 1,
+        "pmol/l": 9.434
+      },
+      "aliases": [
+        "pth",
+        "parathyroid hormone",
+        "intact pth",
+        "ipth",
+        "parathormone"
+      ],
+      "ref": {
+        "default": [
+          15,
+          65
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "pth_axis"
+    },
+    {
+      "id": "amh",
+      "name": "Anti-Mullerian Hormone (AMH)",
+      "profile": "Hormones",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "pmol/l": 0.14
+      },
+      "aliases": [
+        "amh",
+        "anti mullerian hormone",
+        "anti-mullerian hormone",
+        "mullerian inhibiting substance"
+      ],
+      "ref": {
+        "female": [
+          1.0,
+          4.0
+        ],
+        "default": [
+          1.0,
+          4.0
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "ovarian_reserve"
+    },
+    {
+      "id": "plasma_renin",
+      "name": "Plasma Renin (Direct)",
+      "profile": "Hypertension",
+      "type": "numeric",
+      "unit": "ng/mL/hr",
+      "units": {
+        "ng/ml/hr": 1,
+        "ng/ml/h": 1,
+        "uiu/ml": 1
+      },
+      "aliases": [
+        "renin",
+        "plasma renin",
+        "plasma renin activity",
+        "direct renin",
+        "pra",
+        "renin direct"
+      ],
+      "ref": {
+        "default": [
+          0.5,
+          4.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "renin_axis"
+    },
+    {
+      "id": "amylase",
+      "name": "Serum Amylase",
+      "profile": "Pancreas",
+      "type": "numeric",
+      "unit": "U/L",
+      "units": {
+        "u/l": 1,
+        "iu/l": 1
+      },
+      "aliases": [
+        "amylase",
+        "serum amylase",
+        "s amylase",
+        "pancreatic amylase"
+      ],
+      "ref": {
+        "default": [
+          30,
+          110
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "pancreatic_enzyme",
+      "bands": [
+        {
+          "lt": 30,
+          "grade": "mild_low",
+          "label": "Low"
+        },
+        {
+          "lt": 110,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 330,
+          "grade": "moderate_high",
+          "label": "Elevated"
+        },
+        {
+          "gte": 330,
+          "grade": "severe_high",
+          "label": "Markedly elevated (>3x upper limit)"
+        }
+      ]
+    },
+    {
+      "id": "lipase",
+      "name": "Serum Lipase",
+      "profile": "Pancreas",
+      "type": "numeric",
+      "unit": "U/L",
+      "units": {
+        "u/l": 1,
+        "iu/l": 1
+      },
+      "aliases": [
+        "lipase",
+        "serum lipase",
+        "s lipase"
+      ],
+      "ref": {
+        "default": [
+          13,
+          60
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "pancreatic_enzyme",
+      "bands": [
+        {
+          "lt": 13,
+          "grade": "mild_low",
+          "label": "Low"
+        },
+        {
+          "lt": 60,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 180,
+          "grade": "moderate_high",
+          "label": "Elevated"
+        },
+        {
+          "gte": 180,
+          "grade": "severe_high",
+          "label": "Markedly elevated (>3x upper limit)"
+        }
+      ]
+    },
+    {
+      "id": "psa_total",
+      "name": "PSA (Total)",
+      "profile": "Cancer Profile",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1
+      },
+      "aliases": [
+        "psa",
+        "total psa",
+        "psa total",
+        "prostate specific antigen",
+        "prostate-specific antigen"
+      ],
+      "ref": {
+        "default": [
+          0,
+          4.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "psa",
+      "bands": [
+        {
+          "lt": 4.0,
+          "grade": "normal",
+          "label": "Within commonly used screening range"
+        },
+        {
+          "lt": 10.0,
+          "grade": "moderate_high",
+          "label": "Intermediate zone"
+        },
+        {
+          "gte": 10.0,
+          "grade": "severe_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "ca_125",
+      "name": "CA-125",
+      "profile": "Cancer Profile",
+      "type": "numeric",
+      "unit": "U/mL",
+      "units": {
+        "u/ml": 1,
+        "ku/l": 1
+      },
+      "aliases": [
+        "ca 125",
+        "ca-125",
+        "ca125",
+        "cancer antigen 125"
+      ],
+      "ref": {
+        "default": [
+          0,
+          35
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "tumour_marker_ovary"
+    },
+    {
+      "id": "ca_15_3",
+      "name": "CA 15-3",
+      "profile": "Cancer Profile",
+      "type": "numeric",
+      "unit": "U/mL",
+      "units": {
+        "u/ml": 1,
+        "ku/l": 1
+      },
+      "aliases": [
+        "ca 15 3",
+        "ca 15-3",
+        "ca15-3",
+        "cancer antigen 15-3"
+      ],
+      "ref": {
+        "default": [
+          0,
+          30
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "tumour_marker_breast"
+    },
+    {
+      "id": "ca_19_9",
+      "name": "CA 19-9",
+      "profile": "Cancer Profile",
+      "type": "numeric",
+      "unit": "U/mL",
+      "units": {
+        "u/ml": 1,
+        "ku/l": 1
+      },
+      "aliases": [
+        "ca 19 9",
+        "ca 19-9",
+        "ca19-9",
+        "cancer antigen 19-9",
+        "carbohydrate antigen 19-9"
+      ],
+      "ref": {
+        "default": [
+          0,
+          37
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "tumour_marker_pancreas"
+    },
+    {
+      "id": "afp",
+      "name": "Alpha Fetoprotein (AFP)",
+      "profile": "Tumour Marker Test",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1,
+        "iu/ml": 1.21
+      },
+      "aliases": [
+        "afp",
+        "alfa feto protein",
+        "alpha feto protein",
+        "alpha fetoprotein",
+        "alpha-fetoprotein"
+      ],
+      "ref": {
+        "default": [
+          0,
+          10
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "tumour_marker_liver",
+      "bands": [
+        {
+          "lt": 10,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 200,
+          "grade": "moderate_high",
+          "label": "Elevated"
+        },
+        {
+          "gte": 200,
+          "grade": "severe_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "cea",
+      "name": "CEA",
+      "profile": "Cancer Profile",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1
+      },
+      "aliases": [
+        "cea",
+        "carcinoembryonic antigen"
+      ],
+      "ref": {
+        "default": [
+          0,
+          5.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "tumour_marker_gi"
+    },
+    {
+      "id": "ige_total",
+      "name": "Total IgE",
+      "profile": "Allergy Panel",
+      "type": "numeric",
+      "unit": "IU/mL",
+      "units": {
+        "iu/ml": 1,
+        "ku/l": 1,
+        "ng/ml": 0.417
+      },
+      "aliases": [
+        "ige",
+        "total ige",
+        "serum ige",
+        "immunoglobulin e",
+        "ige total"
+      ],
+      "ref": {
+        "default": [
+          0,
+          100
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "ige_status",
+      "bands": [
+        {
+          "lt": 100,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 400,
+          "grade": "moderate_high",
+          "label": "Elevated"
+        },
+        {
+          "gte": 400,
+          "grade": "severe_high",
+          "label": "Markedly elevated"
+        }
+      ]
+    },
+    {
+      "id": "ige_specific",
+      "name": "Specific IgE (any allergen)",
+      "profile": "Allergy Panel",
+      "type": "numeric",
+      "unit": "kUA/L",
+      "units": {
+        "kua/l": 1,
+        "ku/l": 1,
+        "iu/ml": 1
+      },
+      "aliases": [
+        "specific ige",
+        "allergen specific ige",
+        "sige",
+        "ige specific",
+        "rast"
+      ],
+      "ref": {
+        "default": [
+          0,
+          0.35
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "ige_specific",
+      "bands": [
+        {
+          "lt": 0.35,
+          "grade": "normal",
+          "label": "Class 0 - not sensitised"
+        },
+        {
+          "lt": 3.5,
+          "grade": "moderate_high",
+          "label": "Class 1-2 - low/moderate sensitisation"
+        },
+        {
+          "gte": 3.5,
+          "grade": "severe_high",
+          "label": "Class 3+ - high sensitisation"
+        }
+      ]
+    },
+    {
+      "id": "igg_serum",
+      "name": "Immunoglobulin IgG",
+      "profile": "Immunity",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "g/l": 100
+      },
+      "aliases": [
+        "igg",
+        "immunoglobulin g",
+        "immunoglobulin igg",
+        "serum igg"
+      ],
+      "ref": {
+        "default": [
+          700,
+          1600
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "immunoglobulin"
+    },
+    {
+      "id": "iga_serum",
+      "name": "Immunoglobulin IgA",
+      "profile": "Immunity",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "g/l": 100
+      },
+      "aliases": [
+        "iga",
+        "immunoglobulin a",
+        "immunoglobulin iga",
+        "serum iga",
+        "total iga"
+      ],
+      "ref": {
+        "default": [
+          70,
+          400
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "immunoglobulin"
+    },
+    {
+      "id": "igm_serum",
+      "name": "Immunoglobulin IgM",
+      "profile": "Immunity",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "g/l": 100
+      },
+      "aliases": [
+        "igm",
+        "immunoglobulin m",
+        "immunoglobulin igm",
+        "serum igm"
+      ],
+      "ref": {
+        "default": [
+          40,
+          230
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "immunoglobulin"
+    },
+    {
+      "id": "cd4_count",
+      "name": "CD4 Count",
+      "profile": "Immunity",
+      "type": "numeric",
+      "unit": "cells/uL",
+      "units": {
+        "cells/ul": 1,
+        "/ul": 1,
+        "cells/mm3": 1,
+        "/cumm": 1
+      },
+      "aliases": [
+        "cd4",
+        "cd4 count",
+        "cd4 absolute",
+        "t helper cells",
+        "cd4 cell count"
+      ],
+      "ref": {
+        "default": [
+          500,
+          1500
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "cd4_status",
+      "bands": [
+        {
+          "lt": 200,
+          "grade": "critical_low",
+          "label": "Severe immunosuppression range"
+        },
+        {
+          "lt": 350,
+          "grade": "severe_low",
+          "label": "Advanced immunosuppression range"
+        },
+        {
+          "lt": 500,
+          "grade": "moderate_low",
+          "label": "Below normal"
+        },
+        {
+          "lt": 1500,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "gte": 1500,
+          "grade": "mild_high",
+          "label": "Above range"
+        }
+      ]
+    },
+    {
+      "id": "cd4_cd8_ratio",
+      "name": "CD4/CD8 Ratio",
+      "profile": "Immunity",
+      "type": "numeric",
+      "unit": "ratio",
+      "units": {
+        "ratio": 1
+      },
+      "aliases": [
+        "cd4 cd8 ratio",
+        "cd4/cd8",
+        "cd4 cd8"
+      ],
+      "ref": {
+        "default": [
+          1.0,
+          3.5
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "cd4_status"
+    },
+    {
+      "id": "cd3_count",
+      "name": "CD3 Count",
+      "profile": "Immunity",
+      "type": "numeric",
+      "unit": "cells/uL",
+      "units": {
+        "cells/ul": 1,
+        "/ul": 1,
+        "cells/mm3": 1
+      },
+      "aliases": [
+        "cd3",
+        "cd3 count",
+        "total t cells"
+      ],
+      "ref": {
+        "default": [
+          700,
+          2100
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "t_cell"
+    },
+    {
+      "id": "nk_cells",
+      "name": "Natural Killer Cells",
+      "profile": "Immunity",
+      "type": "numeric",
+      "unit": "cells/uL",
+      "units": {
+        "cells/ul": 1,
+        "/ul": 1,
+        "cells/mm3": 1
+      },
+      "aliases": [
+        "nk cells",
+        "natural killer cells",
+        "cd16 cd56",
+        "natural killer cell count",
+        "nk cell count"
+      ],
+      "ref": {
+        "default": [
+          90,
+          590
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "nk_cell"
+    },
+    {
+      "id": "urine_specific_gravity",
+      "name": "Urine Specific Gravity",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "",
+      "units": {
+        "": 1
+      },
+      "aliases": [
+        "specific gravity",
+        "urine specific gravity",
+        "sp gravity",
+        "sp. gravity",
+        "usg"
+      ],
+      "ref": {
+        "default": [
+          1.005,
+          1.03
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "urine_concentration"
+    },
+    {
+      "id": "urine_ph",
+      "name": "Urine pH",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "pH",
+      "units": {
+        "ph": 1,
+        "": 1
+      },
+      "aliases": [
+        "urine ph",
+        "ph urine",
+        "reaction urine"
+      ],
+      "ref": {
+        "default": [
+          4.6,
+          8.0
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "urine_ph"
+    },
+    {
+      "id": "urine_pus_cells",
+      "name": "Urine Pus Cells",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1
+      },
+      "aliases": [
+        "pus cells",
+        "urine pus cells",
+        "wbc urine",
+        "leucocytes urine",
+        "pus cell"
+      ],
+      "ref": {
+        "default": [
+          0,
+          5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "pyuria"
+    },
+    {
+      "id": "urine_leukocyte_esterase",
+      "name": "Urine Leukocyte Esterase",
+      "profile": "Urinalysis",
+      "type": "qualitative",
+      "aliases": [
+        "leukocyte esterase",
+        "leucocyte esterase",
+        "urine leukocytes",
+        "leukocytes urine"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "pyuria"
+    },
+    {
+      "id": "urine_nitrite",
+      "name": "Urine Nitrite",
+      "profile": "Urinalysis",
+      "type": "qualitative",
+      "aliases": [
+        "nitrite",
+        "urine nitrite",
+        "nitrites"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "bacteriuria"
+    },
+    {
+      "id": "urine_blood",
+      "name": "Urine Blood / RBC",
+      "profile": "Urinalysis",
+      "type": "qualitative",
+      "aliases": [
+        "urine blood",
+        "blood urine",
+        "haematuria",
+        "hematuria",
+        "urine rbc",
+        "rbc urine",
+        "occult blood urine"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "haematuria"
+    },
+    {
+      "id": "urine_culture",
+      "name": "Urine Culture",
+      "profile": "Infectious Diseases",
+      "type": "qualitative",
+      "aliases": [
+        "urine culture",
+        "urine culture and sensitivity",
+        "urine c s",
+        "urine cs"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "urine_culture"
+    },
+    {
+      "id": "stool_occult_blood",
+      "name": "Stool Occult Blood",
+      "profile": "Stool Analysis",
+      "type": "qualitative",
+      "aliases": [
+        "occult blood",
+        "stool occult blood",
+        "faecal occult blood",
+        "fecal occult blood",
+        "fobt"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "gi_bleeding"
+    },
+    {
+      "id": "stool_wbc",
+      "name": "Stool WBC / Pus Cells",
+      "profile": "Stool Analysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1
+      },
+      "aliases": [
+        "stool wbc",
+        "stool pus cells",
+        "pus cells stool",
+        "leucocytes stool"
+      ],
+      "ref": {
+        "default": [
+          0,
+          3
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "gi_inflammation"
+    },
+    {
+      "id": "stool_ova_parasite",
+      "name": "Stool Ova / Parasites",
+      "profile": "Stool Analysis",
+      "type": "qualitative",
+      "aliases": [
+        "ova and parasite",
+        "ova parasite",
+        "stool ova",
+        "stool parasite",
+        "o and p",
+        "cyst",
+        "stool microscopy parasites",
+        "ova and parasite exam",
+        "stool microscopy ova and parasite exam",
+        "ova cysts parasites",
+        "stool for ova and cyst"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "parasite"
+    },
+    {
+      "id": "fecal_fat",
+      "name": "Faecal Fat",
+      "profile": "Stool Analysis",
+      "type": "qualitative",
+      "aliases": [
+        "fecal fat",
+        "faecal fat",
+        "stool fat",
+        "steatorrhea",
+        "steatorrhoea"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "fat_malabsorption"
+    },
+    {
+      "id": "h_pylori_stool_antigen",
+      "name": "H. pylori Stool Antigen",
+      "profile": "Bacterial Infections",
+      "type": "qualitative",
+      "aliases": [
+        "h pylori antigen",
+        "helicobacter antigen",
+        "h pylori stool antigen",
+        "helicobacter pylori antigen",
+        "hpsa"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "h_pylori"
+    },
+    {
+      "id": "h_pylori_antibody",
+      "name": "H. pylori Antibody",
+      "profile": "Bacterial Infections",
+      "type": "qualitative",
+      "aliases": [
+        "h pylori antibody",
+        "helicobacter pylori abs",
+        "h pylori igg",
+        "h pylori igm",
+        "helicobacter pylori antibody"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "h_pylori"
+    },
+    {
+      "id": "urea_breath_test",
+      "name": "Urea Breath Test",
+      "profile": "Bacterial Infections",
+      "type": "qualitative",
+      "aliases": [
+        "urea breath test",
+        "ubt",
+        "c14 urea breath test",
+        "c13 urea breath test"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "h_pylori"
+    },
+    {
+      "id": "hbsag",
+      "name": "HBsAg",
+      "profile": "Hepatitis",
+      "type": "qualitative",
+      "aliases": [
+        "hbsag",
+        "hepatitis b surface antigen",
+        "australia antigen",
+        "hbs ag",
+        "hepatitis b s antigen"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "hepatitis_b"
+    },
+    {
+      "id": "anti_hcv",
+      "name": "Anti-HCV",
+      "profile": "Hepatitis",
+      "type": "qualitative",
+      "aliases": [
+        "anti hcv",
+        "anti-hcv",
+        "hcv antibody",
+        "hepatitis c antibody",
+        "hcv ab"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "hepatitis_c"
+    },
+    {
+      "id": "anti_hav_igm",
+      "name": "Anti-HAV IgM",
+      "profile": "Hepatitis",
+      "type": "qualitative",
+      "aliases": [
+        "anti hav igm",
+        "hav igm",
+        "hepatitis a igm",
+        "hepatitis a antibody igm"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "hepatitis_a"
+    },
+    {
+      "id": "hiv_screen",
+      "name": "HIV Antibody/Antigen Screen",
+      "profile": "STD Profile",
+      "type": "qualitative",
+      "aliases": [
+        "hiv",
+        "hiv 1 2",
+        "hiv i ii",
+        "hiv antibody",
+        "hiv antigen antibody",
+        "hiv screening",
+        "hiv combo",
+        "hiv duo"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "hiv"
+    },
+    {
+      "id": "vdrl_rpr",
+      "name": "VDRL / RPR",
+      "profile": "STD Profile",
+      "type": "qualitative",
+      "aliases": [
+        "vdrl",
+        "rpr",
+        "vdrl rpr",
+        "syphilis screening",
+        "rapid plasma reagin"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "syphilis"
+    },
+    {
+      "id": "tpha",
+      "name": "TPHA / Treponemal Test",
+      "profile": "STD Profile",
+      "type": "qualitative",
+      "aliases": [
+        "tpha",
+        "treponemal test",
+        "tp antibody",
+        "treponema pallidum antibody",
+        "fta abs"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "syphilis_confirm"
+    },
+    {
+      "id": "chlamydia_naat",
+      "name": "Chlamydia NAAT/PCR",
+      "profile": "STD Profile",
+      "type": "qualitative",
+      "aliases": [
+        "chlamydia",
+        "chlamydia trachomatis",
+        "chlamydia naat",
+        "chlamydia pcr",
+        "chlamydia antigen"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "chlamydia"
+    },
+    {
+      "id": "gonorrhea_naat",
+      "name": "Gonorrhoea NAAT/PCR",
+      "profile": "STD Profile",
+      "type": "qualitative",
+      "aliases": [
+        "gonorrhea",
+        "gonorrhoea",
+        "neisseria gonorrhoeae",
+        "gonorrhea naat",
+        "gonorrhea pcr",
+        "gc pcr"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "gonorrhoea"
+    },
+    {
+      "id": "hsv_igg",
+      "name": "HSV IgG (Type I/II)",
+      "profile": "STD Profile",
+      "type": "qualitative",
+      "aliases": [
+        "hsv igg",
+        "herpes simplex igg",
+        "hsv 1 2 igg",
+        "hsv ii igg",
+        "herpes igg",
+        "hsv antibody"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "hsv"
+    },
+    {
+      "id": "ana",
+      "name": "ANA (Antinuclear Antibody)",
+      "profile": "Autoimmune Disorders",
+      "type": "qualitative",
+      "aliases": [
+        "ana",
+        "antinuclear antibody",
+        "anti nuclear antibody",
+        "ana ifa",
+        "ana screening"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "ana"
+    },
+    {
+      "id": "anti_dsdna",
+      "name": "Anti-dsDNA",
+      "profile": "Autoimmune Disorders",
+      "type": "qualitative",
+      "aliases": [
+        "anti dsdna",
+        "anti-dsdna",
+        "ds dna antibody",
+        "double stranded dna antibody",
+        "anti ds dna"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "lupus_specific"
+    },
+    {
+      "id": "ra_factor",
+      "name": "Rheumatoid Factor",
+      "profile": "Arthritis Screening",
+      "type": "numeric",
+      "unit": "IU/mL",
+      "units": {
+        "iu/ml": 1,
+        "u/ml": 1
+      },
+      "aliases": [
+        "ra factor",
+        "rheumatoid factor",
+        "rf",
+        "ra factor quantitative",
+        "raf",
+        "rheumatoid arthritis factor"
+      ],
+      "ref": {
+        "default": [
+          0,
+          14
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "rheumatoid_factor"
+    },
+    {
+      "id": "anti_ccp",
+      "name": "Anti-CCP Antibody",
+      "profile": "Arthritis Screening",
+      "type": "numeric",
+      "unit": "U/mL",
+      "units": {
+        "u/ml": 1,
+        "iu/ml": 1
+      },
+      "aliases": [
+        "anti ccp",
+        "anti-ccp",
+        "ccp antibody",
+        "cyclic citrullinated peptide antibody",
+        "accp"
+      ],
+      "ref": {
+        "default": [
+          0,
+          20
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "rheumatoid_specific"
+    },
+    {
+      "id": "aso_titre",
+      "name": "ASO Titre",
+      "profile": "Arthritis Screening",
+      "type": "numeric",
+      "unit": "IU/mL",
+      "units": {
+        "iu/ml": 1,
+        "todd units": 1
+      },
+      "aliases": [
+        "aso",
+        "aso titre",
+        "aso titer",
+        "antistreptolysin o",
+        "anti streptolysin o",
+        "aslo"
+      ],
+      "ref": {
+        "default": [
+          0,
+          200
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "strep_serology"
+    },
+    {
+      "id": "anca",
+      "name": "ANCA",
+      "profile": "Autoimmune Disorders",
+      "type": "qualitative",
+      "aliases": [
+        "anca",
+        "anti neutrophil cytoplasmic antibody",
+        "p anca",
+        "c anca",
+        "mpo anca",
+        "pr3 anca"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "anca"
+    },
+    {
+      "id": "anti_ttg_iga",
+      "name": "Anti-tTG IgA",
+      "profile": "Autoimmune Disorders",
+      "type": "numeric",
+      "unit": "U/mL",
+      "units": {
+        "u/ml": 1,
+        "iu/ml": 1
+      },
+      "aliases": [
+        "anti ttg",
+        "ttg iga",
+        "tissue transglutaminase iga",
+        "anti tissue transglutaminase",
+        "anti ttg iga",
+        "ttg antibody"
+      ],
+      "ref": {
+        "default": [
+          0,
+          10
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "celiac_serology"
+    },
+    {
+      "id": "achr_antibody",
+      "name": "AChR Antibody",
+      "profile": "Neurological Disorders",
+      "type": "qualitative",
+      "aliases": [
+        "achr antibody",
+        "acetylcholine receptor antibody",
+        "achr ab",
+        "anti achr",
+        "achr antibodies",
+        "acetylcholine receptor antibodies",
+        "achr acetylcholine receptor antibodies"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "myasthenia_serology"
+    },
+    {
+      "id": "anti_mog",
+      "name": "Anti-MOG Antibody",
+      "profile": "Neurological Disorders",
+      "type": "qualitative",
+      "aliases": [
+        "anti mog",
+        "mog antibody",
+        "myelin oligodendrocyte glycoprotein antibody"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "demyelinating_serology"
+    },
+    {
+      "id": "anti_aquaporin4",
+      "name": "Anti-Aquaporin4 (NMO)",
+      "profile": "Neurological Disorders",
+      "type": "qualitative",
+      "aliases": [
+        "anti aquaporin4",
+        "aquaporin 4 antibody",
+        "nmo antibody",
+        "aqp4",
+        "anti nmo"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "demyelinating_serology"
+    },
+    {
+      "id": "csf_protein",
+      "name": "CSF Protein",
+      "profile": "Neurological Disorders",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "g/l": 100
+      },
+      "aliases": [
+        "csf protein",
+        "csf proteins",
+        "cerebrospinal fluid protein"
+      ],
+      "ref": {
+        "default": [
+          15,
+          45
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "csf"
+    },
+    {
+      "id": "paraneoplastic_panel",
+      "name": "Paraneoplastic Antibody Panel",
+      "profile": "Neurological Disorders",
+      "type": "qualitative",
+      "aliases": [
+        "anti hu",
+        "anna 1",
+        "anti ri",
+        "anna 2",
+        "amphiphysin antibody",
+        "caspr2",
+        "ampa receptor antibody",
+        "paraneoplastic panel",
+        "paraneoplastic antibody",
+        "ampa receptor antibodies",
+        "anti hu anna 1",
+        "anti ri anna 2",
+        "caspr2 antibody",
+        "amphiphysin antibodies"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "paraneoplastic"
+    },
+    {
+      "id": "carbamazepine_level",
+      "name": "Carbamazepine Level",
+      "profile": "Neurological Disorders",
+      "type": "numeric",
+      "unit": "ug/mL",
+      "units": {
+        "ug/ml": 1,
+        "µg/ml": 1,
+        "mg/l": 1
+      },
+      "aliases": [
+        "carbamazepine",
+        "tegretol",
+        "carbamazepine level"
+      ],
+      "ref": {
+        "default": [
+          4,
+          12
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "aed_level"
+    },
+    {
+      "id": "dengue_ns1",
+      "name": "Dengue NS1 Antigen",
+      "profile": "Viral Infections",
+      "type": "qualitative",
+      "aliases": [
+        "dengue ns1",
+        "ns1 antigen",
+        "dengue ns1 antigen",
+        "dengue antigen"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "dengue"
+    },
+    {
+      "id": "dengue_igm",
+      "name": "Dengue IgM",
+      "profile": "Viral Infections",
+      "type": "qualitative",
+      "aliases": [
+        "dengue igm",
+        "dengue antibody igm",
+        "dengue serology igm"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "dengue"
+    },
+    {
+      "id": "dengue_igg",
+      "name": "Dengue IgG",
+      "profile": "Viral Infections",
+      "type": "qualitative",
+      "aliases": [
+        "dengue igg",
+        "dengue antibody igg"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "dengue_past"
+    },
+    {
+      "id": "malaria_antigen",
+      "name": "Malaria Antigen / Smear",
+      "profile": "Malaria Profile",
+      "type": "qualitative",
+      "aliases": [
+        "malaria",
+        "malaria antigen",
+        "malaria parasite",
+        "mp smear",
+        "malaria rapid test",
+        "malaria vivax",
+        "malaria falciparum",
+        "peripheral smear for malaria"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "malaria"
+    },
+    {
+      "id": "widal_test",
+      "name": "Widal Test",
+      "profile": "Bacterial Infections",
+      "type": "qualitative",
+      "aliases": [
+        "widal",
+        "widal test",
+        "typhidot",
+        "typhoid antibody",
+        "salmonella antibody",
+        "typhi dot"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "typhoid"
+    },
+    {
+      "id": "blood_culture",
+      "name": "Blood Culture",
+      "profile": "Infectious Diseases",
+      "type": "qualitative",
+      "aliases": [
+        "blood culture",
+        "blood culture and sensitivity",
+        "blood c s"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "blood_culture"
+    },
+    {
+      "id": "leptospira_igm",
+      "name": "Leptospira IgM",
+      "profile": "Infectious Diseases",
+      "type": "qualitative",
+      "aliases": [
+        "leptospira igm",
+        "leptospirosis igm",
+        "lepto igm",
+        "leptospira serology"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "leptospira"
+    },
+    {
+      "id": "scrub_typhus_igm",
+      "name": "Scrub Typhus IgM",
+      "profile": "Infectious Diseases",
+      "type": "qualitative",
+      "aliases": [
+        "scrub typhus",
+        "scrub typhus igm",
+        "orientia tsutsugamushi",
+        "scrub typhus serology"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "scrub_typhus"
+    },
+    {
+      "id": "brucella_serology",
+      "name": "Brucella Serology",
+      "profile": "Infectious Diseases",
+      "type": "qualitative",
+      "aliases": [
+        "brucella",
+        "brucella serology",
+        "brucella agglutination",
+        "brucella antibody"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "brucella"
+    },
+    {
+      "id": "covid_rtpcr",
+      "name": "COVID-19 RT-PCR",
+      "profile": "COVID",
+      "type": "qualitative",
+      "aliases": [
+        "covid rtpcr",
+        "covid rt pcr",
+        "sars cov 2 rtpcr",
+        "covid 19 rt pcr",
+        "covid pcr",
+        "sars cov 2 pcr"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "covid_active"
+    },
+    {
+      "id": "covid_antigen",
+      "name": "COVID-19 Antigen",
+      "profile": "COVID",
+      "type": "qualitative",
+      "aliases": [
+        "covid antigen",
+        "rapid antigen test",
+        "sars cov 2 antigen",
+        "covid rat"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "covid_active"
+    },
+    {
+      "id": "covid_antibody",
+      "name": "COVID-19 Antibody",
+      "profile": "COVID",
+      "type": "qualitative",
+      "aliases": [
+        "covid antibody",
+        "sars cov 2 antibody",
+        "covid igg",
+        "covid serology"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "covid_past"
+    },
+    {
+      "id": "varicella_igg",
+      "name": "Varicella Zoster IgG",
+      "profile": "Viral Infections",
+      "type": "qualitative",
+      "aliases": [
+        "varicella igg",
+        "varicella zoster igg",
+        "vzv igg",
+        "chickenpox antibody",
+        "varicella zoster ab igg",
+        "varicella zoster antibody igg",
+        "vzv ab igg"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "varicella"
+    },
+    {
+      "id": "g6pd",
+      "name": "G6PD (Quantitative)",
+      "profile": "Anemia Studies",
+      "type": "numeric",
+      "unit": "U/g Hb",
+      "units": {
+        "u/g hb": 1,
+        "u/gm hb": 1,
+        "iu/g hb": 1
+      },
+      "aliases": [
+        "g6pd",
+        "g 6 pd",
+        "glucose 6 phosphate dehydrogenase",
+        "g6pd quantitative"
+      ],
+      "ref": {
+        "default": [
+          6.4,
+          18.7
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "g6pd"
+    },
+    {
+      "id": "sickle_solubility",
+      "name": "Sickle Cell Solubility Test",
+      "profile": "Hemoglobin Electrophoresis",
+      "type": "qualitative",
+      "aliases": [
+        "sickling test",
+        "sickle cell solubility",
+        "sickle solubility test",
+        "sickle cell test",
+        "sickling"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "sickle"
+    },
+    {
+      "id": "hb_electrophoresis",
+      "name": "Haemoglobin Electrophoresis",
+      "profile": "Hemoglobin Electrophoresis",
+      "type": "qualitative",
+      "aliases": [
+        "hemoglobin electrophoresis",
+        "haemoglobin electrophoresis",
+        "hb electrophoresis",
+        "hplc hemoglobin",
+        "variant hb"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "hb_variant"
+    },
+    {
+      "id": "hba2",
+      "name": "HbA2",
+      "profile": "Hemoglobin Electrophoresis",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "hba2",
+        "hb a2",
+        "haemoglobin a2"
+      ],
+      "ref": {
+        "default": [
+          1.5,
+          3.5
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "hb_variant",
+      "bands": [
+        {
+          "lt": 1.5,
+          "grade": "mild_low",
+          "label": "Low"
+        },
+        {
+          "lt": 3.5,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 4.0,
+          "grade": "mild_high",
+          "label": "Borderline"
+        },
+        {
+          "gte": 4.0,
+          "grade": "moderate_high",
+          "label": "Raised - consistent with beta-thalassaemia trait"
+        }
+      ]
+    },
+    {
+      "id": "hbf",
+      "name": "HbF (Foetal Haemoglobin)",
+      "profile": "Hemoglobin Electrophoresis",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "hbf",
+        "hb f",
+        "fetal hemoglobin",
+        "foetal haemoglobin"
+      ],
+      "ref": {
+        "default": [
+          0,
+          2.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "hb_variant"
+    },
+    {
+      "id": "reticulocyte_pct",
+      "name": "Reticulocyte Count",
+      "profile": "Anemia Studies",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "reticulocyte",
+        "reticulocyte count",
+        "retic count",
+        "reticulocytes"
+      ],
+      "ref": {
+        "default": [
+          0.5,
+          2.5
+        ]
+      },
+      "direction_of_concern": "both",
+      "redundancy_group": "reticulocyte"
+    },
+    {
+      "id": "blood_group_abo",
+      "name": "Blood Group (ABO)",
+      "profile": "Blood Group",
+      "type": "categorical",
+      "aliases": [
+        "blood group",
+        "abo group",
+        "blood group abo",
+        "abo"
+      ],
+      "redundancy_group": "blood_group"
+    },
+    {
+      "id": "rh_factor",
+      "name": "Rh Factor",
+      "profile": "Blood Group",
+      "type": "categorical",
+      "aliases": [
+        "rh factor",
+        "rh typing",
+        "rh",
+        "rhesus factor",
+        "rh d"
+      ],
+      "negative_values": [
+        "negative",
+        "neg",
+        "-ve",
+        "-",
+        "rh negative"
+      ],
+      "redundancy_group": "rh"
+    },
+    {
+      "id": "semen_volume",
+      "name": "Semen Volume",
+      "profile": "Semen Analysis",
+      "type": "numeric",
+      "unit": "mL",
+      "units": {
+        "ml": 1,
+        "cc": 1
+      },
+      "aliases": [
+        "semen volume",
+        "volume semen",
+        "ejaculate volume"
+      ],
+      "ref": {
+        "default": [
+          1.4,
+          6.0
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "semen_volume",
+      "source": "WHO Laboratory Manual 6th edition lower reference limits"
+    },
+    {
+      "id": "sperm_concentration",
+      "name": "Sperm Concentration",
+      "profile": "Semen Analysis",
+      "type": "numeric",
+      "unit": "million/mL",
+      "units": {
+        "million/ml": 1,
+        "mill/ml": 1,
+        "10^6/ml": 1,
+        "x10^6/ml": 1
+      },
+      "aliases": [
+        "sperm count",
+        "sperm concentration",
+        "sperm density",
+        "total sperm count",
+        "sperm count per ml"
+      ],
+      "ref": {
+        "default": [
+          16,
+          250
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "sperm_count",
+      "bands": [
+        {
+          "lt": 1,
+          "grade": "critical_low",
+          "label": "Cryptozoospermia / azoospermia range"
+        },
+        {
+          "lt": 16,
+          "grade": "severe_low",
+          "label": "Below WHO lower reference limit (oligozoospermia)"
+        },
+        {
+          "gte": 16,
+          "grade": "normal",
+          "label": "At or above WHO lower reference limit"
+        }
+      ],
+      "source": "WHO Laboratory Manual 6th edition"
+    },
+    {
+      "id": "sperm_motility_total",
+      "name": "Sperm Total Motility",
+      "profile": "Semen Analysis",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "sperm motility",
+        "total motility",
+        "motility",
+        "motile sperm",
+        "sperm motility total"
+      ],
+      "ref": {
+        "default": [
+          42,
+          100
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "sperm_motility",
+      "source": "WHO Laboratory Manual 6th edition"
+    },
+    {
+      "id": "sperm_progressive_motility",
+      "name": "Sperm Progressive Motility",
+      "profile": "Semen Analysis",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "progressive motility",
+        "sperm progressive motility",
+        "rapid progressive motility"
+      ],
+      "ref": {
+        "default": [
+          30,
+          100
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "sperm_motility"
+    },
+    {
+      "id": "sperm_morphology",
+      "name": "Sperm Normal Morphology",
+      "profile": "Semen Analysis",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "sperm morphology",
+        "normal morphology",
+        "morphology",
+        "normal forms"
+      ],
+      "ref": {
+        "default": [
+          4,
+          100
+        ]
+      },
+      "direction_of_concern": "low",
+      "redundancy_group": "sperm_morphology"
+    },
+    {
+      "id": "semen_pus_cells",
+      "name": "Semen Pus Cells",
+      "profile": "Semen Analysis",
+      "type": "numeric",
+      "unit": "million/mL",
+      "units": {
+        "million/ml": 1,
+        "/hpf": 0.1
+      },
+      "aliases": [
+        "semen pus cells",
+        "pus cells semen",
+        "leucocytes semen",
+        "round cells semen"
+      ],
+      "ref": {
+        "default": [
+          0,
+          1.0
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "semen_inflammation"
+    },
+    {
+      "id": "semen_culture",
+      "name": "Semen Culture",
+      "profile": "Semen Culture and Sensitivity",
+      "type": "qualitative",
+      "aliases": [
+        "semen culture",
+        "semen culture and sensitivity",
+        "semen c s",
+        "primary smear of semen"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "semen_culture"
+    },
+    {
+      "id": "bmi",
+      "name": "Body Mass Index",
+      "profile": "BMI & BP",
+      "type": "numeric",
+      "unit": "kg/m2",
+      "units": {
+        "kg/m2": 1,
+        "kg/m^2": 1
+      },
+      "aliases": [
+        "bmi",
+        "body mass index"
+      ],
+      "ref": {
+        "default": [
+          18.5,
+          24.9
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "adiposity",
+      "bands": [
+        {
+          "lt": 18.5,
+          "grade": "moderate_low",
+          "label": "Underweight"
+        },
+        {
+          "lt": 23.0,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 25.0,
+          "grade": "mild_high",
+          "label": "Overweight (Asian cut-off)"
+        },
+        {
+          "lt": 30.0,
+          "grade": "moderate_high",
+          "label": "Overweight / obese (Asian cut-off)"
+        },
+        {
+          "gte": 30.0,
+          "grade": "severe_high",
+          "label": "Obese"
+        }
+      ],
+      "source": "WHO with WHO Asia-Pacific cut-offs"
+    },
+    {
+      "id": "waist_circumference",
+      "name": "Waist Circumference",
+      "profile": "BMI & BP",
+      "type": "numeric",
+      "unit": "cm",
+      "units": {
+        "cm": 1,
+        "inch": 2.54,
+        "in": 2.54
+      },
+      "aliases": [
+        "waist",
+        "waist circumference",
+        "waist size",
+        "abdominal circumference"
+      ],
+      "ref": {
+        "male": [
+          0,
+          90
+        ],
+        "female": [
+          0,
+          80
+        ],
+        "default": [
+          0,
+          90
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "adiposity",
+      "source": "IDF central obesity cut-offs, South Asian population"
+    },
+    {
+      "id": "systolic_bp",
+      "name": "Systolic Blood Pressure",
+      "profile": "BMI & BP",
+      "type": "numeric",
+      "unit": "mmHg",
+      "units": {
+        "mmhg": 1
+      },
+      "aliases": [
+        "systolic",
+        "systolic bp",
+        "sbp",
+        "systolic blood pressure",
+        "bp systolic"
+      ],
+      "ref": {
+        "default": [
+          90,
+          129
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "blood_pressure",
+      "bands": [
+        {
+          "lt": 90,
+          "grade": "moderate_low",
+          "label": "Low"
+        },
+        {
+          "lt": 120,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 130,
+          "grade": "mild_high",
+          "label": "Elevated"
+        },
+        {
+          "lt": 140,
+          "grade": "moderate_high",
+          "label": "Stage 1 hypertension range"
+        },
+        {
+          "lt": 180,
+          "grade": "severe_high",
+          "label": "Stage 2 hypertension range"
+        },
+        {
+          "gte": 180,
+          "grade": "critical_high",
+          "label": "Hypertensive crisis range"
+        }
+      ],
+      "source": "ACC/AHA 2017 blood pressure categories"
+    },
+    {
+      "id": "diastolic_bp",
+      "name": "Diastolic Blood Pressure",
+      "profile": "BMI & BP",
+      "type": "numeric",
+      "unit": "mmHg",
+      "units": {
+        "mmhg": 1
+      },
+      "aliases": [
+        "diastolic",
+        "diastolic bp",
+        "dbp",
+        "diastolic blood pressure",
+        "bp diastolic"
+      ],
+      "ref": {
+        "default": [
+          60,
+          79
+        ]
+      },
+      "direction_of_concern": "high",
+      "redundancy_group": "blood_pressure",
+      "bands": [
+        {
+          "lt": 60,
+          "grade": "moderate_low",
+          "label": "Low"
+        },
+        {
+          "lt": 80,
+          "grade": "normal",
+          "label": "Normal"
+        },
+        {
+          "lt": 90,
+          "grade": "moderate_high",
+          "label": "Stage 1 hypertension range"
+        },
+        {
+          "lt": 120,
+          "grade": "severe_high",
+          "label": "Stage 2 hypertension range"
+        },
+        {
+          "gte": 120,
+          "grade": "critical_high",
+          "label": "Hypertensive crisis range"
+        }
+      ],
+      "source": "ACC/AHA 2017 blood pressure categories"
+    }
+  ]
+}

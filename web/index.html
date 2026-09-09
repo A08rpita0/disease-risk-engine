@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disease Correlation &amp; Risk Engine</title>
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark">⬡</span>
+    <div>
+      <h1>Disease Correlation &amp; Risk Engine</h1>
+      <p class="sub">Cohort detection · Disease Master mapping · explainable risk signalling</p>
+    </div>
+  </div>
+  <div class="topmeta" id="topmeta"></div>
+</header>
+
+<div class="banner">
+  <strong>Risk signalling, not diagnosis.</strong>
+  This tool identifies clinically established patterns in laboratory data and maps them to the
+  supplied Disease Master. Every cluster cites the clinical reference that establishes it, and
+  every condition shows the Disease Master field it was matched on. Laboratory data alone cannot
+  account for symptoms, examination or history — take any finding here to a doctor.
+</div>
+
+<main>
+
+  <!-- ---------------- upload ---------------- -->
+  <section class="card" id="uploadCard">
+    <h2>Analyse a report</h2>
+    <div class="upload-grid">
+      <div>
+        <div class="dropzone" id="dropzone" tabindex="0" role="button"
+             aria-label="Choose or drop a report file">
+          <div class="dz-icon">⇪</div>
+          <div class="dz-main">Drop a report here, or click to choose</div>
+          <div class="dz-sub">Laboratory report (PDF, CSV, TXT) or standardized JSON · max 20&nbsp;MB</div>
+          <input type="file" id="fileInput" accept=".json,.pdf,.csv,.tsv,.txt" hidden>
+        </div>
+        <div class="chosen" id="chosen"></div>
+      </div>
+      <div class="opts">
+        <label>Sex <span class="hint">improves sex-specific ranges</span>
+          <select id="sexInput">
+            <option value="">Not stated / read from report</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </label>
+        <label>Age <span class="hint">optional</span>
+          <input type="number" id="ageInput" min="0" max="120" step="1" placeholder="e.g. 47">
+        </label>
+        <button id="analyseBtn" class="primary" disabled>Analyse report</button>
+        <div class="samples">
+          <span>or try a sample:</span>
+          <div id="sampleList" class="sample-list"></div>
+        </div>
+      </div>
+    </div>
+    <div id="status" class="status" hidden></div>
+  </section>
+
+  <!-- ---------------- results ---------------- -->
+  <div id="results" hidden>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="risks">Disease Risks <span class="pill" id="pillRisks">0</span></button>
+      <button class="tab" data-tab="cohorts">Clusters <span class="pill" id="pillCohorts">0</span></button>
+      <button class="tab" data-tab="params">Parameters <span class="pill" id="pillParams">0</span></button>
+      <button class="tab" data-tab="plan">Action Plan <span class="pill" id="pillPlan">0</span></button>
+      <button class="tab" data-tab="data">Data Quality</button>
+      <button class="tab" data-tab="reference">Reference</button>
+    </nav>
+
+    <section class="panel active" id="tab-overview"></section>
+    <section class="panel" id="tab-risks"></section>
+    <section class="panel" id="tab-cohorts"></section>
+    <section class="panel" id="tab-params"></section>
+    <section class="panel" id="tab-plan"></section>
+    <section class="panel" id="tab-data"></section>
+    <section class="panel" id="tab-reference"></section>
+
+  </div>
+</main>
+
+<footer>
+  <span id="footConfig"></span>
+  <a href="/api/health" target="_blank" rel="noopener">engine health</a>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

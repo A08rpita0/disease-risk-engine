@@ -1,0 +1,18 @@
+# Runtime — pinned to the versions this build was developed and validated against.
+# Loosen deliberately, not by accident: the engine's behaviour is covered by
+# tools/validate.py, so run it after any upgrade.
+
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+python-multipart==0.0.32     # multipart form uploads
+pdfplumber==0.11.10          # PDF text and table extraction
+openpyxl==3.1.5              # rebuilding config/disease_master.json from the workbook
+
+# Transitive, pinned so a rebuild is reproducible.
+pydantic==2.13.5
+starlette==1.6.0
+pillow==12.3.0
+pdfminer.six==20260107
+
+# Optional — only to regenerate the sample PDF lab report in samples/
+# reportlab>=4.0

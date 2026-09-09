@@ -1,0 +1,22 @@
+# Normalise line endings so a Windows checkout deploys correctly to Linux.
+# Without this, core.autocrlf can put CRLF into the Dockerfile and Procfile, which
+# Linux shells reject, and can corrupt binary files that Git guesses are text.
+
+* text=auto eol=lf
+
+# Files that MUST be LF for Linux to execute them
+Dockerfile      text eol=lf
+Procfile        text eol=lf
+*.sh            text eol=lf
+*.py            text eol=lf
+*.yaml          text eol=lf
+*.yml           text eol=lf
+*.json          text eol=lf
+*.txt           text eol=lf
+
+# Binary — never touch these
+*.pdf           binary
+*.xlsx          binary
+*.png           binary
+*.jpg           binary
+*.ico           binary

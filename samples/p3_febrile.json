@@ -1,0 +1,71 @@
+{
+  "_label": "Acute febrile illness (dengue pattern, 12 parameters)",
+  "patient": {
+    "patient_id": "NG-88214",
+    "sex": "male",
+    "age": 24
+  },
+  "tests": [
+    {
+      "name": "Dengue NS1 Antigen",
+      "result": "Positive"
+    },
+    {
+      "name": "Dengue IgM",
+      "result": "Reactive"
+    },
+    {
+      "name": "Dengue IgG",
+      "result": "Non-Reactive"
+    },
+    {
+      "name": "Platelet Count",
+      "result": "68000",
+      "unit": "/cumm",
+      "reference_range": "150000 - 450000"
+    },
+    {
+      "name": "Haemoglobin",
+      "result": "16.9",
+      "unit": "g/dL"
+    },
+    {
+      "name": "Haematocrit",
+      "result": "52",
+      "unit": "%"
+    },
+    {
+      "name": "Total Leucocyte Count",
+      "result": "3100",
+      "unit": "/cumm"
+    },
+    {
+      "name": "SGPT",
+      "result": "132",
+      "unit": "U/L"
+    },
+    {
+      "name": "SGOT",
+      "result": "168",
+      "unit": "U/L"
+    },
+    {
+      "name": "Total Bilirubin",
+      "result": "1.9",
+      "unit": "mg/dL"
+    },
+    {
+      "name": "Serum Creatinine",
+      "result": "1.1",
+      "unit": "mg/dL"
+    },
+    {
+      "name": "Malaria Antigen",
+      "result": "Negative"
+    },
+    {
+      "name": "Widal Test",
+      "result": "Negative"
+    }
+  ]
+}

@@ -1,0 +1,203 @@
+{
+  "note": "Resolves the Disease Master's 'Related Markers/Tests' column against the parameter dictionary. That column is free prose, so three things have to be handled before coverage can be measured honestly: umbrella terms that name a panel rather than a parameter, prose fragments that are not markers at all, and markers for which no assay exists in the dictionary. tools/coverage.py uses this file; anything not covered here and not resolvable by alias is reported as a genuine gap.",
+  "umbrella_terms": {
+    "cbc": [
+      "hemoglobin",
+      "wbc_count",
+      "platelet_count",
+      "mcv",
+      "rbc_count",
+      "hematocrit"
+    ],
+    "cbc used only as a general cross-reference": [
+      "hemoglobin",
+      "wbc_count",
+      "platelet_count"
+    ],
+    "complete blood count": [
+      "hemoglobin",
+      "wbc_count",
+      "platelet_count",
+      "mcv"
+    ],
+    "rbc indices": [
+      "mcv",
+      "mch",
+      "mchc",
+      "rdw_cv"
+    ],
+    "wbc count and differential": [
+      "wbc_count",
+      "neutrophil_pct",
+      "lymphocyte_pct",
+      "eosinophil_pct",
+      "monocyte_pct",
+      "basophil_pct"
+    ],
+    "lft markers": [
+      "sgpt_alt",
+      "sgot_ast",
+      "total_bilirubin",
+      "albumin",
+      "alkaline_phosphatase"
+    ],
+    "liver function markers": [
+      "sgpt_alt",
+      "sgot_ast",
+      "total_bilirubin"
+    ],
+    "liver function markers (sgot": [
+      "sgpt_alt",
+      "sgot_ast",
+      "total_bilirubin"
+    ],
+    "urinalysis": [
+      "urine_protein",
+      "urine_blood",
+      "urine_glucose",
+      "urine_specific_gravity",
+      "urine_leukocyte_esterase",
+      "urine_nitrite",
+      "urine_pus_cells",
+      "urine_ph"
+    ],
+    "leukocytes": [
+      "urine_leukocyte_esterase"
+    ],
+    "stool analysis": [
+      "stool_occult_blood",
+      "stool_wbc",
+      "stool_ova_parasite",
+      "fecal_fat"
+    ],
+    "stool analysis (to exclude blood": [
+      "stool_occult_blood",
+      "stool_wbc"
+    ],
+    "semen analysis": [
+      "sperm_concentration",
+      "sperm_motility_total",
+      "sperm_morphology",
+      "semen_volume"
+    ],
+    "semen analysis parameters": [
+      "sperm_concentration",
+      "sperm_motility_total",
+      "semen_volume"
+    ],
+    "blood sugar": [
+      "fasting_glucose",
+      "postprandial_glucose",
+      "random_glucose"
+    ],
+    "electrolytes": [
+      "sodium",
+      "potassium",
+      "chloride",
+      "bicarbonate"
+    ],
+    "electrolytes (sodium": [
+      "sodium",
+      "potassium"
+    ],
+    "blood pressure": [
+      "systolic_bp",
+      "diastolic_bp"
+    ],
+    "inflammatory markers": [
+      "crp",
+      "esr",
+      "hs_crp",
+      "procalcitonin"
+    ],
+    "inflammatory markers if available": [
+      "crp",
+      "esr"
+    ],
+    "thyroid antibodies": [
+      "anti_tpo",
+      "anti_thyroglobulin"
+    ],
+    "tumor markers if included in panel (e.g": [
+      "psa_total",
+      "ca_125",
+      "ca_15_3",
+      "ca_19_9",
+      "afp",
+      "cea"
+    ],
+    "peripheral blood smear": [
+      "malaria_antigen"
+    ],
+    "iron studies": [
+      "serum_iron",
+      "tibc",
+      "ferritin",
+      "transferrin_saturation"
+    ]
+  },
+  "not_markers": [
+    "if included in panel)",
+    "if used for differential)",
+    "not a screening tool)",
+    "not primary screening",
+    "not diagnostic for hav itself",
+    "not diagnostic for hiv itself",
+    "diagnosis is clinical",
+    "no single confirmatory marker",
+    "inflammation)",
+    "infection",
+    "dust mite",
+    "pet dander)",
+    "tree nuts",
+    "milk",
+    "egg",
+    "shellfish",
+    "wheat)",
+    "included here as part of the same bone-metabolism marker set)"
+  ],
+  "not_markers_note": "Prose fragments left behind when the free-text marker list is split on commas, plus the allergen examples listed inside 'Specific IgE panel for common food allergens (peanut, tree nuts, milk, ...)'. The head term of each of those phrases does resolve; these are the tail. They are excluded from the coverage denominator because they are not markers.",
+  "no_assay_available": [
+    {
+      "marker": "serum tryptase",
+      "diseases": [
+        "Anaphylaxis",
+        "Drug Allergy"
+      ],
+      "reason": "No tryptase assay in the NG catalogue. The Disease Master itself notes it is only informative if drawn during or shortly after the reaction.",
+      "marker_variants": [
+        "serum tryptase",
+        "tryptase if reaction was severe"
+      ]
+    },
+    {
+      "marker": "anti-ganglioside antibodies where available",
+      "diseases": [
+        "Guillain-Barre Syndrome"
+      ],
+      "reason": "No anti-ganglioside assay in the catalogue. The Disease Master qualifies this marker with 'where available'; the CSF protein arm of the same row is implemented and is what the cluster fires on."
+    },
+    {
+      "marker": "sputum/urine analysis where relevant",
+      "diseases": [
+        "Tuberculosis"
+      ],
+      "reason": "No TB-specific assay (IGRA, AFB smear, GeneXpert) in the catalogue. Adding one would make Tuberculosis directly mappable."
+    }
+  ],
+  "reported_only_parameters": [
+    {
+      "id": "basophil_pct",
+      "reason": "Basophilia is rare and non-specific; its main association is with myeloproliferative disease, which the Disease Master does not carry a row for. Extracted, graded and shown, but not used to drive any cluster."
+    },
+    {
+      "id": "urine_ph",
+      "reason": "Clinically useful mainly for stone type and renal tubular acidosis, neither of which is a Disease Master row. Extracted and shown."
+    },
+    {
+      "id": "blood_group_abo",
+      "reason": "Carries no risk meaning on its own. Recorded and shown alongside Rh factor, which is the component with a Disease Master mapping."
+    }
+  ],
+  "reported_only_note": "These parameters are deliberately extracted, unit-converted, graded against their reference range and displayed, but do not feed any cluster. Listing them here keeps the distinction between 'not covered' and 'covered as a reported value' explicit."
+}
