@@ -29,6 +29,10 @@ REDUNDANCY_DISCOUNT = 0.25
 # A supporting signal is worth less than a defining trigger, by design.
 SUPPORTING_FACTOR = 0.6
 
+# Ceiling on how much measured supporting evidence can dilute confidence.
+# Only evidence actually present in the record counts towards it.
+SUPPORT_ALLOWANCE = 1.2
+
 
 def evaluate_condition(param, cond):
     """Evaluate one condition against a NormalizedParameter. Returns (bool, description)."""
@@ -178,12 +182,22 @@ class CohortEngine:
         all_hits = self._apply_redundancy(trigger_hits + support_hits)
 
         fired = sum(h.effective_weight for h in all_hits)
-        # Denominator: the trigger weight required to fire, plus a fixed allowance for
-        # supporting evidence. This keeps confidence comparable across cohorts of very
-        # different sizes rather than punishing large ones.
+        # Denominator: the trigger weight required to fire, plus an allowance for
+        # supporting evidence that was ACTUALLY MEASURED.
+        #
+        # Charging for supporting tests nobody ordered scores a complete criterion as
+        # though evidence were missing. That is how a troponin sixty times the upper
+        # limit came out labelled "not enough data": its three supporting markers were
+        # absent from the record, so two thirds of the denominator was for tests that
+        # were never going to fire. Absent supporting evidence is handled by the
+        # coverage factor below, which is the right place for it.
         top_triggers = sorted((r.get("weight", 1.0) for r in cohort.get("triggers", [])),
                               reverse=True)[:min_triggers]
-        denom = sum(top_triggers) + 1.2
+        available_support = sum(
+            r.get("weight", 1.0) * SUPPORTING_FACTOR
+            for r in cohort.get("supporting", [])
+            if patient.present(r["parameter"]))
+        denom = sum(top_triggers) + min(SUPPORT_ALLOWANCE, available_support)
         confidence = min(1.0, fired / denom) if denom else 0.0
         confidence = self._apply_coverage(confidence, coverage, cohort)
 

@@ -406,6 +406,88 @@ def test_file_formats():
               "got %d" % r["summary"]["parameters_recognised"])
 
 
+def test_single_marker_findings_are_not_understated():
+    """A condition whose whole stated criterion is one marker must not read as
+    'not enough data' when that marker is present and clearly abnormal.
+
+    Regression: supporting signals that were never ordered used to sit in the
+    confidence denominator, so a complete criterion scored as if two thirds of the
+    evidence were missing."""
+    cases = [
+        ("G6PD Deficiency", {"G6PD": (1.8, "U/g Hb")},
+         "reference criterion is 'Low quantitative G6PD enzyme level' - nothing else"),
+        ("Hyperprolactinemia", {"Prolactin": (180, "ng/mL")},
+         "criterion is 'Significantly elevated prolactin'"),
+    ]
+    for target, tests, why in cases:
+        r = analyse({"Gender": "female", "tests": [
+            {"test_name": k, "value": v[0], "unit": v[1]} for k, v in tests.items()]})
+        hit = [x for x in r["disease_risks"] if x["name"] == target]
+        check("%s is raised at all" % target, bool(hit), why)
+        if hit:
+            check("%s scores above the weak band (%s)" % (target, why),
+                  hit[0]["score"] >= 0.45, "score %.2f" % hit[0]["score"])
+
+
+def test_time_critical_finding_raises_the_urgent_banner():
+    """Regression: the urgent list was gated on evidence level, which the coverage cap
+    had already pushed to 'Limited', so a lone troponin produced no warning at all."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Troponin I", "value": 2.4, "unit": "ng/mL"}]})
+    names = [x["name"] for x in r["urgent_findings"]]
+    check("a troponin 60x the upper limit raises a time-critical warning",
+          any("Cardiovascular" in n for n in names), "urgent_findings=%s" % names)
+
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Potassium", "value": 6.6, "unit": "mmol/L"}]})
+    check("severe hyperkalaemia raises a time-critical warning",
+          bool(r["urgent_findings"]),
+          "urgent_findings=%s" % [x["name"] for x in r["urgent_findings"]])
+
+
+def test_urgent_banner_ignores_floor_scraping_findings():
+    """The banner must stay quiet for a barely-reported finding, or it cries wolf."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Platelet Count", "value": 11000, "unit": "/uL"}]})
+    names = [x["name"] for x in r["urgent_findings"]]
+    check("an isolated platelet count does not raise DIC as an emergency",
+          not any("Disseminated" in n for n in names), "urgent_findings=%s" % names)
+
+
+def test_polycythemia_does_not_discount_its_own_trigger():
+    """Regression: haemoglobin, haematocrit and RBC count share one redundancy group,
+    so requiring two triggers guaranteed the second was discounted as a duplicate."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Haemoglobin", "value": 19.4, "unit": "g/dL"},
+        {"test_name": "Haematocrit", "value": 58, "unit": "%"},
+        {"test_name": "RBC Count", "value": 6.9, "unit": "million/uL"}]})
+    hit = [x for x in r["disease_risks"] if x["name"] == "Polycythemia"]
+    check("raised haemoglobin and haematocrit raise Polycythemia", bool(hit))
+    if hit:
+        check("Polycythemia is not scored as weak evidence",
+              hit[0]["score"] >= 0.6, "score %.2f" % hit[0]["score"])
+
+
+def test_evidence_level_never_contradicts_the_score():
+    """A finding must never print a strong score beside a 'not enough data' label."""
+    payloads = [
+        {"tests": [{"test_name": "Troponin I", "value": 2.4, "unit": "ng/mL"}]},
+        {"tests": [{"test_name": "G6PD", "value": 1.8, "unit": "U/g Hb"}]},
+        {"tests": [{"test_name": "TSH", "value": 14.2, "unit": "uIU/mL"},
+                   {"test_name": "Free T4", "value": 0.5, "unit": "ng/dL"}]},
+    ]
+    floor = {"High": 0.48, "Moderate": 0.28, "Low": 0.0, "Limited": 0.0}
+    for p in payloads:
+        r = analyse(dict(p, Gender="male"))
+        for x in r["disease_risks"]:
+            # A high score may be stepped DOWN by thin data, but never more than one
+            # band - "Limited" beside 0.79 is a contradiction, not a caveat.
+            check("%s: level %s is compatible with score %.2f"
+                  % (x["name"][:28], x["evidence_level"], x["score"]),
+                  not (x["score"] >= 0.72 and x["evidence_level"] == "Limited"),
+                  "score %.2f labelled %s" % (x["score"], x["evidence_level"]))
+
+
 def test_empty_and_garbage_input():
     r = analyse({"nothing": "here"})
     check("an empty payload is refused rather than analysed",

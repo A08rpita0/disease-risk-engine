@@ -18,7 +18,7 @@ from .extract import extract_with_text
 from .models import PatientContext
 from .normalize import Normalizer
 from .recommend import RecommendationEngine
-from .risk import RiskEngine
+from .risk import RiskEngine, URGENT_SCORE_FLOOR
 
 DISCLAIMER = (
     "This is a risk check, not a diagnosis. It compares your results against "
@@ -97,8 +97,12 @@ class Pipeline:
         for p in params:
             by_profile.setdefault(p.profile or "Other", []).append(p.parameter_id)
 
+        # Deliberately NOT gated on evidence level. A lone troponin is the whole point
+        # of ordering a troponin; requiring corroborating evidence before warning about
+        # it meant the most time-critical result in the system produced no warning.
+        # The reporting floor already keeps trivial findings out of `risks`.
         urgent = [r for r in risks if r.urgency_tier == "emergency"
-                  and r.evidence_level in ("High", "Moderate")]
+                  and r.score >= URGENT_SCORE_FLOOR]
 
         coverage = self._coverage_report(patient, risks)
 

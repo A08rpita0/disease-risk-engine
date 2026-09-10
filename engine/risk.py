@@ -46,6 +46,13 @@ COVERAGE_CAP_LEVEL = "Limited"
 COVERAGE_SOFT_THRESHOLD = 0.6
 COVERAGE_SOFT_CAP = "Moderate"
 
+# A finding must clear the lowest reported band before it raises a time-critical
+# warning: enough to keep a floor-scraping differential quiet, low enough that a
+# single dangerous value still warns. Tied to the band boundary rather than a magic
+# number. Gated on the SCORE, not the coverage-capped level - gating on the level is
+# what silenced a troponin sixty times the upper limit.
+URGENT_SCORE_FLOOR = 0.28
+
 URGENCY_ORDER = {"unknown": 0, "routine": 1, "monitoring": 2, "specialist": 3, "emergency": 4}
 
 
@@ -140,9 +147,13 @@ class RiskEngine:
         # `capped` means "this level is constrained by how little was measured", which is
         # true whether or not the band actually moved - a Limited finding built on 20% of
         # the relevant markers still needs that caveat shown.
+        # Thin data steps the level DOWN one band; it does not slam it to the bottom.
+        # Coverage is already folded into the score itself, so collapsing a 0.79 straight
+        # to "Limited" both double-counts it and prints a label that contradicts the
+        # number beside it.
         capped = coverage < COVERAGE_CAP_THRESHOLD
-        if coverage < COVERAGE_CAP_THRESHOLD and _rank(level) > _rank(COVERAGE_CAP_LEVEL):
-            level = COVERAGE_CAP_LEVEL
+        if coverage < COVERAGE_CAP_THRESHOLD:
+            level = _step_down(level)
         elif coverage < COVERAGE_SOFT_THRESHOLD and _rank(level) > _rank(COVERAGE_SOFT_CAP):
             level, capped = COVERAGE_SOFT_CAP, True
 
@@ -302,3 +313,11 @@ class RiskEngine:
 def _rank(level):
     order = {"Limited": 0, "Low": 1, "Moderate": 2, "High": 3}
     return order.get(level, 0)
+
+
+_LADDER = ["Limited", "Low", "Moderate", "High"]
+
+
+def _step_down(level):
+    """One band lower, floored at Limited."""
+    return _LADDER[max(0, _rank(level) - 1)]

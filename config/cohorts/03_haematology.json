@@ -717,7 +717,7 @@
       "profiles_touched": [
         "Blood Counts"
       ],
-      "min_triggers": 2,
+      "min_triggers": 1,
       "min_parameters_present": 2,
       "expected_parameters": [
         "hemoglobin",
@@ -785,7 +785,8 @@
           "weight": 0.82,
           "dm_basis": "High-Risk Indicators: 'Persistently elevated hemoglobin/hematocrit above normal range'; Related Markers/Tests: RBC count, Hemoglobin, Hematocrit"
         }
-      ]
+      ],
+      "redundancy_note": "Haemoglobin, haematocrit and RBC count are three views of one measurement (red cell mass) and share a redundancy group, so requiring two of them made the cluster discount its own second trigger. The reference criterion - 'persistently elevated haemoglobin/hematocrit above normal range' - is met by either, so one is required and agreement between them raises confidence."
     },
     {
       "id": "thrombocytopenia",
