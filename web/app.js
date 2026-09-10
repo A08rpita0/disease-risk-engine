@@ -11,6 +11,11 @@
     });
   }
   function pct(x) { return Math.round((x || 0) * 100) + "%"; }
+
+  // A patient reads words, not a 0-1 score. The number stays available under
+  // Technical details for anyone who wants it.
+  var LEVEL_WORD = { High: "Strong signal", Moderate: "Moderate signal",
+                     Low: "Weak signal", Limited: "Not enough data" };
   function num(v) {
     if (v === null || v === undefined) return "—";
     if (typeof v !== "number") return esc(v);
@@ -83,11 +88,47 @@
                " clusters detected, " + data.summary.conditions_flagged + " conditions flagged.", "info");
         render();
         $("results").hidden = false;
+        collapseUpload(data);
         $("results").scrollIntoView({ behavior: "smooth", block: "start" });
       })
       .catch(function (e) { status("Could not analyse this file: " + esc(e.message), "error"); })
       .finally(function () { $("analyseBtn").disabled = !state.file; });
   }
+
+  /* ---------------- re-run with a stated sex ---------------- */
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("#sexPrompt button[data-sex]");
+    if (!b || !state.file) return;
+    $("sexInput").value = b.dataset.sex;
+    var fd = new FormData();
+    fd.append("file", state.file);
+    fd.append("sex", b.dataset.sex);
+    if ($("ageInput").value) fd.append("age", $("ageInput").value);
+    send("/api/analyse", fd);
+  });
+
+  /* ---------------- upload card collapse ---------------- */
+
+  function collapseUpload(d) {
+    $("uploadBody").hidden = true;
+    $("reopenBtn").hidden = false;
+    $("reopenBtn").setAttribute("aria-expanded", "false");
+    var who = (d.patient && d.patient.name) ? d.patient.name : "this report";
+    $("uploadTitle").textContent = "Analysed " + who;
+  }
+
+  function expandUpload() {
+    $("uploadBody").hidden = false;
+    $("reopenBtn").hidden = true;
+    $("reopenBtn").setAttribute("aria-expanded", "true");
+    $("uploadTitle").textContent = "Analyse a report";
+  }
+
+  $("reopenBtn").addEventListener("click", function () {
+    expandUpload();
+    $("uploadCard").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 
   /* ---------------- rejected document ---------------- */
 
@@ -119,16 +160,66 @@
 
   function clearReject() { $("reject").hidden = true; }
 
-  /* ---------------- tabs ---------------- */
+  /* ---------------- tabs (ARIA tablist, arrow-key navigable) ---------------- */
+
+  function visibleTabs() {
+    return [].slice.call(document.querySelectorAll(".tab")).filter(function (t) {
+      return !t.hidden;
+    });
+  }
+
+  function selectTab(btn, focus) {
+    if (!btn || btn.hidden) return;
+    document.querySelectorAll(".tab").forEach(function (t) {
+      var on = t === btn;
+      t.classList.toggle("active", on);
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+    });
+    document.querySelectorAll(".panel").forEach(function (p) {
+      p.classList.toggle("active", p.id === "tab-" + btn.dataset.tab);
+    });
+    if (focus) btn.focus();
+  }
 
   $("tabs").addEventListener("click", function (e) {
     var b = e.target.closest(".tab");
-    if (!b) return;
-    document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
-    document.querySelectorAll(".panel").forEach(function (p) { p.classList.remove("active"); });
-    b.classList.add("active");
-    $("tab-" + b.dataset.tab).classList.add("active");
+    if (b) selectTab(b);
   });
+
+  // Left/Right move between tabs, Home/End jump to the ends - the expected
+  // keyboard behaviour for a tablist, and the only way to reach tabs without a mouse.
+  $("tabs").addEventListener("keydown", function (e) {
+    var keys = { ArrowLeft: -1, ArrowRight: 1, Home: "first", End: "last" };
+    if (!(e.key in keys)) return;
+    var tabs = visibleTabs(), i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    e.preventDefault();
+    var move = keys[e.key];
+    var next = move === "first" ? 0
+             : move === "last" ? tabs.length - 1
+             : (i + move + tabs.length) % tabs.length;
+    selectTab(tabs[next], true);
+  });
+
+  /* ---------------- technical details ---------------- */
+
+  $("techBtn").addEventListener("click", function () {
+    var on = this.getAttribute("aria-pressed") !== "true";
+    this.setAttribute("aria-pressed", on ? "true" : "false");
+    this.classList.toggle("on", on);
+    document.querySelectorAll(".tab.tech").forEach(function (t) { t.hidden = !on; });
+    document.body.classList.toggle("show-tech", on);
+    // Never leave the user staring at a panel whose tab just disappeared.
+    if (!on) {
+      var active = document.querySelector(".tab.active");
+      if (active && active.classList.contains("tech")) selectTab($("tabbtn-overview"));
+    }
+  });
+
+  /* ---------------- print ---------------- */
+
+  $("printBtn").addEventListener("click", function () { window.print(); });
 
   /* ---------------- render ---------------- */
 
@@ -154,23 +245,50 @@
   function renderOverview(d) {
     var s = d.summary, out = "";
 
+    // Printed copies need to say whose report this is; the page header is hidden on paper.
+    $("printHeader").innerHTML =
+      "<h2>Lab report analysis</h2><dl class=\"kv\">" +
+      "<dt>Patient</dt><dd>" + patientLine(d.patient) + "</dd>" +
+      "<dt>Report</dt><dd>" + esc(d.source_file) + "</dd>" +
+      "<dt>Analysed on</dt><dd>" + esc(d.generated_at.replace("T", " ")) + "</dd></dl>" +
+      '<p class="print-note">' + esc(d.disclaimer) + "</p>";
+
     out += '<div class="card"><h2>Record</h2><dl class="kv">' +
       "<dt>Patient</dt><dd>" + patientLine(d.patient) + "</dd>" +
       "<dt>Source file</dt><dd>" + esc(d.source_file) + "</dd>" +
       "<dt>Analysed</dt><dd>" + esc(d.generated_at.replace("T", " ")) + "</dd>" +
-      "<dt>Analysis confidence</dt><dd><b>" + esc(s.analysis_confidence) + "</b> — " +
+      "<dt>How complete is this</dt><dd><b>" + esc(s.analysis_confidence) + "</b> — " +
         esc(d.coverage.note) + "</dd>" +
-
       "</dl></div>";
 
+    // Sex changes several reference ranges, so say so and offer to re-run rather than
+    // burying it in the action plan after the fact.
+    if (!d.patient.sex) {
+      out += '<div class="callout warn" id="sexPrompt"><b>Sex was not stated in this report.</b> ' +
+        "Haemoglobin, ferritin, creatinine, HDL and uric acid are all read against different " +
+        "ranges for men and women, so some results here may change. " +
+        '<span class="sex-actions">Re-run as ' +
+        '<button class="ghost sm" data-sex="male">Male</button>' +
+        '<button class="ghost sm" data-sex="female">Female</button></span></div>';
+    }
+
     out += '<div class="stats">' +
-      stat(s.parameters_recognised, "parameters recognised") +
-      stat(s.abnormal_count, "abnormal", s.abnormal_count ? "alert" : "ok") +
-      stat(s.cohorts_detected, "clusters detected") +
-      stat(s.high_evidence, "high evidence", s.high_evidence ? "alert" : "") +
-      stat(s.moderate_evidence, "moderate evidence", s.moderate_evidence ? "warn" : "") +
-      stat(s.limited_evidence, "low / limited") +
+      stat(s.parameters_recognised, "results read") +
+      stat(s.abnormal_count, "outside range", s.abnormal_count ? "alert" : "ok") +
+      stat(s.high_evidence, "strong signals", s.high_evidence ? "alert" : "") +
+      stat(s.moderate_evidence, "moderate signals", s.moderate_evidence ? "warn" : "") +
+      stat(s.limited_evidence, "weak signals") +
       "</div>";
+
+    if (s.parameters_unmapped) {
+      out += '<div class="callout info">' + s.parameters_unmapped +
+        " item" + (s.parameters_unmapped === 1 ? "" : "s") + " in your report " +
+        (s.parameters_unmapped === 1 ? "was" : "were") + " not recognised as a test we " +
+        "know, so " + (s.parameters_unmapped === 1 ? "it was" : "they were") +
+        " left out of this analysis. Everything else was read normally." +
+        (document.body.classList.contains("show-tech")
+          ? "" : ' Turn on <b>Technical details</b> to see which.') + "</div>";
+    }
 
     if (d.urgent_findings.length) {
       out += '<div class="callout urgent"><b>Time-critical findings.</b> ' +
@@ -187,15 +305,21 @@
           : "All recognised parameters fall within their reference ranges.") +
         "</div>";
     } else {
-      out += '<div class="card"><h2>Top findings</h2>';
+      out += '<div class="card"><h2>What we found</h2>' +
+        '<p class="small muted" style="margin:-4px 0 12px">Strength of signal, not a ' +
+        "diagnosis. A strong signal means the pattern in your results closely matches a " +
+        "known one — it still has to be confirmed by a doctor.</p>";
       d.disease_risks.slice(0, 5).forEach(function (r) {
-        out += '<div class="contrib"><span class="badge b-' + r.evidence_level + '">' +
-          r.evidence_level + "</span><b style=\"flex:0 0 auto\">" + esc(r.name) + "</b>" +
-          '<div class="bar"><i style="width:' + pct(r.score) + '"></i></div>' +
-          '<span class="w">' + r.score.toFixed(2) + "</span></div>";
+        out += '<div class="finding-row"><span class="badge b-' + r.evidence_level + '">' +
+          esc(LEVEL_WORD[r.evidence_level] || r.evidence_level) + "</span>" +
+          "<b>" + esc(r.name) + "</b>" +
+          '<div class="bar" role="img" aria-label="' +
+            esc(LEVEL_WORD[r.evidence_level] || r.evidence_level) + ' signal">' +
+            '<i class="lv-' + r.evidence_level + '" style="width:' + pct(r.score) + '"></i></div>' +
+          '<span class="w tech-only">' + r.score.toFixed(2) + "</span></div>";
       });
-      out += '<p class="small muted" style="margin:12px 0 0">Open the <b>Disease Risks</b> tab for the ' +
-        "reasoning, triggering parameters and missing information behind each one.</p></div>";
+      out += '<p class="small muted" style="margin:12px 0 0">Open <b>What we found</b> for the ' +
+        "reasoning behind each one, and <b>Action plan</b> for what to do.</p></div>";
     }
 
     if (d.coverage.capped_note) {
@@ -227,14 +351,15 @@
       out += '<div class="risk lv-' + r.evidence_level + '" data-i="' + i + '">';
       out += '<div class="risk-head"><div><div class="risk-title">' + esc(r.name) + "</div>";
       out += '<div class="risk-meta">' +
-        '<span class="badge b-' + r.evidence_level + '">' + r.evidence_level + " evidence</span>" +
+        '<span class="badge b-' + r.evidence_level + '">' +
+          esc(LEVEL_WORD[r.evidence_level] || r.evidence_level) + "</span>" +
         '<span class="badge b-' + r.urgency_tier + '">' + esc(r.urgency_tier) + "</span>" +
         '<span class="badge b-tag">' + esc(r.classification) + "</span>" +
         (r.icd10 ? '<span class="badge b-tag">ICD-10 ' + esc(r.icd10) + "</span>" : "") +
         (r.evidence_capped ? '<span class="badge b-Limited">capped — thin data</span>' : "") +
         '<span class="small muted">' + r.profiles.map(esc).join(" · ") + "</span>" +
         "</div></div>";
-      out += '<div class="risk-score"><div class="v">' + r.score.toFixed(2) +
+      out += '<div class="risk-score tech-only"><div class="v">' + r.score.toFixed(2) +
         '</div><div class="c">evidence</div></div></div>';
 
       out += '<div class="risk-body">';
@@ -248,7 +373,8 @@
           "<span style=\"flex:0 0 auto\">" + esc(c.cohort_name) + "</span>" +
           '<div class="bar"><i style="width:' + pct(c.contribution) + '"></i></div>' +
           '<span class="w">' + c.contribution.toFixed(3) +
-          "  (w " + c.link_weight + " × conf " + c.cohort_confidence.toFixed(2) + ")</span></div>";
+          '  (w ' + c.link_weight + " × conf " + c.cohort_confidence.toFixed(2) +
+          ")</span></div>";
         if (c.dm_basis) out += '<div class="basis">Clinical basis — ' + esc(c.dm_basis) + "</div>";
       });
       out += "</div>";
@@ -400,10 +526,10 @@
   function renderParams(d) {
     var abn = d.parameters.filter(function (p) { return p.abnormal; });
     var norm = d.parameters.filter(function (p) { return !p.abnormal; });
-    var out = '<div class="card"><h2>Abnormal parameters (' + abn.length + ")</h2>";
+    var out = '<div class="card"><h2>Outside the normal range (' + abn.length + ")</h2>";
     out += abn.length ? paramTable(abn) : '<p class="muted small">None — all recognised parameters are within range.</p>';
     out += "</div>";
-    out += '<div class="card"><h2>Within range (' + norm.length + ")</h2>" +
+    out += '<div class="card"><h2>Normal results (' + norm.length + ")</h2>" +
       (norm.length ? paramTable(norm) : '<p class="muted small">None.</p>') + "</div>";
     $("tab-params").innerHTML = out;
   }
@@ -427,16 +553,18 @@
       var notes = (p.notes || []).slice();
       if (p.conversion_note) notes.push(p.conversion_note);
       if (p.derived) notes.push(p.derivation);
+      // data-label drives the stacked card layout on phones, where the header row is hidden.
       out += '<tr class="' + (p.abnormal ? "abn" : "") + '">' +
-        "<td><b>" + esc(p.name) + "</b>" +
+        '<td data-label="Test"><b>' + esc(p.name) + "</b>" +
           (p.derived ? ' <span class="badge b-tag">derived</span>' : "") + "</td>" +
-        '<td class="small muted">' + esc(p.profile || "—") + "</td>" +
-        "<td>" + value + "</td>" +
-        "<td>" + ref + '<div class="small muted">' + esc(p.reference_source) + "</div></td>" +
-        "<td>" + (p.abnormal
+        '<td data-label="Profile" class="small muted">' + esc(p.profile || "—") + "</td>" +
+        '<td data-label="Result">' + value + "</td>" +
+        '<td data-label="Normal range">' + ref +
+          '<div class="small muted">' + esc(p.reference_source) + "</div></td>" +
+        '<td data-label="Reading">' + (p.abnormal
           ? '<span class="badge b-' + (p.direction || "high") + '">' + esc(p.direction || "") + "</span> "
           : "") + '<span class="small">' + esc(p.grade_label || p.grade) + "</span></td>" +
-        '<td class="small muted">' + notes.map(esc).join("<br>") + "</td></tr>";
+        '<td data-label="Notes" class="small muted">' + notes.map(esc).join("<br>") + "</td></tr>";
     });
     return out + "</tbody></table></div>";
   }

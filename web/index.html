@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lab Report Analysis</title>
-<link rel="stylesheet" href="/static/styles.css">
+<link rel="stylesheet" href="/static/styles.css?v=2">
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <span class="mark">⬡</span>
+    <span class="mark" aria-hidden="true">⬡</span>
     <div>
       <h1>Lab Report Analysis</h1>
       <p class="sub">Understand your results and what to do next</p>
@@ -30,55 +30,93 @@
 
   <!-- ---------------- upload ---------------- -->
   <section class="card" id="uploadCard">
-    <h2>Analyse a report</h2>
-    <div class="upload-grid">
-      <div>
-        <div class="dropzone" id="dropzone" tabindex="0" role="button"
-             aria-label="Choose or drop a report file">
-          <div class="dz-icon">⇪</div>
-          <div class="dz-main">Drop a report here, or click to choose</div>
-          <div class="dz-sub">Laboratory report (PDF, CSV, TXT) or standardized JSON · max 20&nbsp;MB</div>
-          <input type="file" id="fileInput" accept=".json,.pdf,.csv,.tsv,.txt" hidden>
+    <div class="card-top">
+      <h2 id="uploadTitle">Analyse a report</h2>
+      <button id="reopenBtn" class="ghost" hidden aria-expanded="false"
+              aria-controls="uploadBody">Analyse another report</button>
+    </div>
+
+    <div id="uploadBody">
+      <div class="upload-grid">
+        <div>
+          <div class="dropzone" id="dropzone" tabindex="0" role="button"
+               aria-label="Choose or drop a report file">
+            <div class="dz-icon" aria-hidden="true">⇪</div>
+            <div class="dz-main">Drop a report here, or click to choose</div>
+            <div class="dz-sub">Laboratory report (PDF, CSV, TXT) or standardized JSON · max 20&nbsp;MB</div>
+            <input type="file" id="fileInput" accept=".json,.pdf,.csv,.tsv,.txt" hidden>
+          </div>
+          <div class="chosen" id="chosen" aria-live="polite"></div>
+          <p class="privacy">
+            <span aria-hidden="true">🔒</span>
+            Your report is analysed in memory and discarded as soon as the result is returned.
+            Nothing is stored on the server and no copy is kept.
+          </p>
         </div>
-        <div class="chosen" id="chosen"></div>
-      </div>
-      <div class="opts">
-        <label>Sex <span class="hint">improves sex-specific ranges</span>
+        <div class="opts">
+          <label for="sexInput">Sex <span class="hint">changes several reference ranges</span></label>
           <select id="sexInput">
             <option value="">Not stated / read from report</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
           </select>
-        </label>
-        <label>Age <span class="hint">optional</span>
+          <label for="ageInput">Age <span class="hint">optional</span></label>
           <input type="number" id="ageInput" min="0" max="120" step="1" placeholder="e.g. 47">
-        </label>
-        <button id="analyseBtn" class="primary" disabled>Analyse report</button>
+          <button id="analyseBtn" class="primary" disabled>Analyse report</button>
+        </div>
       </div>
     </div>
-    <div id="status" class="status" hidden></div>
+    <div id="status" class="status" hidden role="status" aria-live="polite"></div>
   </section>
 
-  <section id="reject" class="reject" hidden aria-live="polite"></section>
+  <section id="reject" class="reject" hidden role="alert" aria-live="assertive"></section>
 
   <!-- ---------------- results ---------------- -->
   <div id="results" hidden>
 
-    <nav class="tabs" id="tabs">
-      <button class="tab active" data-tab="overview">Overview</button>
-      <button class="tab" data-tab="risks">Disease Risks <span class="pill" id="pillRisks">0</span></button>
-      <button class="tab" data-tab="cohorts">Clusters <span class="pill" id="pillCohorts">0</span></button>
-      <button class="tab" data-tab="params">Parameters <span class="pill" id="pillParams">0</span></button>
-      <button class="tab" data-tab="plan">Action Plan <span class="pill" id="pillPlan">0</span></button>
-      <button class="tab" data-tab="data">Data Quality</button>
-    </nav>
+    <div id="printHeader" class="print-only"></div>
 
-    <section class="panel active" id="tab-overview"></section>
-    <section class="panel" id="tab-risks"></section>
-    <section class="panel" id="tab-cohorts"></section>
-    <section class="panel" id="tab-params"></section>
-    <section class="panel" id="tab-plan"></section>
-    <section class="panel" id="tab-data"></section>
+    <div class="results-bar">
+      <div class="rb-tabs">
+        <div class="tabs" id="tabs" role="tablist" aria-label="Analysis sections">
+          <button class="tab active" id="tabbtn-overview" data-tab="overview"
+                  role="tab" aria-selected="true" aria-controls="tab-overview" tabindex="0">
+            Overview</button>
+          <button class="tab" id="tabbtn-risks" data-tab="risks"
+                  role="tab" aria-selected="false" aria-controls="tab-risks" tabindex="-1">
+            What we found <span class="pill" id="pillRisks">0</span></button>
+          <button class="tab" id="tabbtn-plan" data-tab="plan"
+                  role="tab" aria-selected="false" aria-controls="tab-plan" tabindex="-1">
+            Action plan <span class="pill" id="pillPlan">0</span></button>
+          <button class="tab" id="tabbtn-params" data-tab="params"
+                  role="tab" aria-selected="false" aria-controls="tab-params" tabindex="-1">
+            Your results <span class="pill" id="pillParams">0</span></button>
+          <button class="tab tech" id="tabbtn-cohorts" data-tab="cohorts" hidden
+                  role="tab" aria-selected="false" aria-controls="tab-cohorts" tabindex="-1">
+            Patterns <span class="pill" id="pillCohorts">0</span></button>
+          <button class="tab tech" id="tabbtn-data" data-tab="data" hidden
+                  role="tab" aria-selected="false" aria-controls="tab-data" tabindex="-1">
+            Data quality</button>
+        </div>
+      </div>
+      <div class="rb-actions">
+        <button id="techBtn" class="ghost" aria-pressed="false">Technical details</button>
+        <button id="printBtn" class="primary sm">Print / Save as PDF</button>
+      </div>
+    </div>
+
+    <section class="panel active" id="tab-overview" role="tabpanel"
+             aria-labelledby="tabbtn-overview" tabindex="0"></section>
+    <section class="panel" id="tab-risks" role="tabpanel"
+             aria-labelledby="tabbtn-risks" tabindex="0"></section>
+    <section class="panel" id="tab-cohorts" role="tabpanel"
+             aria-labelledby="tabbtn-cohorts" tabindex="0"></section>
+    <section class="panel" id="tab-params" role="tabpanel"
+             aria-labelledby="tabbtn-params" tabindex="0"></section>
+    <section class="panel" id="tab-plan" role="tabpanel"
+             aria-labelledby="tabbtn-plan" tabindex="0"></section>
+    <section class="panel" id="tab-data" role="tabpanel"
+             aria-labelledby="tabbtn-data" tabindex="0"></section>
 
   </div>
 </main>
@@ -87,6 +125,6 @@
   <span id="footConfig"></span>
 </footer>
 
-<script src="/static/app.js"></script>
+<script src="/static/app.js?v=2"></script>
 </body>
 </html>

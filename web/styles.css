@@ -1,6 +1,6 @@
 :root{
   --bg:#f4f6f9; --surface:#ffffff; --line:#dde3ec; --line-soft:#eaeef4;
-  --ink:#16202e; --ink-2:#4a5768; --ink-3:#788396;
+  --ink:#16202e; --ink-2:#4a5768; --ink-3:#5c6675;
   --accent:#1f5f8b; --accent-soft:#e8f1f8;
   --high:#b4232c; --high-bg:#fdecec;
   --mod:#b4650f; --mod-bg:#fdf2e3;
@@ -295,20 +295,19 @@ details[open] summary{margin-bottom:8px}
   margin:0 0 8px;padding:9px 12px;background:#fff;
   border:1px solid #e2e6ea;border-left:3px solid #cfd6dd;border-radius:5px;
 }
-.plan-item::marker{color:#8a95a1;font-weight:700;font-size:12px}
+.plan-item::marker{color:#6b7683;font-weight:700;font-size:12px}
 .plan-item.p-urgent{border-left-color:#b3261e;background:#fdf6f6}
 .plan-item.p-high{border-left-color:#c77700}
 .plan-item.p-medium{border-left-color:#2b6cb0}
 .plan-item.p-low{border-left-color:#cfd6dd}
 .plan-text{font-size:13.5px;line-height:1.6;color:#16202b}
-.plan-why{margin-top:5px;font-size:11.5px;color:#8a95a1}
+.plan-why{margin-top:5px;font-size:11.5px;color:#6b7683}
 .why-k{font-weight:700;color:#a4adb6;text-transform:uppercase;letter-spacing:.05em;font-size:10px;margin-right:3px}
 .plan-flag{
   display:inline-block;margin-left:8px;padding:1px 7px;border-radius:3px;
   font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
   color:#8a4b00;background:#fdf1dd;border:1px solid #edd6ab;vertical-align:1px;
 }
-@media print{ .plan-item{break-inside:avoid} }
 
 
 /* ---------------- rejected document ---------------- */
@@ -328,7 +327,144 @@ details[open] summary{margin-bottom:8px}
   padding-top:13px;border-top:1px solid #f0e0e0;
 }
 .rj-body b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
-  color:#8a95a1;margin-bottom:5px}
+  color:#6b7683;margin-bottom:5px}
 .rj-what ul{margin:0;padding-left:18px;font-size:12.5px;line-height:1.7;color:#3f4a55}
 .rj-sig{font-size:12.5px;line-height:1.6;color:#3f4a55}
 @media(max-width:700px){ .rj-body{grid-template-columns:1fr} }
+
+/* ================= results bar, technical toggle, print button ================= */
+.results-bar{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:14px;
+  flex-wrap:wrap;margin-bottom:14px;
+}
+.rb-tabs{flex:1 1 auto;min-width:0}
+.rb-actions{display:flex;gap:8px;flex:0 0 auto}
+
+button.ghost{
+  background:#fff;border:1px solid #ccd4dc;border-radius:6px;padding:7px 12px;
+  font-size:12.5px;font-weight:600;color:#3f4a55;cursor:pointer;
+}
+button.ghost:hover{border-color:#9fb0bf;background:#f6f8fa}
+button.ghost.on{background:#12507e;border-color:#12507e;color:#fff}
+button.ghost.sm{padding:3px 9px;font-size:11.5px;margin:0 3px}
+button.primary.sm{padding:7px 13px;font-size:12.5px}
+
+/* Engine internals: hidden until the user asks for them. */
+.tech-only{display:none}
+body.show-tech .tech-only{display:inline-block}
+.risk-score.tech-only{display:none}
+body.show-tech .risk-score.tech-only{display:block}
+
+.sex-actions{display:inline-block;margin-left:4px;white-space:nowrap}
+
+.privacy{
+  margin:10px 0 0;font-size:11.5px;line-height:1.6;color:#5c6675;
+  background:#f4f7fa;border:1px solid #e0e7ee;border-radius:6px;padding:8px 10px;
+}
+
+.card-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-top h2{margin:0}
+
+.finding-row{
+  display:flex;align-items:center;gap:10px;padding:7px 0;
+  border-bottom:1px solid #eef1f4;
+}
+.finding-row:last-of-type{border-bottom:0}
+.finding-row b{flex:0 0 auto;font-size:13.5px}
+.finding-row .bar{flex:1 1 auto;min-width:60px;height:7px;background:#eef1f4;
+  border-radius:4px;overflow:hidden}
+.finding-row .bar i{display:block;height:100%;background:#2b6cb0}
+.finding-row .bar i.lv-High{background:#b3261e}
+.finding-row .bar i.lv-Moderate{background:#c77700}
+.finding-row .bar i.lv-Low{background:#1a7f4b}
+.finding-row .w{font-size:11.5px;color:#6b7683;font-variant-numeric:tabular-nums}
+
+/* ================= focus visibility (keyboard users) ================= */
+a:focus-visible, button:focus-visible, select:focus-visible,
+input:focus-visible, [tabindex]:focus-visible, .tab:focus-visible{
+  outline:2px solid #12507e;outline-offset:2px;border-radius:4px;
+}
+.panel:focus{outline:none}
+
+/* ================= phones ================= */
+@media(max-width:520px){
+  body{font-size:13.5px}
+  .topbar{flex-direction:column;align-items:flex-start;gap:8px;padding:12px 14px}
+  main{padding:0 12px}
+  .upload-grid{grid-template-columns:1fr}
+  .results-bar{flex-direction:column;align-items:stretch}
+  .rb-actions{justify-content:stretch}
+  .rb-actions button{flex:1}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;
+    scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{white-space:nowrap;flex:0 0 auto}
+  .stats{grid-template-columns:repeat(2,1fr)}
+
+  /* Wide result tables become stacked cards - a 7-column table is unusable at 400px. */
+  table.tbl thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.tbl, table.tbl tbody, table.tbl tr, table.tbl td{display:block;width:100%}
+  table.tbl tr{
+    border:1px solid #e2e6ea;border-radius:8px;margin-bottom:10px;padding:8px 10px;
+    background:#fff;
+  }
+  table.tbl td{border:0;padding:3px 0;display:flex;justify-content:space-between;gap:12px}
+  table.tbl td:before{
+    content:attr(data-label);font-weight:600;color:#5c6675;font-size:11.5px;
+    flex:0 0 44%;text-align:left;
+  }
+  table.tbl td:first-child{font-size:15px;font-weight:650;padding-bottom:6px;
+    border-bottom:1px solid #eef1f4;margin-bottom:5px}
+  table.tbl td:first-child:before{content:""}
+  .finding-row{flex-wrap:wrap}
+  .finding-row .bar{order:3;flex-basis:100%}
+}
+
+/* ================= print / save as PDF ================= */
+.print-only{display:none}
+
+@media print{
+  @page{ margin:14mm 12mm; }
+
+  body{background:#fff;color:#000;font-size:11pt}
+  /* Interface chrome carries no information on paper. */
+  .topbar, .banner, #uploadCard, #reject, .results-bar, footer,
+  button, .tabs, .rb-actions, .print-hide{display:none!important}
+
+  .print-only{display:block}
+  #printHeader{
+    border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:14px;
+  }
+  #printHeader h2{margin:0 0 6px;font-size:15pt}
+  #printHeader .kv{display:grid;grid-template-columns:110px 1fr;gap:2px 10px;font-size:10pt}
+  #printHeader .print-note{
+    margin:8px 0 0;font-size:8.5pt;font-style:italic;color:#333;line-height:1.5;
+  }
+
+  /* Every section prints, not just the tab that happened to be open. */
+  .panel{display:block!important;page-break-before:always}
+  .panel:first-of-type{page-break-before:avoid}
+  .panel:empty{display:none!important}
+
+  /* Open every collapsible so the printed copy is complete. */
+  details{display:block!important}
+  details > summary{display:none!important}
+  details > *{display:block!important}
+  .risk-body{display:block!important}
+
+  .card, .plan-item, .plan-group, .rec, .risk, .callout, .finding-row, table.tbl tr{
+    break-inside:avoid;page-break-inside:avoid;
+  }
+  .card{border:1px solid #bbb;box-shadow:none;margin-bottom:10px}
+  h2{font-size:13pt;page-break-after:avoid}
+  h3, .plan-h{font-size:11.5pt;page-break-after:avoid}
+
+  a{color:#000;text-decoration:none}
+  .bar{border:1px solid #999;height:6px}
+  .bar i{background:#555!important}
+  .tech-only{display:none!important}
+
+  table.tbl{width:100%;border-collapse:collapse;font-size:9pt}
+  table.tbl th, table.tbl td{border:1px solid #ccc;padding:3px 5px}
+  table.tbl thead{display:table-header-group}
+}
