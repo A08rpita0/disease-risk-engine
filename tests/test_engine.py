@@ -26,8 +26,8 @@ def check(name, condition, detail=""):
     RESULTS.append((bool(condition), name, detail))
 
 
-def analyse(payload, **kw):
-    return PIPE.run(payload, "test.json", **kw)
+def analyse(payload, filename="test.json", **kw):
+    return PIPE.run(payload, filename, **kw)
 
 
 def param(result, pid):
@@ -408,10 +408,70 @@ def test_file_formats():
 
 def test_empty_and_garbage_input():
     r = analyse({"nothing": "here"})
-    check("an empty payload degrades gracefully",
-          r["summary"]["parameters_recognised"] == 0 and not r["disease_risks"])
+    check("an empty payload is refused rather than analysed",
+          r["analysed"] is False and r["summary"]["parameters_recognised"] == 0)
+    check("an empty payload carries no risk findings",
+          "disease_risks" not in r)
     obs, ctx, warn = extract(b"this is not a lab report at all", "junk.txt")
-    check("unparseable text yields a warning rather than an exception", bool(warn))
+    check("unparseable text does not raise", isinstance(obs, list))
+
+
+# ------------------------------------------------- is this a lab report at all?
+
+NOT_REPORTS = [
+    ("an invoice",
+     b"INVOICE #4471\nAcme Consulting Pvt Ltd\nConsulting services August 2026\n"
+     b"Subtotal 45000\nTax 8100\nTotal Due 53100\nPayment within 30 days."),
+    ("a CV mentioning iron",
+     b"CURRICULUM VITAE\nLuv Arora\nSoftware Engineer\nSkills: Python, Iron-clad testing\n"
+     b"Experience: 6 years\nEducation: B.Tech 2019"),
+    ("a recipe mentioning sugar and iron",
+     b"Gajar Halwa\nIngredients: 1 kg carrots, 200 g sugar, 1 litre milk.\n"
+     b"Carrots are rich in iron and vitamin A.\nSimmer 40 minutes, add sugar."),
+    ("a rental agreement",
+     b"RENTAL AGREEMENT between Lessor and Lessee for 14 MG Road. Monthly rent Rs 35000 "
+     b"payable on the 5th. Security deposit Rs 210000. Term 11 months."),
+    ("a bank statement",
+     b"ACCOUNT STATEMENT\n01 Aug Opening balance 128400.50\n04 Aug UPI transfer 2300.00\n"
+     b"11 Aug Salary credit 95000.00\n28 Aug Closing balance 221100.50"),
+]
+
+
+def test_generic_documents_are_refused():
+    for label, data in NOT_REPORTS:
+        r = analyse(data, "doc.txt")
+        check("%s is not analysed" % label, r["analysed"] is False,
+              "status=%s params=%d" % (r.get("document", {}).get("status"),
+                                       r["summary"]["parameters_recognised"]))
+        check("%s is told why" % label,
+              bool(r["document"]["title"]) and bool(r["document"]["guidance"]))
+
+
+def test_blank_file_is_reported_as_unreadable():
+    r = analyse(b"   \n  \n", "blank.txt")
+    check("a blank file is flagged unreadable, not 'not a report'",
+          r["document"]["status"] == "unreadable", r["document"]["status"])
+    r = analyse(b'{"note":"hello"}', "note.json")
+    check("a readable file with no tests is 'not a report', not 'unreadable'",
+          r["document"]["status"] == "not_a_report", r["document"]["status"])
+
+
+def test_real_reports_are_still_analysed():
+    cases = [
+        ("a sparse single-spaced text report",
+         b"LABORATORY REPORT\nPatient: Mr Luv Arora\nHaemoglobin 11.2 g/dL (13.0-17.0)\n"
+         b"Serum Creatinine 1.6 mg/dL (0.7-1.3)\nTSH 9.4 uIU/mL", "sparse.txt"),
+        ("a two-test JSON payload",
+         {"PatientName": "A", "tests": [
+             {"test_name": "TSH", "value": 9.4, "unit": "uIU/mL"},
+             {"test_name": "Free T4", "value": 0.6, "unit": "ng/dL"}]}, "r.json"),
+        ("a single qualitative result",
+         {"tests": [{"test_name": "Dengue NS1 Antigen", "value": "Positive"}]}, "d.json"),
+    ]
+    for label, data, name in cases:
+        r = analyse(data, name)
+        check("%s is analysed" % label, r["analysed"] is True,
+              "status=%s" % r.get("document", {}).get("status"))
 
 
 # ---------------------------------------------------------------- run

@@ -13,7 +13,8 @@ import datetime
 
 from .cohorts import CohortEngine
 from .config import get_config
-from .extract import extract
+from .doccheck import assess
+from .extract import extract_with_text
 from .models import PatientContext
 from .normalize import Normalizer
 from .recommend import RecommendationEngine
@@ -36,7 +37,7 @@ class Pipeline:
         self.rec_engine = RecommendationEngine(self.cfg)
 
     def run(self, data, filename="input", sex=None, age=None, patient_id=None):
-        observations, context, warnings = extract(data, filename)
+        observations, context, warnings, raw_text = extract_with_text(data, filename)
 
         # Caller-supplied demographics win over anything scraped from the document,
         # because the caller is stating them explicitly.
@@ -50,17 +51,45 @@ class Pipeline:
             context = PatientContext(source_file=filename)
 
         patient = self.normalizer.build(observations, context, warnings)
+
+        # Stage 0: refuse to "analyse" something that is not a laboratory report.
+        # Returned rather than raised, so every caller sees the same verdict object.
+        document = assess(patient, observations, raw_text, warnings)
+        if not document["is_report"]:
+            return self._rejected(patient, observations, document, filename)
+
         cohort_hits, cohorts_skipped = self.cohort_engine.detect(patient)
         risks = self.risk_engine.score(patient, cohort_hits)
         recommendations = self.rec_engine.build(patient, cohort_hits, risks)
 
         return self._assemble(patient, observations, cohort_hits, cohorts_skipped,
-                              risks, recommendations, filename)
+                              risks, recommendations, filename, document)
 
     # ------------------------------------------------------------------
 
+    def _rejected(self, patient, observations, document, filename):
+        """A minimal, honest response for a document that is not a lab report.
+
+        No parameters, no clusters, no risks - producing an empty dashboard for an
+        unrelated file would imply the analysis ran and found nothing wrong.
+        """
+        return {
+            "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
+            "source_file": filename,
+            "analysed": False,
+            "document": document,
+            "disclaimer": DISCLAIMER,
+            "patient": patient.context.to_dict(),
+            "warnings": patient.extraction_warnings,
+            "summary": {
+                "observations_found": len(observations),
+                "parameters_recognised": len(patient.parameters),
+                "abnormal_count": 0, "cohorts_detected": 0, "conditions_flagged": 0,
+            },
+        }
+
     def _assemble(self, patient, observations, cohort_hits, cohorts_skipped,
-                  risks, recommendations, filename):
+                  risks, recommendations, filename, document=None):
         params = list(patient.parameters.values())
         abnormal = [p for p in params if p.abnormal]
 
@@ -76,6 +105,8 @@ class Pipeline:
         return {
             "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
             "source_file": filename,
+            "analysed": True,
+            "document": document,
             "disclaimer": DISCLAIMER,
             "provenance": {
                 "disease_master_source": self.cfg.dm_meta.get("source_file"),

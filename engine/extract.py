@@ -374,6 +374,18 @@ LINE_RE = re.compile(
     r"(?:\s{2,}(?P<range>[<>≤≥]?\s*[-+]?\d[\d.,]*\s*(?:[-–—]|to)?\s*[\d.,]*\s*[A-Za-zµ%/^\d.\-]*))?"
     r"\s*(?P<flag>\b(?:H|L|HIGH|LOW|ABNORMAL|NORMAL|BORDERLINE)\b)?\s*$")
 
+# 'Haemoglobin 11.2 g/dL (13.0-17.0)'  /  'TSH: 9.4 uIU/mL'
+# Single-spaced lines, which column-based LINE_RE cannot see. Matching these loosely
+# would pull numbers out of ordinary prose ("Payment within 30 days"), so a unit or a
+# bracketed reference range is REQUIRED - that is what makes a line a measurement.
+LINE_RE_TIGHT = re.compile(
+    r"^(?P<name>[A-Za-z][A-Za-z0-9 ,.\-/()%'+&]{2,60}?)"
+    r"\s*[:\-]?\s+"
+    r"(?P<value>[<>]?\s*[-+]?\d[\d,]*\.?\d*)"
+    r"(?:\s*(?P<unit>[A-Za-zµ%][A-Za-zµ%/^\d.\-]{0,17}))?"
+    r"(?:\s*[\(\[]\s*(?P<range>[<>≤≥]?\s*[-+]?[\d.,]+\s*(?:[-–—]|to)\s*[\d.,]+)\s*[^\s]*\s*[\)\]])?"
+    r"\s*(?P<flag>\b(?:H|L|HIGH|LOW)\b)?\s*$")
+
 
 def extract_free_text(text, source_name="input.txt"):
     """Line-oriented parsing for reports whose layout defeats table detection."""
@@ -384,7 +396,11 @@ def extract_free_text(text, source_name="input.txt"):
             continue
         m = LINE_RE.match(line)
         if not m:
-            continue
+            m = LINE_RE_TIGHT.match(line)
+            # A single-spaced line only counts as a result if it carries a unit or a
+            # reference range; otherwise it is prose that happens to contain a number.
+            if not m or not (m.group("unit") or m.group("range")):
+                continue
         g = m.groupdict()
         name = g["name"].strip(" .:-")
         value = (g["value"] or "").strip()
@@ -467,7 +483,7 @@ def extract_pdf(data, source_name="input.pdf"):
     try:
         import pdfplumber
     except ImportError:
-        return [], PatientContext(source_file=source_name), ["pdfplumber is not installed"]
+        return [], PatientContext(source_file=source_name), ["pdfplumber is not installed"], ""
 
     obs, warnings, text_parts = [], [], []
     with pdfplumber.open(io.BytesIO(data)) as pdf:
@@ -488,16 +504,31 @@ def extract_pdf(data, source_name="input.pdf"):
         warnings.append("this PDF has no extractable text layer - it is probably a scan, "
                         "and would need OCR before it can be read")
     ctx = _context_from_text(full_text, source_name)
-    return obs, ctx, warnings
+    return obs, ctx, warnings, full_text
 
 
 # ------------------------- entry point -------------------------
 
 def extract(data, filename):
-    """Dispatch on file extension. `data` is bytes; JSON may also be passed as an object."""
+    """Dispatch on file extension. `data` is bytes; JSON may also be passed as an object.
+
+    Returns (observations, context, warnings) - the historic three-value form.
+    """
+    return extract_with_text(data, filename)[:3]
+
+
+def extract_with_text(data, filename):
+    """As `extract`, plus the raw text the file yielded.
+
+    That text is what lets the document check separate a sparse laboratory report from
+    an unrelated document that happens to mention one test name.
+    """
     lower = (filename or "").lower()
+
     if isinstance(data, (dict, list)):
-        return extract_json(data, filename or "payload.json")
+        obs, ctx, w = extract_json(data, filename or "payload.json")
+        return obs, ctx, w, json.dumps(data, default=str)
+
     if isinstance(data, bytes):
         if lower.endswith(".pdf") or data[:5] == b"%PDF-":
             return extract_pdf(data, filename)
@@ -508,15 +539,17 @@ def extract(data, filename):
     stripped = text.lstrip()
     if lower.endswith(".json") or stripped[:1] in "{[":
         try:
-            return extract_json(json.loads(text), filename)
+            obs, ctx, w = extract_json(json.loads(text), filename)
+            return obs, ctx, w, text
         except json.JSONDecodeError as e:
-            return [], PatientContext(source_file=filename), ["invalid JSON: %s" % e]
+            return [], PatientContext(source_file=filename), ["invalid JSON: %s" % e], text
     if lower.endswith((".csv", ".tsv")):
-        return extract_csv(text, filename)
+        obs, ctx, w = extract_csv(text, filename)
+        return obs, ctx, w, text
 
     ctx = _context_from_text(text, filename)
     if text.count(",") + text.count("\t") > max(10, text.count("\n")):
         obs, _, w = extract_csv(text, filename)
-        return obs, ctx, w
+        return obs, ctx, w, text
     obs, w = extract_free_text(text, filename)
-    return obs, ctx, w
+    return obs, ctx, w, text

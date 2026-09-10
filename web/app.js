@@ -60,16 +60,23 @@
   });
 
   function send(url, fd) {
+    clearReject();
     $("analyseBtn").disabled = true;
     status('<span class="spin"></span>Reading your report and checking it against clinical guidelines…');
     fetch(url, { method: "POST", body: fd })
       .then(function (r) {
         return r.json().then(function (body) {
-          if (!r.ok) throw new Error(body.detail || ("HTTP " + r.status));
+          if (!r.ok) {
+            // Not a laboratory report: show what we looked for, not a raw error.
+            if (body.document) { rejectDocument(body.document); return null; }
+            throw new Error(body.detail || ("HTTP " + r.status));
+          }
           return body;
         });
       })
+      .then(function (data) { return data; })
       .then(function (data) {
+        if (!data) return;                 // already handled as a rejected document
         state.result = data;
         status("Analysis complete — " + data.summary.parameters_recognised +
                " parameters recognised, " + data.summary.cohorts_detected +
@@ -81,6 +88,36 @@
       .catch(function (e) { status("Could not analyse this file: " + esc(e.message), "error"); })
       .finally(function () { $("analyseBtn").disabled = !state.file; });
   }
+
+  /* ---------------- rejected document ---------------- */
+
+  function rejectDocument(doc) {
+    state.result = null;
+    $("results").hidden = true;            // no empty dashboard behind the message
+
+    var s = doc.signals || {};
+    var detail = doc.status === "unreadable"
+      ? "No readable text was found in this file."
+      : "Read " + (s.text_characters || 0).toLocaleString() + " characters, of which " +
+        (s.parameters_recognised || 0) + " matched a known health parameter.";
+
+    $("status").hidden = true;
+    $("reject").hidden = false;
+    $("reject").innerHTML =
+      '<div class="rj-head"><span class="rj-icon">!</span><div>' +
+        "<h2>" + esc(doc.title) + "</h2>" +
+        '<p class="rj-sub">' + esc(doc.guidance) + "</p></div></div>" +
+      '<div class="rj-body">' +
+        '<div class="rj-what"><b>What we can read</b><ul>' +
+        (doc.accepted_formats || []).map(function (f) {
+          return "<li>" + esc(f) + "</li>";
+        }).join("") + "</ul></div>" +
+        '<div class="rj-sig"><b>What this file looked like</b><br>' + esc(detail) + "</div>" +
+      "</div>";
+    $("reject").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function clearReject() { $("reject").hidden = true; }
 
   /* ---------------- tabs ---------------- */
 

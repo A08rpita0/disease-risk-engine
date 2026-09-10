@@ -179,11 +179,15 @@ async def analyse_upload(file: UploadFile = File(...),
         raise HTTPException(status_code=422,
                             detail="could not analyse this file: %s" % exc) from exc
 
-    if result["summary"]["parameters_recognised"] == 0:
-        result["warnings"] = list(result.get("warnings", [])) + [
-            "No laboratory parameters were recognised in this file. If it is a scanned PDF "
-            "it has no text layer and would need OCR; if it is JSON, check that test names "
-            "and values are present."]
+    # A document that is not a laboratory report is rejected outright rather than
+    # analysed into an empty dashboard. 422: the upload was well-formed, but it is not
+    # something this service can act on.
+    if not result.get("analysed", True):
+        return JSONResponse(status_code=422, content={
+            "detail": result["document"]["title"],
+            "document": result["document"],
+            "source_file": result["source_file"],
+        })
     return JSONResponse(result)
 
 
