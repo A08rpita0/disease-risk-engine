@@ -208,5 +208,11 @@ class Recommendation:
     because: str                            # what triggered it
     sources: list = field(default_factory=list)   # disease names / parameter ids
 
+    # --- grouping and evidence, so the plan can be read per finding -------------
+    finding: str = ""                       # the one thing this step is about
+    finding_kind: str = ""                  # condition | pattern | parameter | general
+    values: list = field(default_factory=list)    # the measured results behind it
+    timeframe: str = ""                     # "4-6 weeks" etc., lifted out of the text
+
     def to_dict(self):
         return asdict(self)

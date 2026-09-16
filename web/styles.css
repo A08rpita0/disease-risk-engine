@@ -309,6 +309,63 @@ details[open] summary{margin-bottom:8px}
   color:#8a4b00;background:#fdf1dd;border:1px solid #edd6ab;vertical-align:1px;
 }
 
+/* Steps carry the measured result that prompted them, so the plan can be read
+   without cross-referencing the results table. */
+.step{
+  margin:0 0 8px;padding:9px 12px;background:#fff;
+  border:1px solid #e2e6ea;border-left:3px solid #cfd6dd;border-radius:5px;
+}
+.step::marker{color:#6b7683;font-weight:700;font-size:12px}
+.step.p-urgent{border-left-color:#b3261e;background:#fdf6f6}
+.step.p-high{border-left-color:#c77700}
+.step.p-medium{border-left-color:#2b6cb0}
+.step.p-low{border-left-color:#cfd6dd}
+.step-top{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.step-cat{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  color:#5b6672;
+}
+.step-when{
+  font-size:10.5px;font-weight:600;color:#1d3f5e;background:#eef4fb;
+  border:1px solid #c4d9ec;border-radius:3px;padding:1px 6px;
+}
+.step-flag{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  color:#8a4b00;background:#fdf1dd;border:1px solid #edd6ab;
+  border-radius:3px;padding:1px 6px;
+}
+.step-text{font-size:13.5px;line-height:1.6;color:#16202b}
+
+.finding-group .plan-h{margin-bottom:8px}
+.plan-values{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 10px}
+.vchip{
+  font-size:11.5px;color:#3c4854;background:#f6f8fa;
+  border:1px solid #e2e6ea;border-radius:4px;padding:3px 9px;
+}
+.vchip b{font-weight:600;color:#16202b}
+.vchip.in-range{background:#fbfcfd}
+.vnum{font-weight:700;color:#b3261e}
+.vchip.in-range .vnum{color:#1d3f5e}
+.vref{color:#8a929b}
+.vread{color:#5b6672;font-style:italic}
+
+.sched{border:1px solid #e2e6ea;border-radius:6px;overflow:hidden;background:#fff}
+.sched-row{
+  display:flex;gap:12px;align-items:baseline;padding:9px 12px;
+  border-top:1px solid #eef1f4;font-size:13px;line-height:1.55;color:#16202b;
+}
+.sched-row:first-child{border-top:0}
+.sched-when{
+  flex:0 0 118px;font-size:11.5px;font-weight:700;color:#1d3f5e;
+}
+.sched-when::first-letter{text-transform:uppercase}
+
+@media (max-width:620px){
+  .sched-row{flex-direction:column;gap:3px}
+  .sched-when{flex:none}
+  .plan-values{gap:5px}
+}
+
 
 /* ---------------- rejected document ---------------- */
 .reject{
@@ -452,7 +509,7 @@ input:focus-visible, [tabindex]:focus-visible, .tab:focus-visible{
   details > *{display:block!important}
   .risk-body{display:block!important}
 
-  .card, .plan-item, .plan-group, .rec, .risk, .callout, .finding-row, table.tbl tr{
+  .card, .plan-item, .step, .plan-group, .sched-row, .rec, .risk, .callout, .finding-row, table.tbl tr{
     break-inside:avoid;page-break-inside:avoid;
   }
   .card{border:1px solid #bbb;box-shadow:none;margin-bottom:10px}

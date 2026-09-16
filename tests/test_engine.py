@@ -1005,6 +1005,72 @@ def test_real_reports_are_still_analysed():
               "status=%s" % r.get("document", {}).get("status"))
 
 
+def test_the_action_plan_is_grouped_and_evidenced():
+    """Every step used to arrive under its own category heading with no value attached:
+    vitamin D alone produced five items across three headings and not one of them
+    quoted the 14.2 that prompted them."""
+    r = analyse({"Gender": "male", "Age": 34, "tests": [
+        {"test_name": "Vitamin D (25-OH)", "value": 14.2, "unit": "ng/mL",
+         "reference_range": "30 - 100"},
+        {"test_name": "Apolipoproteins A1", "value": 115, "unit": "mg/dL"},
+        {"test_name": "Apolipoproteins B", "value": 142, "unit": "mg/dL",
+         "reference_range": "66 - 133"}]})
+    recs = r["recommendations"]
+    check("the plan still has steps", len(recs) > 0)
+
+    for rec in recs:
+        check("every step names the finding it is about (%s)" % rec["category"],
+              bool(rec["finding"]), rec["text"][:40])
+
+    vd = [x for x in recs if x["finding"] == "Vitamin D Deficiency"]
+    check("vitamin D advice lands under one finding", len(vd) >= 2,
+          "%d items" % len(vd))
+    check("no two vitamin D steps share a category",
+          len({x["category"] for x in vd}) == len(vd),
+          str([x["category"] for x in vd]))
+    check("vitamin D steps quote the measured 14.2",
+          all(any(v["value"] == 14.2 for v in x["values"]) for x in vd))
+
+    apo = [x for x in recs if x["values"] and
+           any(v["name"].startswith("Apolipoprotein B") for v in x["values"])]
+    check("ApoB steps quote 142, not the ratio",
+          apo and all(any(v["value"] == 142 for v in x["values"]) for x in apo),
+          str([[(v["name"], v["value"]) for v in x["values"]] for x in apo]))
+
+
+def test_a_step_quotes_a_trigger_that_the_lab_called_normal():
+    """TSH 5.05 falls inside a 0.54-5.3 lab range but in the 4-10 subclinical band that
+    fires the pattern. Filtering the plan's evidence on the lab flag alone hid the one
+    number the advice is about."""
+    r = analyse({"Gender": "male", "Age": 40, "tests": [
+        {"test_name": "TSH", "value": 5.05, "unit": "uIU/mL",
+         "reference_range": "0.54 - 5.3"}]})
+    vals = [v for rec in r["recommendations"] for v in rec["values"]
+            if v["name"] == "TSH"]
+    check("the subclinical TSH is shown", bool(vals), str(r["recommendations"])[:120])
+    if vals:
+        check("it is marked as inside the lab range", vals[0]["in_range"] is True)
+        check("and carries the band that flagged it",
+              "subclinical" in (vals[0]["reading"] or "").lower(),
+              str(vals[0]["reading"]))
+
+
+def test_follow_up_timing_is_lifted_out_of_the_prose():
+    from engine.recommend import TIMEFRAME_RE
+    for text, expected in [("a repeat liver panel in 4-6 weeks to see", "in 4-6 weeks"),
+                           ("recheck PTH after 8-12 weeks of", "after 8-12 weeks"),
+                           ("a repeat sample 6-8 weeks apart", "6-8 weeks"),
+                           ("review every 6 months with", "every 6 months")]:
+        m = TIMEFRAME_RE.search(text)
+        check("%r -> %r" % (text[:24], expected), m and m.group(0) == expected,
+              "got %s" % (m and m.group(0)))
+    for text in ["15-30 minutes of sunlight on arms",
+                 "separate it by at least 4 hours from iron"]:
+        check("no false schedule in %r" % text[:26],
+              TIMEFRAME_RE.search(text) is None,
+              "got %s" % (TIMEFRAME_RE.search(text) or [None]))
+
+
 # ---------------------------------------------------------------- run
 
 def main():

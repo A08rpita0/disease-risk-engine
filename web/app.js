@@ -649,86 +649,131 @@
     return out + "</tbody></table></div>";
   }
 
-  /* The plan is grouped by what the person actually has to DO, in the order they would
-     do it — not by an abstract priority label. Each step is one numbered line. */
-  var PLAN_STEPS = [
-    { key: "Urgent", title: "Do this now",
-      lead: "These need attention before anything else." },
-    { key: "Consultation", title: "Talk to a doctor about",
-      lead: "Take this report with you and raise these points." },
-    { key: "Testing", title: "Tests to get done",
-      lead: "These would confirm or rule out what was flagged." },
-    { key: "Monitoring", title: "Keep an eye on",
-      lead: "Track these so changes are noticed early." },
-    { key: "Diet", title: "Food and drink",
-      lead: "Changes that act directly on the results flagged above." },
-    { key: "Activity", title: "Physical activity", lead: "" },
-    { key: "Lifestyle", title: "Everyday habits", lead: "" }
-  ];
+  /* The plan is grouped by the FINDING it is about, with the measured result beside
+     it. Grouping by action category scattered five separate vitamin D steps across
+     Consultation, Diet, Lifestyle and Testing, and not one of them quoted the 14.2
+     that prompted them. */
+  var CAT_LABEL = {
+    Urgent: "Urgent", Consultation: "Talk to your doctor", Testing: "Tests",
+    Monitoring: "Monitor", Diet: "Food", Activity: "Activity", Lifestyle: "Daily habits"
+  };
+  var CAT_ORDER = ["Urgent", "Consultation", "Testing", "Monitoring", "Diet",
+                   "Activity", "Lifestyle"];
+
+  function valueChip(v) {
+    var ref = "";
+    if (v.reference_low !== null && v.reference_low !== undefined &&
+        v.reference_high !== null && v.reference_high !== undefined) {
+      ref = num(v.reference_low) + "–" + num(v.reference_high);
+    } else if (v.reference_high !== null && v.reference_high !== undefined) {
+      ref = "up to " + num(v.reference_high);
+    }
+    /* A value can be inside the lab's own range and still be what fired the finding
+       (TSH 5.05 in a 0.54-5.3 range sits in the 4-10 subclinical band). Showing it in
+       the same alarm colour as a genuinely out-of-range result would be misleading,
+       so it is kept neutral and the band it fell into is spelled out instead. */
+    return '<span class="vchip' + (v.in_range ? " in-range" : "") + '"><b>' +
+      esc(v.name) + "</b> " +
+      '<span class="vnum">' + (typeof v.value === "number" && Math.abs(v.value) >= 1
+        ? num(Math.round(v.value * 100) / 100) : num(v.value)) + "</span>" +
+      (v.unit ? " " + esc(v.unit) : "") +
+      (ref ? ' <span class="vref">ref ' + esc(ref) + "</span>" : "") +
+      (v.reading ? ' <span class="vread">' + esc(v.reading) + "</span>" : "") +
+      "</span>";
+  }
+
+  function stepItem(r, n) {
+    return '<li class="step p-' + r.priority + '">' +
+      '<div class="step-top"><span class="step-cat">' +
+        esc(CAT_LABEL[r.category] || r.category) + "</span>" +
+      (r.timeframe ? '<span class="step-when">' + esc(r.timeframe) + "</span>" : "") +
+      (r.priority === "urgent"
+        ? '<span class="step-flag">Urgent</span>' : "") +
+      "</div>" +
+      '<div class="step-text">' + esc(r.text) + "</div></li>";
+  }
 
   function renderPlan(d) {
-    if (!d.recommendations.length) {
+    var recs = d.recommendations || [];
+    if (!recs.length) {
       $("tab-plan").innerHTML = '<div class="empty">No recommendations.</div>';
       return;
     }
 
-    var byCat = {};
-    d.recommendations.forEach(function (r) {
-      (byCat[r.category] = byCat[r.category] || []).push(r);
-    });
-    // Most important first inside each group.
     var rank = { urgent: 0, high: 1, medium: 2, low: 3 };
-    Object.keys(byCat).forEach(function (k) {
-      byCat[k].sort(function (a, b) { return rank[a.priority] - rank[b.priority]; });
+
+    // --- group by finding, keeping the strongest finding first ---
+    var groups = {}, order = [];
+    recs.forEach(function (r) {
+      var k = r.finding || "General";
+      if (!groups[k]) { groups[k] = { name: k, kind: r.finding_kind, items: [], values: [] }; order.push(k); }
+      groups[k].items.push(r);
+      (r.values || []).forEach(function (v) {
+        if (!groups[k].values.some(function (x) { return x.name === v.name; })) {
+          groups[k].values.push(v);
+        }
+      });
+    });
+    order.sort(function (a, b) {
+      var ga = groups[a], gb = groups[b];
+      if ((ga.name === "General") !== (gb.name === "General")) return ga.name === "General" ? 1 : -1;
+      return Math.min.apply(null, ga.items.map(function (r) { return rank[r.priority]; })) -
+             Math.min.apply(null, gb.items.map(function (r) { return rank[r.priority]; }));
     });
 
-    var urgentCount = d.recommendations.filter(function (r) {
+    var urgent = recs.filter(function (r) {
       return r.priority === "urgent" || r.priority === "high";
-    }).length;
+    });
+    var scheduled = recs.filter(function (r) { return r.timeframe; });
 
-    var out = '<div class="plan-intro">' +
-      "<b>Your action plan.</b> " + d.recommendations.length + " steps, grouped by what to do. " +
-      (urgentCount ? "<b>" + urgentCount + "</b> need attention sooner rather than later. " : "") +
-      "None of this is a prescription — it is what to discuss and check with your doctor." +
-      "</div>";
+    var out = '<div class="plan-intro"><b>Your action plan.</b> ' + recs.length +
+      " steps across " + order.length + " finding" + (order.length === 1 ? "" : "s") +
+      (urgent.length ? ", <b>" + urgent.length + "</b> worth raising sooner rather than later" : "") +
+      ". Nothing here is a prescription — it is what to discuss and check with your doctor.</div>";
 
-    var n = 0;
-    PLAN_STEPS.forEach(function (step) {
-      var items = byCat[step.key];
-      if (!items || !items.length) return;
-
-      out += '<section class="plan-group">' +
-        '<h3 class="plan-h">' + esc(step.title) +
-        '<span class="plan-n">' + items.length + "</span></h3>" +
-        (step.lead ? '<p class="plan-lead">' + esc(step.lead) + "</p>" : "") +
-        '<ol class="plan-list">';
-
-      items.forEach(function (r) {
-        n++;
-        var flag = (r.priority === "urgent" || r.priority === "high")
-          ? ' <span class="plan-flag">Priority</span>' : "";
-        out += '<li class="plan-item p-' + r.priority + '">' +
-          '<div class="plan-text">' + esc(r.text) + flag + "</div>" +
-          '<div class="plan-why"><span class="why-k">Why</span> ' + esc(r.because) + "</div></li>";
+    // --- start here ---
+    if (urgent.length) {
+      out += '<section class="plan-group"><h3 class="plan-h">Start here' +
+        '<span class="plan-n">' + Math.min(3, urgent.length) + "</span></h3>" +
+        '<p class="plan-lead">If you do nothing else, do these.</p><ol class="plan-list">';
+      urgent.slice(0, 3).forEach(function (r) {
+        out += '<li class="step p-' + r.priority + '"><div class="step-top">' +
+          '<span class="step-cat">' + esc(r.finding) + "</span></div>" +
+          '<div class="step-text">' + esc(r.text) + "</div></li>";
       });
+      out += "</ol></section>";
+    }
 
+    // --- by finding ---
+    order.forEach(function (k) {
+      var g = groups[k];
+      g.items.sort(function (a, b) {
+        var d1 = rank[a.priority] - rank[b.priority];
+        return d1 || (CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category));
+      });
+      out += '<section class="plan-group finding-group">' +
+        '<h3 class="plan-h">' + esc(g.name) +
+        '<span class="plan-n">' + g.items.length + "</span></h3>";
+      if (g.values.length) {
+        out += '<div class="plan-values">' + g.values.map(valueChip).join("") + "</div>";
+      }
+      out += '<ol class="plan-list">';
+      g.items.forEach(function (r, i) { out += stepItem(r, i); });
       out += "</ol></section>";
     });
 
-    // Anything with a category outside the ordered list still has to appear.
-    var extra = Object.keys(byCat).filter(function (k) {
-      return !PLAN_STEPS.some(function (s) { return s.key === k; });
-    });
-    extra.forEach(function (k) {
-      out += '<section class="plan-group"><h3 class="plan-h">' + esc(k) +
-        '<span class="plan-n">' + byCat[k].length + "</span></h3><ol class=\"plan-list\">";
-      byCat[k].forEach(function (r) {
-        out += '<li class="plan-item p-' + r.priority + '"><div class="plan-text">' +
-          esc(r.text) + '</div><div class="plan-why"><span class="why-k">Why</span> ' +
-          esc(r.because) + "</div></li>";
+    // --- follow-up schedule ---
+    if (scheduled.length) {
+      out += '<section class="plan-group"><h3 class="plan-h">Follow-up schedule' +
+        '<span class="plan-n">' + scheduled.length + "</span></h3>" +
+        '<p class="plan-lead">Re-tests worth booking, with the timing suggested above.</p>' +
+        '<div class="sched">';
+      scheduled.forEach(function (r) {
+        out += '<div class="sched-row"><span class="sched-when">' + esc(r.timeframe) +
+          "</span><span>" + esc(r.finding) + " — " + esc(r.text) + "</span></div>";
       });
-      out += "</ol></section>";
-    });
+      out += "</div></section>";
+    }
 
     $("tab-plan").innerHTML = out;
   }
