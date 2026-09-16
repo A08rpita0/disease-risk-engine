@@ -668,6 +668,170 @@ def test_I_healthy_report_has_no_pattern_explosion():
           not r["direct_findings"] and not r["pattern_findings"])
 
 
+# ================= audit fixes: numeric results on qualitative tests =================
+
+def test_bare_number_on_a_qualitative_test_is_equivocal_not_positive():
+    """44 of 45 qualitative parameters used to read any number > 0 as positive, so an
+    index result of 0.2 fabricated a finding. Without a declared cut-off the honest
+    answer is equivocal: it fires neither a positive trigger nor a negative veto."""
+    for test_name, pid in [("Dengue NS1 Antigen", "dengue_ns1"), ("Anti HCV", "anti_hcv"),
+                           ("HIV", "hiv_screen"), ("Malaria Antigen", "malaria_antigen")]:
+        r = analyse({"Gender": "male", "tests": [{"test_name": test_name, "value": 0.2}]})
+        p = param(r, pid)
+        check("%s 0.2 is equivocal, not positive" % test_name,
+              p and p["status"] == "indeterminate",
+              "status=%s" % (p["status"] if p else None))
+        check("%s 0.2 is not flagged abnormal" % test_name, p and not p["abnormal"])
+
+
+def test_equivocal_result_neither_triggers_nor_vetoes():
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Dengue NS1 Antigen", "value": 0.4},
+        {"test_name": "Dengue IgM", "value": 0.4},
+        {"test_name": "Platelet Count", "value": 46000, "unit": "/uL"}]})
+    check("an equivocal serology does not raise the disease",
+          "Dengue Fever" not in [x["name"] for x in r["disease_risks"]])
+    check("an equivocal serology does not veto the disease either",
+          not [s for s in r["suppressed_findings"] if s.get("disease") == "Dengue Fever"],
+          "suppressed=%s" % [s.get("disease") for s in r["suppressed_findings"]])
+
+
+def test_dipstick_and_titre_notation_still_read_as_positive():
+    """Notation must keep working - these are facts about how a result is written,
+    not clinical thresholds."""
+    for value, pid, name in [("3+", "urine_protein", "Urine Protein"),
+                             ("2+", "urine_blood", "Urine Blood"),
+                             ("1:160", "widal_test", "Widal Test"),
+                             ("1:8", "vdrl_rpr", "VDRL")]:
+        r = analyse({"Gender": "male", "tests": [{"test_name": name, "value": value}]})
+        p = param(r, pid)
+        check("%s %r still reads as positive" % (name, value),
+              p and p["status"] == "positive", "status=%s" % (p["status"] if p else None))
+
+
+def test_trace_result_is_recorded_not_dropped():
+    """'Trace' returned None, which silently discarded the parameter entirely."""
+    r = analyse({"Gender": "male", "tests": [{"test_name": "Urine Protein", "value": "Trace"}]})
+    p = param(r, "urine_protein")
+    check("a Trace result is recorded rather than dropped", p is not None)
+    if p:
+        check("a Trace result is equivocal, not a positive finding",
+              p["status"] == "indeterminate", "status=%s" % p["status"])
+
+
+def test_declared_cutoff_honours_less_than_and_greater_than():
+    for value, expected in [("<0.90", "negative"), (">8.0", "positive"),
+                            (0.80, "negative"), (5.2, "positive"), (0.95, "indeterminate")]:
+        r = analyse({"Gender": "male", "tests": [
+            {"test_name": "HBsAg", "value": value, "unit": "COI"}]})
+        p = param(r, "hbsag")
+        check("HBsAg %r -> %s" % (value, expected),
+              p and p["status"] == expected, "got %s" % (p["status"] if p else None))
+
+
+# ================= audit fixes: impossible values =================
+
+def test_impossible_values_are_rejected_not_reported_as_critical():
+    """A haemoglobin of -5 is a typo, not a critical finding. Reporting it as
+    'critical low' turns a data fault into a clinical alarm."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Haemoglobin", "value": -5, "unit": "g/dL"},
+        {"test_name": "Neutrophils", "value": 140, "unit": "%"},
+        {"test_name": "HbA1c", "value": 6.1, "unit": "%"}]})
+    check("a negative haemoglobin is not used", param(r, "hemoglobin") is None)
+    check("a percentage above 100 is not used", param(r, "neutrophil_pct") is None)
+    check("valid parameters in the same report are still read",
+          param(r, "hba1c") is not None)
+    check("the rejected values are reported, not silently dropped",
+          len(r["warnings"]) >= 2, "warnings=%s" % r["warnings"])
+
+
+def test_extreme_but_possible_values_are_kept_with_a_warning():
+    """Genuinely extreme results occur; dropping one would be far worse than flagging."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Serum Ferritin", "value": 4000, "ature": None, "unit": "ng/mL"}]})
+    p = param(r, "ferritin")
+    check("an extreme but possible ferritin is still used", p is not None)
+
+
+# ================= audit fixes: reference range parsing =================
+
+def test_reference_range_with_thousands_separators():
+    """'4,000 - 15,000' failed to parse, so the lab's own range was silently discarded."""
+    from engine.extract import parse_reference_range
+    check("'13,500 - 17,000' parses", parse_reference_range("13,500 - 17,000") == (13500.0, 17000.0),
+          "got %s" % (parse_reference_range("13,500 - 17,000"),))
+    check("'150,000 - 450,000' parses",
+          parse_reference_range("150,000 - 450,000") == (150000.0, 450000.0))
+
+
+def test_titre_in_a_reference_range_field_is_not_read_as_an_interval():
+    from engine.extract import parse_reference_range
+    check("'1:8' is not read as the interval 1 to 8",
+          parse_reference_range("1:8") == (None, None),
+          "got %s" % (parse_reference_range("1:8"),))
+
+
+def test_lab_reference_range_wins_over_a_non_guideline_band():
+    """A WBC of 12,000 was flagged abnormal against a lab range of 4,000-15,000, because
+    a hardcoded band overrode the laboratory that ran the assay."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Total WBC Count", "value": 12000, "unit": "/uL",
+         "reference_range": "4,000 - 15,000"}]})
+    p = param(r, "wbc_count")
+    check("a value inside the lab's own range is not flagged abnormal",
+          p and not p["abnormal"], "abnormal=%s" % (p["abnormal"] if p else None))
+
+    r2 = analyse({"Gender": "male", "tests": [
+        {"test_name": "Total WBC Count", "value": 18000, "unit": "/uL",
+         "reference_range": "4,000 - 15,000"}]})
+    check("a value outside the lab's own range is still flagged",
+          param(r2, "wbc_count")["abnormal"])
+
+
+def test_band_severity_survives_when_the_lab_range_decides_abnormality():
+    """The lab's range decides WHETHER a value is abnormal; the band still decides HOW
+    abnormal. Dropping the band outright graded a B12 of 143 as 'mild'."""
+    r = analyse({"Gender": "female", "tests": [
+        {"test_name": "Vitamin B12", "value": 143, "unit": "pg/mL",
+         "reference_range": "200 - 900"}]})
+    p = param(r, "vitamin_b12")
+    check("B12 143 is abnormal by the lab's range", p and p["abnormal"])
+    check("and keeps the band's severity rather than a deviation ratio",
+          p and p["grade"] in ("severe_low", "critical_low", "moderate_low"),
+          "grade=%s" % (p["grade"] if p else None))
+
+
+def test_guideline_thresholds_still_outrank_a_permissive_lab_range():
+    """ADA and KDIGO thresholds hold whatever a lab prints."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "HbA1c", "value": 6.6, "unit": "%", "reference_range": "4.0 - 7.0"}]})
+    check("HbA1c 6.6 is still flagged despite a lab range up to 7.0",
+          param(r, "hba1c")["abnormal"])
+    r2 = analyse({"Gender": "male", "tests": [
+        {"test_name": "eGFR", "value": 40, "unit": "mL/min/1.73m2",
+         "reference_range": "30 - 120"}]})
+    check("eGFR 40 is still flagged despite a lab range down to 30",
+          param(r2, "egfr")["abnormal"])
+
+
+# ================= audit fixes: duplicate resolution =================
+
+def test_conflicting_duplicates_do_not_silently_pick_the_worse_value():
+    """severity_score was the tiebreaker, so the engine quietly preferred the more
+    alarming reading while the audit line claimed it kept the first record."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Haemoglobin", "value": 14.0, "unit": "g/dL"},
+        {"test_name": "Hemoglobin", "value": 9.0, "unit": "g/dL"}]})
+    p = param(r, "hemoglobin")
+    check("the first record is kept, as the audit line states",
+          p and p["value"] == 14.0, "kept %s" % (p["value"] if p else None))
+    dup = r["duplicates_resolved"][0]
+    check("the conflict is flagged", dup["conflicting_values"])
+    check("the note names both values so the reader can check the original",
+          any("14" in n and "9" in n for n in p["notes"]), "notes=%s" % p["notes"])
+
+
 def test_empty_and_garbage_input():
     r = analyse({"nothing": "here"})
     check("an empty payload is refused rather than analysed",

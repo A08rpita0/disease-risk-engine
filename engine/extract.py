@@ -84,6 +84,17 @@ def parse_reference_range(text):
     s = str(text).strip()
     if not s:
         return None, None
+
+    # A titre ('1:8', '1:160') is a dilution, not an interval. Reading it as the range
+    # 1 to 8 would silently replace the real reference interval with nonsense.
+    if re.search(r"\d\s*:\s*\d", s):
+        return None, None
+
+    # Thousands separators are routine on counts ('13,500 - 17,000'). Without this the
+    # report's own range failed to parse and was silently discarded in favour of the
+    # dictionary's, which is exactly the range the lab meant to override.
+    s = re.sub(r"(?<=\d),(?=\d{3}\b)", "", s)
+
     # drop a trailing unit so '0.4 - 4.0 uIU/mL' still parses as a numeric interval
     s_clean = re.sub(r"\s*(mg|g|ng|pg|ug|µg|mmol|umol|µmol|mcg|iu|miu|uiu|u|meq|fl|pg|cells|million|lakhs?|thou)\s*/?\s*"
                      r"(dl|l|ml|ul|µl|cumm|mm3|hpf|hr|g|m2|min)?\b\.?", " ", s, flags=re.I)

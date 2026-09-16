@@ -91,31 +91,97 @@ class Normalizer:
                 if word and re.search(r"\b%s\b" % re.escape(word), k):
                     return "negative"
             # A numeric result on a qualitative test.
-            num, _ = parse_numeric(candidate)
+            num, qualifier = parse_numeric(candidate)
             if num is not None:
-                if interpretation:
-                    return self._numeric_status(num, interpretation)
-                # Legacy fallback for titres ('1:64'), where any reactive dilution is
-                # positive. NOT safe for a signal-to-cutoff index such as COI, where
-                # 0.80 is negative - such parameters must declare
-                # `numeric_interpretation` in config/parameters.json.
-                return "positive" if num > 0 else "negative"
+                return self._numeric_qual_status(s, num, qualifier, interpretation)
         return None
 
     @staticmethod
-    def _numeric_status(num, spec):
-        """Read a numeric serology result using the parameter's declared convention."""
+    def _numeric_qual_status(raw, num, qualifier, spec):
+        """Read a number reported against a qualitative test.
+
+        Notation is decided first, because notation is a fact about how the result was
+        written rather than a clinical threshold:
+
+          '3+'    dipstick grading    -> positive
+          '1:80'  titre               -> positive; a titre is only quoted when the sample
+                                         is reactive at that dilution
+          0       explicit zero       -> negative
+
+        A bare number with no declared convention is NOT interpretable. Calling it
+        positive fabricates a finding out of an unreadable value - that is how HBsAg
+        0.80 COI came to report Hepatitis B. Calling it negative is just as bad now that
+        an explicit negative can veto a condition outright. So it is reported as
+        equivocal, which fires neither a positive trigger nor a negative veto.
+
+        To read such a result properly, give the parameter a `numeric_interpretation`
+        block in config/parameters.json with that assay's cut-off.
+        """
+        if spec:
+            return Normalizer._by_declared_cutoff(num, qualifier, spec)
+
+        if re.match(r"^\s*\d+\s*\+", raw):           # 1+, 2+, 3+, 4+
+            return "positive"
+        if re.search(r"\d\s*:\s*\d", raw):           # 1:8, 1:160
+            return "positive"
+        if num == 0:
+            return "negative"
+        return "indeterminate"
+
+    @staticmethod
+    def _by_declared_cutoff(num, qualifier, spec):
+        """Apply the parameter's own declared numeric convention."""
         neg = spec.get("negative_below")
         pos = spec.get("positive_at_or_above")
+
+        # '<0.90' means the result did not reach 0.90, so it satisfies 'below 0.90'.
+        # '>8.0' means it exceeded 8.0, so it satisfies 'at or above'.
+        if qualifier == "less_than" and neg is not None and num <= neg:
+            return "negative"
+        if qualifier == "greater_than" and pos is not None and num >= pos:
+            return "positive"
+
         if neg is not None and num < neg:
             return "negative"
         if pos is not None and num >= pos:
             return "positive"
-        if neg is not None and pos is not None and neg <= num < pos:
-            return "indeterminate"      # the assay's grey zone
+        if neg is not None and pos is not None:
+            return "indeterminate"      # the assay's declared grey zone
         if pos is not None:
             return "negative"
-        return "positive" if num > 0 else "negative"
+        return "indeterminate"
+
+    # ---------- plausibility ----------
+
+    # A value this many times the top of the reference interval is almost always a unit
+    # mix-up rather than a real result. It is only WARNED about, never dropped: genuinely
+    # extreme results do occur (ferritin in the thousands, WBC in the hundreds of
+    # thousands), and silently discarding one would be far worse than flagging it.
+    IMPLAUSIBLE_MULTIPLE = 50
+
+    def _implausible(self, pdef, value, sex):
+        """Return a reason string when the value cannot be a real result, else None."""
+        low, high, _ = self._reference(pdef, sex, None)
+
+        # Negative concentrations, counts and percentages are impossible by physics,
+        # not by clinical convention. Only applied where the configured interval itself
+        # starts at or above zero, so genuinely signed quantities are untouched.
+        if value < 0 and low is not None and low >= 0:
+            return ("a negative value is not possible for this measurement; the result "
+                    "was not used")
+
+        unit = (pdef.get("unit") or "").strip()
+        if unit == "%" and value > 100:
+            return "a percentage above 100 is not possible; the result was not used"
+        return None
+
+    def _magnitude_warning(self, pdef, value, sex, raw_unit):
+        low, high, _ = self._reference(pdef, sex, None)
+        if not high or high <= 0 or value <= high * self.IMPLAUSIBLE_MULTIPLE:
+            return None
+        return ("%s is more than %dx the top of its reference range - check the unit on "
+                "the report (reported as '%s')"
+                % (pdef["name"], self.IMPLAUSIBLE_MULTIPLE, raw_unit or "no unit given"))
 
     # ---------- units ----------
 
@@ -180,6 +246,13 @@ class Normalizer:
             return None      # cannot pick a sex-specific band set without sex
         return pdef.get("bands")
 
+    @staticmethod
+    def _match_band(bands, value):
+        for band in bands or []:
+            if ("lt" in band and value < band["lt"]) or ("gte" in band and value >= band["gte"]):
+                return band
+        return None
+
     def _grade(self, pdef, value, low, high, sex, ref_source):
         """Return (abnormal, direction, grade, label, note).
 
@@ -194,6 +267,36 @@ class Normalizer:
             return False, None, "unknown", None, None
 
         bands = self._bands_for(pdef, sex)
+
+        # Who decides WHETHER a value is abnormal, and who decides HOW abnormal, are two
+        # different questions.
+        #
+        # A band set only outranks the laboratory's own interval on the first question
+        # when it is a real clinical decision threshold - 'HbA1c >= 6.5% is the diabetes
+        # range' holds whatever a lab prints. Bands with no cited guideline are an
+        # encoded reference interval, and the lab that ran the assay knows its own
+        # population better; overriding it flagged a WBC of 12,000 as abnormal against a
+        # lab range of 4,000-15,000.
+        #
+        # But those same bands still carry real gradation (deficient / borderline /
+        # normal), so once the lab's range says a value IS abnormal the band is the
+        # better guide to severity than a deviation ratio. Dropping it outright graded a
+        # B12 of 143 as "mild".
+        defer_to_report = (bands and ref_source == "report"
+                           and not pdef.get("bands_are_decision_thresholds"))
+        if defer_to_report:
+            outside = ((high is not None and value > high)
+                       or (low is not None and value < low))
+            if not outside:
+                bands = None                      # the lab calls it normal; it is normal
+            else:
+                # Abnormal by the lab's range. Keep the band's severity, but only if the
+                # band agrees it is abnormal - otherwise fall through to the deviation
+                # grading so the label can never contradict the flag.
+                match = self._match_band(bands, value)
+                if match is None or not self._from_band(match)[0]:
+                    bands = None
+
         if bands:
             for band in bands:
                 if ("lt" in band and value < band["lt"]) or ("gte" in band and value >= band["gte"]):
@@ -243,6 +346,7 @@ class Normalizer:
     def build(self, observations, context, warnings=None):
         patient = StandardizedPatient(context=context)
         patient.extraction_warnings = list(warnings or [])
+        self._data_errors = []          # values rejected as impossible, surfaced below
         sex = context.sex
 
         candidates = {}
@@ -265,6 +369,15 @@ class Normalizer:
             patient.parameters[pid] = chosen
 
         self._compute_derived(patient, sex)
+
+        # Values rejected as impossible are reported, never silently dropped - the user
+        # needs to know a result on their report was not used, and why.
+        for err in self._data_errors:
+            patient.extraction_warnings.append(
+                "%s was reported as '%s'%s - %s"
+                % (err["parameter"], err["reported"],
+                   (" " + err["unit"]) if err["unit"] else "", err["reason"]))
+        patient.rejected_values = list(self._data_errors)
         return patient
 
     def _build_one(self, pdef, obs, sex):
@@ -322,6 +435,23 @@ class Normalizer:
             return np_
 
         value, conv_note = self._convert(pdef, value, obs.raw_unit)
+
+        # Reject results that are impossible rather than merely extreme. A haemoglobin
+        # of -5 is a typo or a parse error, not a critical finding, and reporting it as
+        # "critical low" turns a data fault into a clinical alarm. Both checks below are
+        # derived from existing configuration - a reference interval that starts at or
+        # above zero, and the parameter's own unit - so neither invents a threshold.
+        impossible = self._implausible(pdef, value, sex)
+        if impossible:
+            self._data_errors.append({
+                "parameter": pdef["name"], "reported": obs.raw_value,
+                "unit": obs.raw_unit, "reason": impossible})
+            return None
+
+        mag = self._magnitude_warning(pdef, value, sex, obs.raw_unit)
+        if mag:
+            np_.notes.append(mag)
+
         np_.value = round(value, 6)
         np_.unit = pdef.get("unit")
         np_.conversion_note = conv_note
@@ -366,11 +496,16 @@ class Normalizer:
             return built[0]
 
         def rank(b):
+            # Completeness only. Severity deliberately does NOT rank: when two records
+            # disagree on the value, the engine has no way to know which is true, and
+            # preferring the more abnormal one would bias every duplicate towards the
+            # more alarming reading while the audit line claimed it simply kept the
+            # first. Ties fall back to the order the values appeared in the report,
+            # which sorted() preserves, and the conflict is reported.
             return (
                 1 if b.reference_source == "report" else 0,
                 1 if b.value is not None or b.status is not None else 0,
                 1 if b.raw and b.raw.raw_unit else 0,
-                b.severity_score,
             )
 
         ordered = sorted(built, key=rank, reverse=True)
@@ -390,11 +525,16 @@ class Normalizer:
             "conflicting_values": conflict,
             "reason": ("kept the record with a report-supplied reference range and units"
                        if chosen.reference_source == "report"
-                       else "kept the first fully-parsed record"),
+                       else "kept the first fully-parsed record, in the order they appeared"),
         })
         if conflict:
-            chosen.notes.append("this parameter appeared %d times with differing values; "
-                                "the most complete record was used" % len(built))
+            chosen.notes.append(
+                "this parameter appeared %d times with DIFFERENT values (%s); the most "
+                "complete record was used, but which one is correct cannot be determined "
+                "from the report - please check the original"
+                % (len(built),
+                   ", ".join(str(b.value if b.value is not None else b.status)
+                             for b in built)))
         return chosen
 
     # ---------- derived ----------

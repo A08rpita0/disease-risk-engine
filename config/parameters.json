@@ -4,7 +4,8 @@
     "purpose": "Parameter dictionary for normalization. Maps every alias a lab report or JSON may use onto a canonical parameter id, with canonical unit, unit conversions, sex-aware reference intervals and optional clinical severity bands.",
     "grade_fallback": "Where a parameter has no explicit 'bands', the engine grades deviation from the reference interval: <25% of interval width = mild, 25-75% = moderate, >75% = severe.",
     "band_semantics": "'bands' are ordered, non-overlapping. Each has optional 'lt' (value < lt) and 'gte' (value >= gte); the first band matching wins. 'grade' drives severity, 'label' is shown to the user.",
-    "reference_note": "Reference intervals are widely used adult intervals (Tietz / NCEP ATP III / ADA / KDIGO / WHO where noted per parameter). Any range supplied on the patient's own report overrides these."
+    "reference_note": "Reference intervals are widely used adult intervals (Tietz / NCEP ATP III / ADA / KDIGO / WHO where noted per parameter). Any range supplied on the patient's own report overrides these.",
+    "bands_authority_note": "bands_are_decision_thresholds: true marks a band set that comes from a named clinical guideline and therefore outranks a reference interval printed on the patient's own report - 'HbA1c >= 6.5% is the diabetes range' holds whatever a lab prints. Band sets WITHOUT this flag are an encoded reference interval, and the laboratory's own range wins when it supplies one."
   },
   "qualitative_vocabulary": {
     "positive": [
@@ -45,8 +46,17 @@
       "indeterminate",
       "inconclusive",
       "grey zone",
-      "gray zone"
-    ]
+      "gray zone",
+      "trace",
+      "traces",
+      "faint",
+      "faintly positive",
+      "weak positive",
+      "weakly reactive",
+      "borderline reactive",
+      "low positive"
+    ],
+    "numeric_note": "A bare number on a qualitative test is reported as equivocal unless the parameter declares `numeric_interpretation`. Dipstick grades ('3+') and titres ('1:80') are recognised by notation and read as positive; those are facts about how the result was written, not clinical thresholds."
   },
   "parameters": [
     {
@@ -103,7 +113,8 @@
           "label": "Very high"
         }
       ],
-      "source": "NCEP ATP III"
+      "source": "NCEP ATP III",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "ldl_cholesterol",
@@ -161,7 +172,8 @@
           "label": "Very high"
         }
       ],
-      "source": "NCEP ATP III"
+      "source": "NCEP ATP III",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "hdl_cholesterol",
@@ -243,7 +255,8 @@
           }
         ]
       },
-      "source": "NCEP ATP III / IDF"
+      "source": "NCEP ATP III / IDF",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "triglycerides",
@@ -293,7 +306,8 @@
           "label": "Very high (pancreatitis risk)"
         }
       ],
-      "source": "NCEP ATP III"
+      "source": "NCEP ATP III",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "vldl_cholesterol",
@@ -837,7 +851,8 @@
           "label": "Markedly elevated"
         }
       ],
-      "source": "ADA Standards of Care"
+      "source": "ADA Standards of Care",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "postprandial_glucose",
@@ -897,7 +912,8 @@
           "label": "Markedly elevated"
         }
       ],
-      "source": "ADA Standards of Care"
+      "source": "ADA Standards of Care",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "random_glucose",
@@ -1009,7 +1025,8 @@
           "label": "Poorly controlled range"
         }
       ],
-      "source": "ADA Standards of Care"
+      "source": "ADA Standards of Care",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "fasting_insulin",
@@ -1283,7 +1300,8 @@
           "label": "G1 - normal or high"
         }
       ],
-      "source": "KDIGO CKD staging"
+      "source": "KDIGO CKD staging",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "uric_acid",
@@ -1386,7 +1404,8 @@
           "label": "A3 - severely increased (macroalbuminuria)"
         }
       ],
-      "source": "KDIGO albuminuria categories"
+      "source": "KDIGO albuminuria categories",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "urine_microalbumin",
@@ -2100,7 +2119,8 @@
           }
         ]
       },
-      "source": "WHO anaemia thresholds"
+      "source": "WHO anaemia thresholds",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "rbc_count",
@@ -2830,7 +2850,8 @@
           "label": "Above vascular-risk range - consider acute inflammation"
         }
       ],
-      "source": "AHA/CDC hs-CRP risk bands"
+      "source": "AHA/CDC hs-CRP risk bands",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "procalcitonin",
@@ -3219,7 +3240,8 @@
           "label": "Above sufficiency range"
         }
       ],
-      "source": "Endocrine Society vitamin D thresholds"
+      "source": "Endocrine Society vitamin D thresholds",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "calcium",
@@ -3409,7 +3431,8 @@
           "label": "Severe hypernatraemia"
         }
       ],
-      "source": "Reference band cited in Disease Master 'Sodium Imbalance' row (136-145 mmol/L)"
+      "source": "Reference band cited in Disease Master 'Sodium Imbalance' row (136-145 mmol/L)",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "potassium",
@@ -3698,7 +3721,8 @@
           "label": "Markedly elevated"
         }
       ],
-      "source": "CDC blood lead reference value (3.5 ug/dL)"
+      "source": "CDC blood lead reference value (3.5 ug/dL)",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "mercury",
@@ -6284,7 +6308,8 @@
           "label": "At or above WHO lower reference limit"
         }
       ],
-      "source": "WHO Laboratory Manual 6th edition"
+      "source": "WHO Laboratory Manual 6th edition",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "sperm_motility_total",
@@ -6450,7 +6475,8 @@
           "label": "Obese"
         }
       ],
-      "source": "WHO with WHO Asia-Pacific cut-offs"
+      "source": "WHO with WHO Asia-Pacific cut-offs",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "waist_circumference",
@@ -6543,7 +6569,8 @@
           "label": "Hypertensive crisis range"
         }
       ],
-      "source": "ACC/AHA 2017 blood pressure categories"
+      "source": "ACC/AHA 2017 blood pressure categories",
+      "bands_are_decision_thresholds": true
     },
     {
       "id": "diastolic_bp",
@@ -6596,7 +6623,8 @@
           "label": "Hypertensive crisis range"
         }
       ],
-      "source": "ACC/AHA 2017 blood pressure categories"
+      "source": "ACC/AHA 2017 blood pressure categories",
+      "bands_are_decision_thresholds": true
     }
   ]
 }

@@ -81,6 +81,7 @@ class StandardizedPatient:
     parameters: dict = field(default_factory=dict)     # parameter_id -> NormalizedParameter
     unmapped: list = field(default_factory=list)       # RawObservation that no alias matched
     duplicates_resolved: list = field(default_factory=list)
+    rejected_values: list = field(default_factory=list)   # impossible values, not used
     extraction_warnings: list = field(default_factory=list)
 
     def get(self, pid):
@@ -96,6 +97,7 @@ class StandardizedPatient:
             "unmapped": [u.to_dict() for u in self.unmapped],
             "duplicates_resolved": self.duplicates_resolved,
             "extraction_warnings": self.extraction_warnings,
+            "rejected_values": self.rejected_values,
         }
 
 
