@@ -261,6 +261,28 @@ class Config:
                     errors.append("%s -> %s: no dm_basis recorded - every disease link must "
                                   "quote the Disease Master field that justifies it"
                                   % (cid, link["name"]))
+                # A confounder penalty silently removes a condition from the report, so
+                # it has to say which Disease Master criterion it is enforcing AND admit
+                # that its damping floor is a rule-design number rather than a clinical
+                # coefficient. Undocumented damping is an unexplainable rule.
+                spec = link.get("requires_support")
+                if spec:
+                    if not spec.get("basis"):
+                        errors.append("%s -> %s: requires_support has no basis - it must "
+                                      "quote the criterion it enforces" % (cid, link["name"]))
+                    if not spec.get("weight_source"):
+                        errors.append("%s -> %s: requires_support has no weight_source - the "
+                                      "damping floor must be declared as a design value or "
+                                      "sourced" % (cid, link["name"]))
+                    floor = spec.get("penalty_when_all_normal", 0.25)
+                    if not isinstance(floor, (int, float)) or not 0 < floor <= 1:
+                        errors.append("%s -> %s: penalty_when_all_normal must be in (0,1]"
+                                      % (cid, link["name"]))
+                    for sp in spec.get("parameters", []):
+                        if sp not in pids:
+                            errors.append("%s -> %s: requires_support names unknown "
+                                          "parameter '%s'" % (cid, link["name"], sp))
+
                 for req in link.get("requires_any", []):
                     if req not in pids:
                         errors.append("%s -> %s: requires_any names unknown parameter '%s'"
@@ -333,6 +355,16 @@ class Config:
         nk2 = norm_key(stripped)
         if nk2 and nk2 in self.alias_index:
             return self.alias_index[nk2]
+
+        # The text INSIDE the brackets is just as often the recognisable name, and
+        # only the outside was ever tried. 'HsCRP (High Sensitivity CRP)' reduces to
+        # 'hscrp', which matches nothing, while the parenthetical spells out an alias
+        # the dictionary already holds; 'RhD factor (Rh typing)' is the same shape.
+        # Both were being dropped as unmapped.
+        for inner in re.findall(r"[\(\[]([^\)\]]+)[\)\]]", str(raw_name)):
+            ik = norm_key(inner)
+            if ik and ik in self.alias_index:
+                return self.alias_index[ik]
         # A ratio or index is its OWN quantity, never one of the analytes in its name.
         # Both fallbacks below would otherwise mis-file it: splitting
         # 'Apolipoprotein B/A1 Ratio' on the slash matched 'Apolipoprotein B', so the
@@ -349,13 +381,23 @@ class Config:
             if pk and pk in self.alias_index:
                 return self.alias_index[pk]
 
-        # Finally, trim trailing qualifier words: 'HbA1c HPLC method' -> 'HbA1c'.
+        # Trim trailing qualifier words: 'HbA1c HPLC method' -> 'HbA1c'.
         words = nk2.split() if nk2 else nk.split()
         while len(words) > 1:
             words = words[:-1]
             cand = " ".join(words)
             if cand in self.alias_index:
                 return self.alias_index[cand]
+
+        # Last resort: singular/plural. Labs write 'Total Leucocytes Count' where the
+        # dictionary holds 'total leucocyte count', which silently dropped the white
+        # cell count off a CBC. Only reached once every exact form has missed, so it
+        # can add a match but never redirect one that already resolved.
+        for base in (nk2 or nk, nk):
+            singular = " ".join(w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss")
+                                else w for w in base.split())
+            if singular != base and singular in self.alias_index:
+                return self.alias_index[singular]
         return None
 
 

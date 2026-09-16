@@ -520,7 +520,17 @@
           "name": "Autoimmune Hepatitis",
           "role": "primary",
           "weight": 0.48,
-          "dm_basis": "High-Risk Indicators: 'Elevated liver enzymes with positive ANA and elevated globulin, after excluding viral hepatitis'"
+          "dm_basis": "High-Risk Indicators: 'Elevated liver enzymes with positive ANA and elevated globulin, after excluding viral hepatitis'",
+          "requires_support": {
+            "parameters": [
+              "ana",
+              "globulin"
+            ],
+            "min_abnormal": 1,
+            "penalty_when_all_normal": 0.2,
+            "basis": "The Disease Master's own High-Risk Indicators for Autoimmune Hepatitis read 'Elevated liver enzymes with positive ANA and elevated globulin, after excluding viral hepatitis', and this cluster already cites EASL 2015 for the same pairing. Raised transaminases alone are therefore NOT the stated criterion - the autoantibody / globulin arm is part of it. When ANA or globulin are measured and normal the stated pattern is absent and the signal is damped; when they are simply not measured no penalty applies and coverage carries the uncertainty instead.",
+            "weight_source": "The 0.2 damping floor is a rule-design value, matching the one already used for Osteomalacia/Rickets so the two behave alike. It is an engineering parameter chosen to drop a wholly unsupported pattern below the reporting threshold, not a clinically validated coefficient."
+          }
         },
         {
           "name": "Wilson's Disease",
@@ -757,7 +767,17 @@
           "name": "Autoimmune Hepatitis",
           "role": "supporting",
           "weight": 0.22,
-          "dm_basis": "Possible Complications on that row include progression to cirrhosis with synthetic failure"
+          "dm_basis": "Possible Complications on that row include progression to cirrhosis with synthetic failure",
+          "requires_support": {
+            "parameters": [
+              "ana",
+              "globulin"
+            ],
+            "min_abnormal": 1,
+            "penalty_when_all_normal": 0.2,
+            "basis": "The Disease Master's own High-Risk Indicators for Autoimmune Hepatitis read 'Elevated liver enzymes with positive ANA and elevated globulin, after excluding viral hepatitis', and this cluster already cites EASL 2015 for the same pairing. Raised transaminases alone are therefore NOT the stated criterion - the autoantibody / globulin arm is part of it. When ANA or globulin are measured and normal the stated pattern is absent and the signal is damped; when they are simply not measured no penalty applies and coverage carries the uncertainty instead.",
+            "weight_source": "The 0.2 damping floor is a rule-design value, matching the one already used for Osteomalacia/Rickets so the two behave alike. It is an engineering parameter chosen to drop a wholly unsupported pattern below the reporting threshold, not a clinically validated coefficient."
+          }
         }
       ]
     },

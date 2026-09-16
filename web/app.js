@@ -277,12 +277,16 @@
         '<button class="ghost sm" data-sex="female">Female</button></span></div>';
     }
 
+    var labOut = d.parameters.filter(function (p) {
+      return p.finding_basis === "lab_range";
+    }).length;
     out += '<div class="stats">' +
       stat(s.parameters_recognised, "results read") +
-      stat(s.abnormal_count, "outside range", s.abnormal_count ? "alert" : "ok") +
-      stat(s.high_evidence, "strong signals", s.high_evidence ? "alert" : "") +
-      stat(s.moderate_evidence, "moderate signals", s.moderate_evidence ? "warn" : "") +
-      stat(s.limited_evidence, "weak signals") +
+      stat(labOut, "outside lab range", labOut ? "alert" : "ok") +
+      stat(s.decision_threshold_count || 0, "past a guideline threshold",
+           s.decision_threshold_count ? "warn" : "") +
+      stat(s.direct_findings, "direct findings", s.direct_findings ? "alert" : "") +
+      stat(s.pattern_findings, "patterns to explore", s.pattern_findings ? "warn" : "") +
       "</div>";
 
     if (s.parameters_unmapped) {
@@ -302,26 +306,47 @@
         "Seek medical care now rather than waiting for a routine appointment.</div>";
     }
 
-    if (!d.disease_risks.length) {
+    if (!(d.direct_findings || []).length && !(d.derived_findings || []).length &&
+        !(d.pattern_findings || []).length) {
       out += '<div class="empty"><div class="big">✓</div>' +
         "<b>No disease risks were flagged from the parameters available.</b><br>" +
         (s.abnormal_count
           ? "Some parameters are outside their reference range but they do not form any of the clinically established clusters this engine detects."
           : "All recognised parameters fall within their reference ranges.") +
+        ((d.insufficient_findings || []).length
+          ? "<br><span class=\"small muted\">" + d.insufficient_findings.length +
+            " condition" + (d.insufficient_findings.length === 1 ? " was" : "s were") +
+            " considered and assessed but not supported by the evidence here — see " +
+            "<b>What we found</b>.</span>"
+          : "") +
         "</div>";
     } else {
-      var nd = (d.direct_findings || []).length, np = (d.pattern_findings || []).length;
+      var nd = (d.direct_findings || []).length,
+          nv = (d.derived_findings || []).length,
+          np = (d.pattern_findings || []).length,
+          ni = (d.insufficient_findings || []).length;
       out += '<div class="card"><h2>What we found</h2>' +
         '<p class="small muted" style="margin:-4px 0 12px">' +
         (nd ? "<b>" + nd + "</b> direct finding" + (nd === 1 ? "" : "s") +
-              " (established by a single measurement) and " : "") +
+              " (established by a single measurement), " : "") +
+        (nv ? "<b>" + nv + "</b> calculated finding" + (nv === 1 ? "" : "s") + ", " : "") +
         "<b>" + np + "</b> pattern" + (np === 1 ? "" : "s") +
-        " (combinations worth exploring). Neither is a diagnosis — a strong signal means " +
-        "your results closely match a known pattern, not that you have the condition.</p>";
-      d.disease_risks.slice(0, 5).forEach(function (r) {
+        " (combinations worth exploring)" +
+        (ni ? " and <b>" + ni + "</b> considered but not supported by the evidence here" : "") +
+        ". None of this is a diagnosis — a strong signal means your results closely match " +
+        "a known pattern, not that you have the condition.</p>";
+      // Only what the evidence actually supports is listed here. An insufficient-evidence
+      // condition shown in the same five-row summary, at the same size, is exactly how a
+      // "we looked and found nothing" reads as a finding.
+      var headline = (d.direct_findings || []).concat(d.derived_findings || [])
+        .concat(d.pattern_findings || []);
+      headline.sort(function (a, b) { return b.score - a.score; });
+      headline.slice(0, 5).forEach(function (r) {
+        var isDirect = r.presentation_tier === "direct" || r.presentation_tier === "derived";
         out += '<div class="finding-row"><span class="badge b-' +
-          (r.finding_type === "direct" ? "direct" : r.evidence_level) + '">' +
-          (r.finding_type === "direct" ? "Direct finding"
+          (isDirect ? "direct" : r.evidence_level) + '">' +
+          (r.presentation_tier === "derived" ? "Calculated finding"
+            : r.presentation_tier === "direct" ? "Direct finding"
             : esc(LEVEL_WORD[r.evidence_level] || r.evidence_level)) + "</span>" +
           "<b>" + esc(r.name) + "</b>" +
           '<div class="bar" role="img" aria-label="' +
@@ -330,7 +355,7 @@
           '<span class="w tech-only">' + r.score.toFixed(2) + "</span></div>";
       });
       out += '<p class="small muted" style="margin:12px 0 0">Open <b>What we found</b> for the ' +
-        "reasoning behind each one, and <b>Action plan</b> for what to do.</p></div>";
+        "evidence for and against each one, and <b>Action plan</b> for what to do.</p></div>";
     }
 
     if (d.coverage.capped_note) {
@@ -347,6 +372,28 @@
       '</div><div class="l">' + label + "</div></div>";
   }
 
+  /* A measurement, rendered the same way wherever it appears so a reader can compare
+     them: value, unit, the range it was judged against, and where that range came
+     from. "Reference" alone hid the difference between the lab's own interval and a
+     guideline band this engine applied when the lab supplied none. */
+  function measure(m, cls) {
+    var ref = "";
+    if (m.reference_low !== null && m.reference_low !== undefined &&
+        m.reference_high !== null && m.reference_high !== undefined) {
+      ref = num(m.reference_low) + "–" + num(m.reference_high);
+    } else if (m.reference_high !== null && m.reference_high !== undefined) {
+      ref = "up to " + num(m.reference_high);
+    } else if (m.reference_low !== null && m.reference_low !== undefined) {
+      ref = num(m.reference_low) + " or above";
+    }
+    return '<div class="meas ' + (cls || "") + '">' +
+      '<span class="meas-name">' + esc(m.name) + "</span>" +
+      '<span class="meas-val">' + num(m.value) +
+        (m.unit ? ' <span class="meas-unit">' + esc(m.unit) + "</span>" : "") + "</span>" +
+      (ref ? '<span class="meas-ref">ref ' + esc(ref) + "</span>" : "") +
+      '<span class="meas-read">' + esc(m.reading || "") + "</span></div>";
+  }
+
   /* A direct finding is one measured value against a configured threshold. A pattern is
      a multi-marker hypothesis. Rendering them in one list lets a hypothesis read like a
      measured fact, so they get separate sections with different wording. */
@@ -361,127 +408,218 @@
     } else if (e.reference_low !== null && e.reference_low !== undefined) {
       ref = num(e.reference_low) + " or above";
     }
+    var derived = r.presentation_tier === "derived";
     return '<div class="direct">' +
-      '<div class="direct-head"><span class="badge b-direct">Direct finding</span>' +
+      '<div class="direct-head"><span class="badge b-direct">' +
+        (derived ? "Calculated finding" : "Direct finding") + "</span>" +
       "<b>" + esc(r.name) + "</b></div>" +
       '<div class="direct-measure"><span class="dm-param">' + esc(e.parameter || "") + "</span>" +
       '<span class="dm-value">' + num(e.value) +
         (e.unit ? ' <span class="dm-unit">' + esc(e.unit) + "</span>" : "") + "</span>" +
-      (ref ? '<span class="dm-ref">Reference: ' + esc(ref) +
+      (ref ? '<span class="dm-ref">' +
+             // Only call it the laboratory's reference when the laboratory's interval
+             // is what the verdict rests on. Vitamin D 14.2 against a report interval
+             // of "up to 20" is called deficient by a configured guideline band.
+             (e.reference_source && e.reference_source.indexOf("report") === 0 &&
+              e.graded_by !== "decision_band"
+               ? "Laboratory reference: " : "Guideline threshold: ") + esc(ref) +
              (e.unit ? " " + esc(e.unit) : "") + "</span>" : "") +
+      (e.graded_by === "decision_band"
+        ? '<span class="dm-ref">The interval printed on the report would not flag this; ' +
+          "it is judged against the standard clinical band.</span>" : "") +
       "</div>" +
       (e.grade_label ? '<div class="direct-read">' + esc(e.grade_label) + "</div>" : "") +
       (e.statement ? '<p class="direct-note">' + esc(e.statement) + "</p>" : "") +
+      (r.context_values && r.context_values.length
+        ? '<div class="ctx-block"><div class="ctx-h">Related results, within range</div>' +
+          r.context_values.slice(0, 4).map(function (m) { return measure(m, "ok"); }).join("") +
+          "</div>"
+        : "") +
       '<p class="direct-note muted">This is what the measurement itself shows. It is not a ' +
       "diagnosis — your doctor interprets it alongside your symptoms and history.</p>" +
       "</div>";
   }
 
+  /* One pattern card. The title stays the name the clinical reference uses, but the
+     framing above it says what the engine is actually claiming: that results resemble
+     a pattern associated with this condition. Supporting, contradicting and missing
+     evidence are all shown, because a card that lists only what fired reads like a
+     case being made rather than a picture being described. */
+  function patternCard(r, i, tier) {
+    var out = '<div class="risk lv-' + r.evidence_level + " t-" + tier +
+      '" data-i="' + i + '">';
+    out += '<div class="risk-head"><div><div class="risk-title">' +
+      '<span class="sig-kind">' +
+        (tier === "insufficient" ? "Considered" : "Risk signal") + "</span>" +
+      esc(r.name) + "</div>";
+    out += '<div class="risk-meta">' +
+      '<span class="badge b-' + r.evidence_level + '">' +
+        esc(LEVEL_WORD[r.evidence_level] || r.evidence_level) + "</span>" +
+      '<span class="badge b-' + r.urgency_tier + '">' + esc(r.urgency_tier) + "</span>" +
+      '<span class="badge b-tag">' + esc(r.classification) + "</span>" +
+      (r.icd10 ? '<span class="badge b-tag">ICD-10 ' + esc(r.icd10) + "</span>" : "") +
+      (r.evidence_capped ? '<span class="badge b-Limited">capped — thin data</span>' : "") +
+      '<span class="small muted">' + r.profiles.map(esc).join(" · ") + "</span>" +
+      "</div></div>";
+    out += '<div class="risk-score tech-only"><div class="v">' + r.score.toFixed(2) +
+      '</div><div class="c">evidence</div></div></div>';
+
+    out += '<div class="risk-body">';
+
+    // The three-way evidence picture, above the machinery.
+    // Discounted triggers are shown too. Redundancy capping stops two views of the
+    // same biology inflating the SCORE; it is not a reason to hide the measurement.
+    // ApoB 142 mg/dL was being left out of the evidence for a lipid pattern because
+    // the ApoB/ApoA1 ratio carried the weight, which made the card look thinner than
+    // the record actually is.
+    var supporting = r.triggering_parameters;
+    if (supporting.length) {
+      out += '<div class="section"><h4>Results supporting this</h4>' +
+        supporting.map(function (t) {
+          return '<div class="meas hit' + (t.discounted ? " dim" : "") + '">' +
+            '<span class="meas-name">' + esc(t.name) + "</span>" +
+            '<span class="meas-val">' + esc(t.observed || "") + "</span>" +
+            '<span class="meas-read">' + esc(t.finding || "") +
+            (t.discounted ? " · counted at reduced weight, same biology as another "
+                          + "result above" : "") + "</span></div>";
+        }).join("") + "</div>";
+    }
+    if (r.contradicting && r.contradicting.length) {
+      out += '<div class="section"><h4>Results arguing against this</h4>' +
+        '<p class="small muted" style="margin:0 0 6px">These were measured and came back ' +
+        "normal, so the evidence score above has already been reduced.</p>" +
+        r.contradicting.map(function (m) { return measure(m, "against"); }).join("") + "</div>";
+    }
+    if (r.context_values && r.context_values.length) {
+      out += '<div class="section"><h4>Related results, within range</h4>' +
+        r.context_values.slice(0, 6).map(function (m) { return measure(m, "ok"); }).join("") +
+        "</div>";
+    }
+    if (r.missing_parameters.length) {
+      out += '<div class="section"><h4>Not measured</h4>' +
+        '<p class="small muted" style="margin:0 0 6px">Missing, not normal — these were ' +
+        "never tested, so they neither support nor rule this out.</p>" +
+        '<div class="chips">' + r.missing_parameters.map(function (p) {
+          return '<span class="chip miss">' + esc(paramName(p)) + "</span>";
+        }).join("") + "</div>" +
+        '<p class="small muted" style="margin:8px 0 0">Data coverage for this condition: <b>' +
+        pct(r.data_coverage) + "</b> of its relevant markers.</p></div>";
+    }
+
+    out += '<div class="callout info small">' +
+      (tier === "insufficient"
+        ? "<b>Not established.</b> This was assessed and the evidence here does not support " +
+          "reporting it as a finding. It is listed so you can see it was considered."
+        : "<b>This is not a diagnosis.</b> It means some of your results resemble a pattern " +
+          "that is associated with this condition. Establishing it needs a clinician, and " +
+          "usually the confirmatory tests listed below.") + "</div>";
+
+    out += '<div class="section"><h4>Why this was flagged</h4>' +
+      '<div class="explain">' + esc(r.explanation) + "</div></div>";
+
+    out += '<div class="section tech-only"><h4>Evidence contributions (combined with noisy-OR)</h4>';
+    r.contributions.forEach(function (c) {
+      out += '<div class="contrib"><span class="role-tag">' + esc(c.role) + "</span>" +
+        "<span style=\"flex:0 0 auto\">" + esc(c.cohort_name) + "</span>" +
+        '<div class="bar"><i style="width:' + pct(c.contribution) + '"></i></div>' +
+        '<span class="w">' + c.contribution.toFixed(3) +
+        '  (w ' + c.link_weight + " × conf " + c.cohort_confidence.toFixed(2) +
+        (c.support_penalty !== undefined && c.support_penalty < 1
+          ? " × support " + c.support_penalty.toFixed(2) : "") +
+        ")</span></div>";
+      if (c.support_note) out += '<div class="basis">Damped — ' + esc(c.support_note) + "</div>";
+      if (c.dm_basis) out += '<div class="basis">Clinical basis — ' + esc(c.dm_basis) + "</div>";
+    });
+    out += '<p class="small muted" style="margin:8px 0 0">These weights are engineering ' +
+      "design values chosen so the rules behave consistently. They are not validated " +
+      "clinical coefficients, and the score is a measure of evidence strength — it is " +
+      "not a probability that you have this condition.</p></div>";
+
+    out += "<details><summary>Full clinical details</summary><dl class=\"kv\">";
+    ["Definition", "Common Symptoms", "Related Markers/Tests", "High-Risk Indicators",
+     "Confirmatory/Diagnostic Tests", "Prognosis / Typical Course", "Possible Complications",
+     "External Risk Factors", "Genetic/Family History Factors", "Other Important Factors",
+     "Differential Diagnoses", "Prevention/Lifestyle Guidance", "Recommended Next Step",
+     "Severity/Urgency Level", "Review Status", "Source / Reference"
+    ].forEach(function (k) {
+      if (r.dm_fields[k]) out += "<dt>" + esc(k) + "</dt><dd>" + esc(r.dm_fields[k]) + "</dd>";
+    });
+    out += "</dl></details>";
+
+    if (r.conditional_urgency && r.conditional_urgency !== r.urgency_tier) {
+      out += '<div class="callout warn"><b>Can become urgent.</b> Note that this ' +
+        "condition can become <b>" + esc(r.conditional_urgency) + "</b>-level: " +
+        esc(r.urgency_escalation || r.urgency_raw) + "</div>";
+    }
+
+    return out + "</div></div>";
+  }
+
   function renderRisks(d) {
     var direct = d.direct_findings || [];
-    var patterns = d.pattern_findings || d.disease_risks || [];
+    var derived = d.derived_findings || [];
+    var patterns = d.pattern_findings || [];
+    var insufficient = d.insufficient_findings || [];
+    var vetoed = (d.suppressed_findings || []).filter(function (s) { return s.disease; });
 
-    if (!direct.length && !patterns.length) {
+    if (!direct.length && !derived.length && !patterns.length &&
+        !insufficient.length && !vetoed.length) {
       $("tab-risks").innerHTML = '<div class="empty"><div class="big">✓</div>' +
         "No conditions reached the reporting threshold.</div>";
       return;
     }
 
-    var out = "";
+    var out = '<div class="callout info" style="margin-bottom:18px">' +
+      "<b>How to read this page.</b> Nothing below is a diagnosis. The sections are " +
+      "ordered by how directly the evidence supports them: a single measured value that " +
+      "meets a defined threshold is the strongest claim this engine can make; a pattern " +
+      "across several results is a prompt to investigate, not a conclusion.</div>";
 
     if (direct.length) {
       out += '<section class="tier"><h2 class="tier-h">Direct findings' +
         '<span class="tier-n">' + direct.length + "</span></h2>" +
-        '<p class="tier-lead">Each of these is established by a single measurement ' +
+        '<p class="tier-lead">Each of these is established by a single measured result ' +
         "against its reference range — not inferred from a combination.</p>";
       direct.forEach(function (r) { out += directCard(r); });
       out += "</section>";
     }
 
-    out += '<section class="tier"><h2 class="tier-h">Pattern exploration / risk signals' +
+    if (derived.length) {
+      out += '<section class="tier"><h2 class="tier-h">Calculated findings' +
+        '<span class="tier-n">' + derived.length + "</span></h2>" +
+        '<p class="tier-lead">These rest on a value this engine <b>calculated</b> from other ' +
+        "results. No laboratory measured or flagged them, so they carry less weight than a " +
+        "reported abnormality and should be checked against the underlying results.</p>";
+      derived.forEach(function (r) { out += directCard(r); });
+      out += "</section>";
+    }
+
+    out += '<section class="tier"><h2 class="tier-h">Pattern / risk signals' +
       '<span class="tier-n">' + patterns.length + "</span></h2>" +
       '<p class="tier-lead">These are <b>combinations</b> of results that resemble a known ' +
       "pattern. They are possible associations to explore with your doctor, not findings " +
-      "in their own right. Click any one for the reasoning behind it.</p>";
-
+      "in their own right. Open any one for the evidence for and against it.</p>";
     if (!patterns.length) {
-      out += '<div class="empty small">No multi-marker patterns were detected.</div>';
+      out += '<div class="empty small">No multi-marker patterns reached the reporting threshold.</div>';
     }
-
-    patterns.forEach(function (r, i) {
-      out += '<div class="risk lv-' + r.evidence_level + '" data-i="' + i + '">';
-      out += '<div class="risk-head"><div><div class="risk-title">' + esc(r.name) + "</div>";
-      out += '<div class="risk-meta">' +
-        '<span class="badge b-' + r.evidence_level + '">' +
-          esc(LEVEL_WORD[r.evidence_level] || r.evidence_level) + "</span>" +
-        '<span class="badge b-' + r.urgency_tier + '">' + esc(r.urgency_tier) + "</span>" +
-        '<span class="badge b-tag">' + esc(r.classification) + "</span>" +
-        (r.icd10 ? '<span class="badge b-tag">ICD-10 ' + esc(r.icd10) + "</span>" : "") +
-        (r.evidence_capped ? '<span class="badge b-Limited">capped — thin data</span>' : "") +
-        '<span class="small muted">' + r.profiles.map(esc).join(" · ") + "</span>" +
-        "</div></div>";
-      out += '<div class="risk-score tech-only"><div class="v">' + r.score.toFixed(2) +
-        '</div><div class="c">evidence</div></div></div>';
-
-      out += '<div class="risk-body">';
-
-      out += '<div class="section"><h4>Why this was flagged</h4>' +
-        '<div class="explain">' + esc(r.explanation) + "</div></div>";
-
-      out += '<div class="section"><h4>Evidence contributions (combined with noisy-OR)</h4>';
-      r.contributions.forEach(function (c) {
-        out += '<div class="contrib"><span class="role-tag">' + esc(c.role) + "</span>" +
-          "<span style=\"flex:0 0 auto\">" + esc(c.cohort_name) + "</span>" +
-          '<div class="bar"><i style="width:' + pct(c.contribution) + '"></i></div>' +
-          '<span class="w">' + c.contribution.toFixed(3) +
-          '  (w ' + c.link_weight + " × conf " + c.cohort_confidence.toFixed(2) +
-          ")</span></div>";
-        if (c.dm_basis) out += '<div class="basis">Clinical basis — ' + esc(c.dm_basis) + "</div>";
-      });
-      out += "</div>";
-
-      var trig = r.triggering_parameters.filter(function (t) { return !t.discounted; });
-      if (trig.length) {
-        out += '<div class="section"><h4>Triggering parameters</h4><div class="chips">' +
-          trig.map(function (t) {
-            return '<span class="chip trig" title="' + esc(t.observed || "") + " — via " +
-              esc(t.via_cohort) + '">' + esc(t.name) + "</span>";
-          }).join("") + "</div></div>";
-      }
-
-      if (r.missing_parameters.length) {
-        out += '<div class="section"><h4>Not measured — testing these would raise confidence</h4>' +
-          '<div class="chips">' + r.missing_parameters.map(function (p) {
-            return '<span class="chip miss">' + esc(paramName(p)) + "</span>";
-          }).join("") + "</div>" +
-          '<p class="small muted" style="margin:8px 0 0">Data coverage for this condition: <b>' +
-          pct(r.data_coverage) + "</b> of its relevant markers.</p></div>";
-      }
-
-      if (r.conditional_urgency && r.conditional_urgency !== r.urgency_tier) {
-        out += '<div class="callout warn"><b>Can become urgent.</b> Note that this ' +
-          "condition can become <b>" + esc(r.conditional_urgency) + "</b>-level: " +
-          esc(r.urgency_escalation || r.urgency_raw) + "</div>";
-      }
-
-      out += "<details><summary>Full clinical details</summary><dl class=\"kv\">";
-      ["Definition", "Common Symptoms", "Related Markers/Tests", "High-Risk Indicators",
-       "Confirmatory/Diagnostic Tests", "Prognosis / Typical Course", "Possible Complications",
-       "External Risk Factors", "Genetic/Family History Factors", "Other Important Factors",
-       "Differential Diagnoses", "Prevention/Lifestyle Guidance", "Recommended Next Step",
-       "Severity/Urgency Level", "Review Status", "Source / Reference"
-      ].forEach(function (k) {
-        if (r.dm_fields[k]) out += "<dt>" + esc(k) + "</dt><dd>" + esc(r.dm_fields[k]) + "</dd>";
-      });
-      out += "</dl></details>";
-
-      out += "</div></div>";
-    });
+    patterns.forEach(function (r, i) { out += patternCard(r, i, "pattern"); });
     out += "</section>";
+
+    if (insufficient.length) {
+      out += '<section class="tier tier-weak"><h2 class="tier-h">Insufficient evidence' +
+        '<span class="tier-n">' + insufficient.length + "</span></h2>" +
+        '<p class="tier-lead">Considered and assessed, but the results here do not support ' +
+        "reporting these as findings — usually because too few of the relevant markers were " +
+        "measured, or because the ones that were measured came back normal. Shown so you can " +
+        "see they were checked rather than missed.</p>";
+      insufficient.forEach(function (r, i) {
+        out += patternCard(r, i + 1000, "insufficient");
+      });
+      out += "</section>";
+    }
 
     // Anything a definitive negative ruled out. Shown plainly so the user can see the
     // test was read and acted on, without the engine's internal wording.
-    var vetoed = (d.suppressed_findings || []).filter(function (s) { return s.disease; });
     if (vetoed.length) {
       out += '<section class="tier"><h2 class="tier-h">Ruled out by a specific test' +
         '<span class="tier-n">' + vetoed.length + "</span></h2>" +
@@ -603,47 +741,99 @@
     }).join("");
   }
 
+  /* Three different claims were sharing one "Outside the normal range" heading:
+     the lab's own interval was breached, a guideline band this engine applies decided
+     it because the lab supplied no interval, and the value was calculated here and
+     never measured at all. A fourth case had nowhere to sit: TSH 5.05 inside a
+     0.54-5.3 lab range still drives the hypothyroid pattern, so a reader saw the
+     advice with no visible result behind it. */
+  var BASIS_GROUPS = [
+    { key: "lab_range", title: "Outside the laboratory reference range",
+      lead: "The laboratory's own reference interval for this report says these are out of range.",
+      cls: "g-lab" },
+    { key: "decision_threshold", title: "Clinical decision threshold triggered",
+      lead: "These met a guideline threshold configured in this engine. Where the laboratory " +
+            "supplied no interval of its own, that threshold is what judged the result; where " +
+            "it did, the value is inside the laboratory range and the threshold is a separate, " +
+            "narrower line.",
+      cls: "g-band" },
+    { key: "derived", title: "Calculated by this engine",
+      lead: "Not measured by any laboratory — computed from other results in this report. " +
+            "Check them against the values they were derived from.",
+      cls: "g-derived" }
+  ];
+
+  var SOURCE_WORD = {
+    lab_range: "Lab-reported", decision_threshold: "Decision threshold",
+    derived: "Derived", normal: "Lab-reported"
+  };
+
   function renderParams(d) {
-    var abn = d.parameters.filter(function (p) { return p.abnormal; });
-    var norm = d.parameters.filter(function (p) { return !p.abnormal; });
-    var out = '<div class="card"><h2>Outside the normal range (' + abn.length + ")</h2>";
-    out += abn.length ? paramTable(abn) : '<p class="muted small">None — all recognised parameters are within range.</p>';
-    out += "</div>";
-    out += '<div class="card"><h2>Normal results (' + norm.length + ")</h2>" +
+    var out = "";
+    var shown = {};
+
+    BASIS_GROUPS.forEach(function (g) {
+      var rows = d.parameters.filter(function (p) { return p.finding_basis === g.key; });
+      rows.forEach(function (p) { shown[p.parameter_id] = 1; });
+      if (!rows.length) return;
+      out += '<div class="card ' + g.cls + '"><h2>' + esc(g.title) + " (" + rows.length + ")</h2>" +
+        '<p class="small muted" style="margin:-4px 0 12px">' + esc(g.lead) + "</p>" +
+        paramTable(rows) + "</div>";
+    });
+
+    if (!Object.keys(shown).length) {
+      out += '<div class="card"><h2>Outside the laboratory reference range (0)</h2>' +
+        '<p class="muted small">None — every recognised result is within its range.</p></div>';
+    }
+
+    var norm = d.parameters.filter(function (p) { return !shown[p.parameter_id]; });
+    out += '<div class="card"><h2>Within range (' + norm.length + ")</h2>" +
       (norm.length ? paramTable(norm) : '<p class="muted small">None.</p>') + "</div>";
     $("tab-params").innerHTML = out;
   }
 
   function paramTable(rows) {
     var out = '<div class="wrap"><table class="tbl"><thead><tr>' +
-      "<th>Parameter</th><th>Profile</th><th>Result</th><th>Reference</th>" +
-      "<th>Interpretation</th><th>Notes</th></tr></thead><tbody>";
+      "<th>Parameter</th><th>Profile</th><th>Result</th><th>Laboratory reference</th>" +
+      "<th>Status</th><th>Source</th><th>Notes</th></tr></thead><tbody>";
     rows.forEach(function (p) {
       var value = p.kind === "qualitative"
         ? '<span class="badge b-' + (p.status || "normal") + '">' + esc(p.status) + "</span>"
         : '<span class="num">' + num(p.value) + "</span> " +
           '<span class="muted small">' + esc(p.unit || "") + "</span>";
-      var ref = "—";
+      var ref = "—", refNote = "";
       if (p.reference_low !== null || p.reference_high !== null) {
         ref = (p.reference_low !== null ? num(p.reference_low) : "") +
               (p.reference_low !== null && p.reference_high !== null ? " – " : "") +
               (p.reference_high !== null ? num(p.reference_high) : "");
         ref = '<span class="num">' + ref + "</span>";
       }
+      // Say plainly whose range this is. "dictionary" told the reader nothing, and it
+      // is the whole difference between a lab flagging a result and this engine doing it.
+      if (p.derived) refNote = "engine reference for a calculated value";
+      else if (p.reference_source && p.reference_source.indexOf("report") === 0)
+        refNote = "from this report";
+      else if (ref !== "—") refNote = "guideline band — no lab range supplied";
+
       var notes = (p.notes || []).slice();
       if (p.conversion_note) notes.push(p.conversion_note);
       if (p.derived) notes.push(p.derivation);
+      (p.triggered_bands || []).forEach(function (b) {
+        notes.push("Met a cluster condition: " + b.band + " (" + b.cohort + ")");
+      });
       // data-label drives the stacked card layout on phones, where the header row is hidden.
       out += '<tr class="' + (p.abnormal ? "abn" : "") + '">' +
         '<td data-label="Test"><b>' + esc(p.name) + "</b>" +
           (p.derived ? ' <span class="badge b-tag">derived</span>' : "") + "</td>" +
         '<td data-label="Profile" class="small muted">' + esc(p.profile || "—") + "</td>" +
         '<td data-label="Result">' + value + "</td>" +
-        '<td data-label="Normal range">' + ref +
-          '<div class="small muted">' + esc(p.reference_source) + "</div></td>" +
-        '<td data-label="Reading">' + (p.abnormal
+        '<td data-label="Laboratory reference">' + ref +
+          '<div class="small muted">' + esc(refNote) + "</div></td>" +
+        '<td data-label="Status">' + (p.abnormal
           ? '<span class="badge b-' + (p.direction || "high") + '">' + esc(p.direction || "") + "</span> "
           : "") + '<span class="small">' + esc(p.grade_label || p.grade) + "</span></td>" +
+        '<td data-label="Source" class="small muted">' +
+          esc(SOURCE_WORD[p.finding_basis] || "Lab-reported") + "</td>" +
         '<td data-label="Notes" class="small muted">' + notes.map(esc).join("<br>") + "</td></tr>";
     });
     return out + "</tbody></table></div>";
@@ -778,13 +968,65 @@
     $("tab-plan").innerHTML = out;
   }
 
+  /* "312 observations found, 70 recognised, 241 unmapped" read as a 77% failure rate.
+     Almost all of those 241 were document fields - LabNo, SampleCollDate,
+     ApprovedByDoctorID - that were never test results. The breakdown below separates
+     what was actually dropped from what was never a result in the first place. */
+  function dqRow(n, label, note, cls) {
+    return '<div class="dq ' + (cls || "") + '"><div class="dq-n">' + n + "</div>" +
+      '<div><div class="dq-l">' + esc(label) + "</div>" +
+      (note ? '<div class="dq-note">' + esc(note) + "</div>" : "") + "</div></div>";
+  }
+
   function renderData(d) {
-    var out = '<div class="card"><h2>Extraction</h2><dl class="kv">' +
-      "<dt>Observations found</dt><dd>" + d.summary.observations_found + "</dd>" +
-      "<dt>Mapped to parameters</dt><dd>" + d.summary.parameters_recognised + "</dd>" +
-      "<dt>Unmapped</dt><dd>" + d.summary.parameters_unmapped + "</dd>" +
-      "<dt>Profiles touched</dt><dd>" + d.summary.profiles_touched.map(esc).join(", ") + "</dd>" +
-      "</dl></div>";
+    var s = d.summary;
+    var unmapped = d.unmapped_observations || [];
+    var fields = d.document_fields_skipped || [];
+    var rejected = d.rejected_values || [];
+
+    var out = '<div class="card"><h2>What was read from this file</h2><div class="dq-grid">' +
+      dqRow(s.observations_found, "values found in the file",
+            "every name/value pair the reader could see") +
+      dqRow(s.parameters_recognised, "recognised as tests",
+            "matched to a known parameter, unit-converted and graded", "ok") +
+      dqRow(s.parameters_unmapped, "tests not recognised",
+            "result-shaped, but no matching parameter in the dictionary",
+            unmapped.length ? "warn" : "") +
+      dqRow(s.document_fields_skipped, "document fields skipped",
+            "sample dates, lab numbers, package names — never test results") +
+      dqRow(s.values_rejected || 0, "values rejected",
+            "impossible or unusable readings, listed below",
+            rejected.length ? "warn" : "") +
+      dqRow(s.duplicates_resolved || 0, "duplicates resolved",
+            "the same test reported more than once") +
+      dqRow(s.derived_values || 0, "values calculated here",
+            "ratios and indices computed from other results") +
+      "</div>";
+    out += '<p class="small muted" style="margin:10px 0 0">Recognition rate across ' +
+      "result-shaped values: <b>" +
+      (s.parameters_recognised + s.parameters_unmapped > 0
+        ? Math.round(100 * s.parameters_recognised /
+            (s.parameters_recognised + s.parameters_unmapped)) + "%"
+        : "—") +
+      "</b>. Document fields are excluded from that figure because they were never " +
+      "results.</p>";
+    out += '<dl class="kv" style="margin-top:14px"><dt>Profiles touched</dt><dd>' +
+      s.profiles_touched.map(esc).join(", ") + "</dd></dl></div>";
+
+    if (rejected.length) {
+      out += '<div class="card"><h2>Values rejected (' + rejected.length + ")</h2>" +
+        '<p class="small muted">These could not be a real measurement, so they were not ' +
+        "used anywhere in the analysis rather than being graded as findings.</p>" +
+        '<div class="wrap"><table class="tbl"><thead><tr><th>Parameter</th><th>Reported</th>' +
+        "<th>Why it was rejected</th></tr></thead><tbody>";
+      rejected.forEach(function (x) {
+        out += "<tr><td><b>" + esc(x.parameter || x.name || x.parameter_id || "—") +
+          '</b></td><td class="num">' +
+          esc(x.value !== undefined ? x.value : x.raw_value) + " " + esc(x.unit || "") +
+          '</td><td class="small muted">' + esc(x.reason || "") + "</td></tr>";
+      });
+      out += "</tbody></table></div></div>";
+    }
 
     if (d.warnings && d.warnings.length) {
       out += '<div class="callout warn"><b>Extraction warnings</b><ul style="margin:6px 0 0">' +
@@ -792,13 +1034,17 @@
     }
 
     if (d.duplicates_resolved.length) {
-      out += '<div class="card"><h2>Duplicate results resolved (' + d.duplicates_resolved.length + ")</h2>";
+      out += '<div class="card"><h2>Duplicate results resolved (' +
+        d.duplicates_resolved.length + ")</h2>" +
+        '<p class="small muted">The same test appeared more than once. The rule is fixed and ' +
+        "does not look at which value is more alarming: a record carrying the report's own " +
+        "reference range and units wins, then the first one seen. Both values are shown.</p>";
       out += '<div class="wrap"><table class="tbl"><thead><tr><th>Parameter</th><th>Seen</th>' +
         "<th>Kept</th><th>Dropped</th><th>Reason</th></tr></thead><tbody>";
       d.duplicates_resolved.forEach(function (x) {
         out += "<tr><td><b>" + esc(x.parameter) + "</b>" +
-          (x.conflicting_values ? ' <span class="badge b-Moderate">values differed</span>' : "") + "</td>" +
-          "<td>" + x.occurrences + "</td>" +
+          (x.conflicting_values ? ' <span class="badge b-Moderate">values differed</span>' : "") +
+          "</td><td>" + x.occurrences + "</td>" +
           '<td class="num">' + esc(x.kept.value) + " " + esc(x.kept.unit || "") + "</td>" +
           '<td class="num muted">' + x.dropped.map(function (v) {
             return esc(v.value) + " " + esc(v.unit || "");
@@ -808,19 +1054,33 @@
       out += "</tbody></table></div></div>";
     }
 
-    if (d.unmapped_observations.length) {
-      out += '<div class="card"><h2>Unmapped observations (' + d.unmapped_observations.length + ")</h2>" +
-        '<p class="small muted">These appeared in the file but did not match any parameter in the ' +
-        "dictionary. They were ignored rather than guessed at. Add an alias in " +
-        "<code>config/parameters.json</code> to recognise them.</p>" +
+    if (unmapped.length) {
+      out += '<div class="card"><h2>Tests not recognised (' + unmapped.length + ")</h2>" +
+        '<p class="small muted">These look like results but did not match any parameter in the ' +
+        "dictionary, so they were ignored rather than guessed at. Nothing here was used in " +
+        "the analysis.</p>" +
         '<div class="wrap"><table class="tbl"><thead><tr><th>Name in file</th><th>Value</th>' +
-        "<th>Unit</th><th>Where</th></tr></thead><tbody>";
-      d.unmapped_observations.forEach(function (o) {
+        "<th>Unit</th><th>Range in file</th></tr></thead><tbody>";
+      unmapped.forEach(function (o) {
         out += "<tr><td>" + esc(o.raw_name) + '</td><td class="num">' + esc(o.raw_value) +
           "</td><td>" + esc(o.raw_unit || "—") + '</td><td class="small muted">' +
-          esc(o.source_path || "") + "</td></tr>";
+          esc(o.raw_range || "—") + "</td></tr>";
       });
       out += "</tbody></table></div></div>";
+    }
+
+    if (fields.length) {
+      out += '<details class="card"><summary><b>Document fields skipped (' + fields.length +
+        ")</b> — sample dates, lab numbers, package names</summary>" +
+        '<p class="small muted">Listed for completeness. None of these is a test result, so ' +
+        "none of them was expected to map to a parameter.</p>" +
+        '<div class="wrap"><table class="tbl"><thead><tr><th>Key</th><th>Value</th>' +
+        "<th>Where</th></tr></thead><tbody>";
+      fields.slice(0, 200).forEach(function (o) {
+        out += "<tr><td>" + esc(o.raw_name) + "</td><td>" + esc(o.raw_value) +
+          '</td><td class="small muted">' + esc(o.source_path || "") + "</td></tr>";
+      });
+      out += "</tbody></table></div></details>";
     }
 
     if (d.cohorts_not_assessable.length) {
@@ -829,7 +1089,8 @@
         '<div class="wrap"><table class="tbl"><thead><tr><th>Cluster</th><th>Reason</th>' +
         "</tr></thead><tbody>";
       d.cohorts_not_assessable.forEach(function (c) {
-        out += "<tr><td>" + esc(c.name) + '</td><td class="small muted">' + esc(c.reason) + "</td></tr>";
+        out += "<tr><td>" + esc(c.name) + '</td><td class="small muted">' + esc(c.reason) +
+          "</td></tr>";
       });
       out += "</tbody></table></div></div>";
     }

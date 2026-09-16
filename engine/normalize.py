@@ -266,7 +266,13 @@ class Normalizer:
         return None
 
     def _grade(self, pdef, value, low, high, sex, ref_source):
-        """Return (abnormal, direction, grade, label, note).
+        """Return (abnormal, direction, grade, label, note, basis).
+
+        `basis` names WHAT decided the verdict - "range" (the interval that applied),
+        "decision_band" (a configured guideline band overruled a report interval that
+        would have called this normal), or "none". The UI has to tell those apart:
+        saying "the laboratory's own reference interval says this is out of range" is
+        false when the lab's interval said nothing of the kind.
 
         Where a parameter has clinical decision bands (ADA glucose thresholds, KDIGO
         eGFR stages, NCEP lipid bands) those win, because they are absolute standards
@@ -276,7 +282,7 @@ class Normalizer:
         rather than hidden.
         """
         if value is None:
-            return False, None, "unknown", None, None
+            return False, None, "unknown", None, None, "none"
 
         bands = self._bands_for(pdef, sex)
 
@@ -322,10 +328,11 @@ class Normalizer:
                     elif abnormal and not range_abnormal and ref_source == "report":
                         note = ("the reference interval on the report would call this normal; it is "
                                 "graded here against the standard clinical decision band")
-                    return abnormal, direction, grade, label, note
+                    basis = "decision_band" if (abnormal and not range_abnormal) else "range"
+                    return abnormal, direction, grade, label, note, basis
 
         if low is None and high is None:
-            return False, None, "unknown", None, None
+            return False, None, "unknown", None, None, "none"
 
         width = None
         if low is not None and high is not None and high > low:
@@ -338,12 +345,12 @@ class Normalizer:
         if high is not None and value > high:
             dev = (value - high) / width if width else 1.0
             grade = "mild_high" if dev < 0.25 else ("moderate_high" if dev < 0.75 else "severe_high")
-            return True, "high", grade, "Above reference range", None
+            return True, "high", grade, "Above reference range", None, "range"
         if low is not None and value < low:
             dev = (low - value) / width if width else 1.0
             grade = "mild_low" if dev < 0.25 else ("moderate_low" if dev < 0.75 else "severe_low")
-            return True, "low", grade, "Below reference range", None
-        return False, None, "normal", "Within reference range", None
+            return True, "low", grade, "Below reference range", None, "range"
+        return False, None, "normal", "Within reference range", None, "range"
 
     @staticmethod
     def _from_band(band):
@@ -489,8 +496,10 @@ class Normalizer:
             np_.notes.append("sex was not supplied, so the widest reference interval was used; "
                              "a sex-specific range may change this result")
 
-        abnormal, direction, grade, label, gnote = self._grade(pdef, value, low, high, sex, src)
+        abnormal, direction, grade, label, gnote, gbasis = self._grade(
+            pdef, value, low, high, sex, src)
         np_.abnormal, np_.direction, np_.grade, np_.grade_label = abnormal, direction, grade, label
+        np_.graded_by = gbasis
         np_.severity_score = GRADE_SEVERITY.get(grade, 0.0)
         if gnote:
             np_.notes.append(gnote)
@@ -598,8 +607,10 @@ class Normalizer:
                     spec["formula"], ", ".join(self.cfg.param_by_id[i]["name"] for i in inputs)))
             low, high, src = self._reference(pdef, sex, None)
             np_.reference_low, np_.reference_high, np_.reference_source = low, high, src
-            abnormal, direction, grade, label, gnote = self._grade(pdef, value, low, high, sex, src)
+            abnormal, direction, grade, label, gnote, gbasis = self._grade(
+                pdef, value, low, high, sex, src)
             np_.abnormal, np_.direction, np_.grade, np_.grade_label = abnormal, direction, grade, label
+            np_.graded_by = gbasis
             np_.severity_score = GRADE_SEVERITY.get(grade, 0.0)
             if gnote:
                 np_.notes.append(gnote)

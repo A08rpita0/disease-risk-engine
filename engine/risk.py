@@ -44,7 +44,6 @@ REPORT_FLOOR = 0.12
 
 # Below this fraction of the disease's marker set, the evidence level is capped.
 COVERAGE_CAP_THRESHOLD = 0.34
-COVERAGE_CAP_LEVEL = "Limited"
 COVERAGE_SOFT_THRESHOLD = 0.6
 COVERAGE_SOFT_CAP = "Moderate"
 
@@ -114,7 +113,7 @@ class RiskEngine:
         """
         spec = link.get("requires_support")
         if not spec:
-            return 1.0, ""
+            return 1.0, "", []
 
         params = spec.get("parameters", [])
         measured_normal, measured_abnormal, absent = [], [], []
@@ -128,12 +127,12 @@ class RiskEngine:
                 measured_normal.append(pid)
 
         if len(measured_abnormal) >= spec.get("min_abnormal", 1):
-            return 1.0, ""                      # the support it wanted is present
+            return 1.0, "", []                  # the support it wanted is present
 
         if not measured_normal:
             # Nothing was measured, so there is no evidence against - only absence of
             # evidence. Coverage already lowers certainty; do not punish twice.
-            return 1.0, ""
+            return 1.0, "", []
 
         # Scale with how much of the expected support was checked and came back clear.
         floor = spec.get("penalty_when_all_normal", 0.25)
@@ -144,7 +143,7 @@ class RiskEngine:
                 "against this pattern" % ", ".join(names))
         if absent:
             note += "; %d other expected marker(s) were not measured" % len(absent)
-        return max(floor, penalty), note
+        return max(floor, penalty), note, measured_normal
 
     def _classify_finding(self, disease, contributions, patient, by_cohort):
         """Direct finding, or multi-marker pattern?
@@ -176,6 +175,8 @@ class RiskEngine:
                     "reference_low": p.reference_low,
                     "reference_high": p.reference_high,
                     "reference_source": p.reference_source,
+                    "graded_by": p.graded_by,
+                    "derived": p.derived,
                     "grade_label": p.grade_label,
                     "observed": observed,
                     "statement": spec.get("statement", ""),
@@ -220,8 +221,13 @@ class RiskEngine:
             if prev is None or value > prev[0]:
                 best_by_cohort[hit.cohort_id] = (value, hit, link, role)
 
+        contradicting = []
         for value, hit, link, role in best_by_cohort.values():
-            penalty, note = self._support_penalty(link, patient)
+            penalty, note, against = self._support_penalty(link, patient)
+            for pid in against:
+                q = patient.get(pid)
+                if q is not None and not any(x["parameter_id"] == pid for x in contradicting):
+                    contradicting.append(_measurement(q))
             contributions.append(RiskContribution(
                 cohort_id=hit.cohort_id, cohort_name=hit.name, role=role,
                 link_weight=link["weight"], cohort_confidence=hit.confidence,
@@ -288,8 +294,51 @@ class RiskEngine:
             icd10=disease.get("icd10"))
         risk.finding_type, risk.direct_evidence = self._classify_finding(
             disease, contributions, patient, by_cohort)
+        risk.contradicting = contradicting
+        risk.context_values = self._context_values(risk, patient, contradicting)
+        risk.presentation_tier = self._tier(risk, patient)
         risk.explanation = self._explain(risk, disease, coverage, observed)
         return risk
+
+    @staticmethod
+    def _tier(risk, patient):
+        """Which section this belongs under.
+
+        A "Limited" score means the engine looked and did not find enough to report it
+        as a finding, so it goes to its own section rather than sitting in the same list
+        as a supported one at a fainter shade. A direct finding established by a value
+        this engine CALCULATED is not a laboratory abnormality and does not get to sit
+        with the measured ones either.
+        """
+        if risk.evidence_level == "Limited":
+            return "insufficient"
+        if risk.finding_type == "direct":
+            e = risk.direct_evidence or {}
+            p = patient.get(e.get("parameter_id"))
+            return "derived" if (p is not None and p.derived) else "direct"
+        return "pattern"
+
+    def _context_values(self, risk, patient, contradicting):
+        """Expected markers that were measured and came back normal.
+
+        Without these the card is one-sided: it lists everything that fired and nothing
+        that did not, so a reader cannot tell a pattern whose other markers came back
+        clean from one where nothing else was ever checked. Drawn from the same
+        expected_parameters set that coverage uses, so it needs no new configuration.
+        """
+        listed = {x["parameter_id"] for x in contradicting}
+        listed |= {t["parameter_id"] for t in risk.triggering_parameters}
+        expected = set()
+        for c in risk.contributions:
+            expected |= set(self.cfg.cohort_by_id[c.cohort_id].get("expected_parameters", []))
+
+        out = []
+        for pid in sorted(expected - listed):
+            q = patient.get(pid)
+            if q is None or q.abnormal:
+                continue
+            out.append(_measurement(q))
+        return out
 
     # ------------------------------------------------------------------
 
@@ -421,3 +470,19 @@ _LADDER = ["Limited", "Low", "Moderate", "High"]
 def _step_down(level):
     """One band lower, floored at Limited."""
     return _LADDER[max(0, _rank(level) - 1)]
+
+
+def _measurement(p):
+    """One measured result, in the shape the UI needs to show it beside a finding."""
+    return {
+        "parameter_id": p.parameter_id,
+        "name": p.name,
+        "value": p.value if p.value is not None else (p.status or p.category),
+        "unit": p.unit,
+        "reference_low": p.reference_low,
+        "reference_high": p.reference_high,
+        "reference_source": p.reference_source,
+        "reading": p.grade_label or p.grade,
+        "abnormal": p.abnormal,
+        "derived": p.derived,
+    }

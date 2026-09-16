@@ -11,6 +11,8 @@ Supported inputs:
 """
 from __future__ import annotations
 
+from functools import lru_cache
+
 import csv
 import io
 import json
@@ -109,21 +111,39 @@ def parse_reference_range(text):
     return None, None
 
 
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])")
+
+
+@lru_cache(maxsize=4096)
 def _camel_to_snake(k):
-    """'MinValue' -> 'min_value', 'RefRange' -> 'ref_range'."""
-    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", k)
+    """'MinValue' -> 'min_value', 'RefRange' -> 'ref_range'.
+
+    Cached: a report re-presents the same few dozen key spellings on every record, and
+    this was being recomputed about fifteen thousand times per document.
+    """
+    return _CAMEL_BOUNDARY.sub("_", k)
 
 
-def _first(d, keys):
-    # Index each key under both its plain lowercase form and its de-camelised form.
-    # Without the second, a CamelCase field such as 'MinValue' lowercased to 'minvalue'
-    # and never matched 'min_value', so the laboratory's own reference ranges were
-    # silently discarded for every report using that style - Metropolis among them.
+def _key_index(d):
+    """Index a record's keys under both their plain lowercase and de-camelised forms.
+
+    Without the second, a CamelCase field such as 'MinValue' lowercased to 'minvalue'
+    and never matched 'min_value', so the laboratory's own reference ranges were
+    silently discarded for every report using that style - Metropolis among them.
+    """
     lower = {}
     for k, v in d.items():
         ks = str(k)
         lower.setdefault(ks.lower().replace(" ", "_"), v)
         lower.setdefault(_camel_to_snake(ks).lower().replace(" ", "_"), v)
+    return lower
+
+
+def _first(d, keys, index=None):
+    # `index` lets a caller reading eight field groups out of one record build the
+    # index once instead of eight times; extraction was spending nearly half its time
+    # rebuilding the same map.
+    lower = index if index is not None else _key_index(d)
     for k in keys:
         if k in lower and lower[k] not in (None, "", []):
             return lower[k]
@@ -187,22 +207,28 @@ def extract_json(payload, source_name="input.json"):
             if val is not None and _scalar(val):
                 ctx_found["name"] = val
 
-    def emit(name, value, unit, rng, flag, path):
+    def emit(name, value, unit, rng, flag, path, shape="result"):
+        # A loose scalar that nevertheless carries a unit or a reference range is a
+        # result however it was nested, so the shape is upgraded on that evidence
+        # rather than on where it happened to sit.
+        if shape == "field" and (unit is not None or rng is not None):
+            shape = "result"
         obs.append(RawObservation(
             raw_name=str(name).strip(), raw_value=value,
             raw_unit=str(unit).strip() if unit is not None else None,
             raw_range=str(rng).strip() if rng is not None else None,
             raw_flag=str(flag).strip() if flag is not None else None,
-            source_path=path, source_kind="json"))
+            source_path=path, source_kind="json", shape=shape))
 
     def from_test_object(d, path):
-        name = _first(d, NAME_KEYS)
-        value = _first(d, VALUE_KEYS)
-        unit = _first(d, UNIT_KEYS)
-        rng = _first(d, RANGE_KEYS)
-        flag = _first(d, FLAG_KEYS)
+        idx = _key_index(d)
+        name = _first(d, NAME_KEYS, idx)
+        value = _first(d, VALUE_KEYS, idx)
+        unit = _first(d, UNIT_KEYS, idx)
+        rng = _first(d, RANGE_KEYS, idx)
+        flag = _first(d, FLAG_KEYS, idx)
         if rng is None:
-            low, high = _first(d, LOW_KEYS), _first(d, HIGH_KEYS)
+            low, high = _first(d, LOW_KEYS, idx), _first(d, HIGH_KEYS, idx)
             if low is not None or high is not None:
                 if low is not None and high is not None:
                     rng = "%s - %s" % (low, high)
@@ -261,7 +287,7 @@ def extract_json(payload, source_name="input.json"):
                     if (kl in context_key_names or kl in STRUCTURAL_KEYS
                             or kl in field_key_names or kl.startswith("_")):
                         continue
-                    emit(k, v, None, None, None, child)
+                    emit(k, v, None, None, None, child, shape="field")
         elif isinstance(node, list):
             for i, v in enumerate(node):
                 walk(v, "%s[%d]" % (path, i))

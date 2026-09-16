@@ -201,6 +201,22 @@
     {
       "id": "urine_bilirubin",
       "reason": "Added so the urine dipstick 'Bilirubin' resolves to its own parameter instead of colliding with SERUM Total Bilirubin, which it was overwriting. No Disease Master row names urine bilirubin as a marker, so it is extracted and shown but drives no cluster."
+    },
+    {
+      "id": "absolute_neutrophil_count",
+      "reason": "Absolute Neutrophil Count is reported by most CBC panels and was being dropped as unmapped, so a genuinely abnormal count was invisible. No Disease Master row names absolute counts as its marker - the rows use the percentage differential - so it is extracted, graded against the report's own reference interval and shown, but drives no cluster."
+    },
+    {
+      "id": "absolute_lymphocyte_count",
+      "reason": "Absolute Lymphocyte Count is reported by most CBC panels and was being dropped as unmapped, so a genuinely abnormal count was invisible. No Disease Master row names absolute counts as its marker - the rows use the percentage differential - so it is extracted, graded against the report's own reference interval and shown, but drives no cluster."
+    },
+    {
+      "id": "absolute_monocyte_count",
+      "reason": "Absolute Monocyte Count is reported by most CBC panels and was being dropped as unmapped, so a genuinely abnormal count was invisible. No Disease Master row names absolute counts as its marker - the rows use the percentage differential - so it is extracted, graded against the report's own reference interval and shown, but drives no cluster."
+    },
+    {
+      "id": "absolute_basophil_count",
+      "reason": "Absolute Basophil Count is reported by most CBC panels and was being dropped as unmapped, so a genuinely abnormal count was invisible. No Disease Master row names absolute counts as its marker - the rows use the percentage differential - so it is extracted, graded against the report's own reference interval and shown, but drives no cluster."
     }
   ],
   "reported_only_note": "These parameters are deliberately extracted, unit-converted, graded against their reference range and displayed, but do not feed any cluster. Listing them here keeps the distinction between 'not covered' and 'covered as a reported value' explicit."

@@ -509,7 +509,7 @@ input:focus-visible, [tabindex]:focus-visible, .tab:focus-visible{
   details > *{display:block!important}
   .risk-body{display:block!important}
 
-  .card, .plan-item, .step, .plan-group, .sched-row, .rec, .risk, .callout, .finding-row, table.tbl tr{
+  .card, .plan-item, .step, .plan-group, .sched-row, .meas, .dq, .rec, .risk, .callout, .finding-row, table.tbl tr{
     break-inside:avoid;page-break-inside:avoid;
   }
   .card{border:1px solid #bbb;box-shadow:none;margin-bottom:10px}
@@ -578,4 +578,84 @@ input:focus-visible, [tabindex]:focus-visible, .tab:focus-visible{
 @media print{
   .direct, .ruled-out, .tier{break-inside:avoid}
   .tier-h{page-break-after:avoid}
+}
+
+/* ---------------- evidence tiers, measurements, data quality ---------------- */
+
+/* An insufficient-evidence section has to look visibly weaker than a supported one,
+   or "we looked and found nothing solid" reads the same as "we found something". */
+.tier-weak{opacity:.92}
+.tier-weak .tier-h{color:#5c6675}
+.tier-weak .risk{border-style:dashed;background:#fcfcfd}
+
+.sig-kind{
+  display:inline-block;margin-right:8px;padding:1px 7px;border-radius:3px;
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:#5b6672;background:#eef1f4;border:1px solid #dde2e7;vertical-align:2px;
+}
+.risk.t-insufficient .sig-kind{color:#78838f;background:#f5f6f8}
+
+/* One measurement row, used for supporting, contradicting and in-range context so the
+   three can be compared at a glance. */
+.meas{
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  padding:6px 10px;margin-bottom:5px;border-radius:4px;
+  border:1px solid #e9edf1;border-left:3px solid #cfd6dd;background:#fff;font-size:12.5px;
+}
+.meas-name{font-weight:600;color:#16202b;flex:0 0 auto;min-width:150px}
+.meas-val{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-weight:700;color:#16202b}
+.meas-unit{font-weight:400;color:#6b7683}
+.meas-ref{font-size:11.5px;color:#8a929b}
+.meas-read{font-size:11.5px;color:#5b6672;font-style:italic;margin-left:auto}
+.meas.hit{border-left-color:#b3261e}
+.meas.hit .meas-val{color:#b3261e}
+.meas.against{border-left-color:#2f7d4f;background:#f6fbf8}
+.meas.against .meas-val{color:#1f5e3a}
+.meas.ok{border-left-color:#c3cbd3;background:#fafbfc}
+
+.ctx-block{margin-top:10px;padding-top:9px;border-top:1px dashed #e2e6ea}
+.ctx-h{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  color:#78838f;margin-bottom:6px;
+}
+
+/* The results tab groups by WHY a value is being shown, so each group is tinted by
+   the strength of the claim it makes. */
+.g-lab{border-left:3px solid #b3261e}
+.g-band{border-left:3px solid #c77700}
+.g-derived{border-left:3px solid #2b6cb0}
+
+.dq-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px}
+.dq{
+  display:flex;align-items:flex-start;gap:11px;padding:11px 13px;
+  border:1px solid #e2e6ea;border-radius:6px;background:#fff;
+}
+.dq.ok{border-color:#c7e0cf;background:#f7fbf8}
+.dq.warn{border-color:#edd6ab;background:#fffcf6}
+.dq-n{
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  font-size:20px;font-weight:700;color:#16202b;line-height:1.1;min-width:2.2em;
+}
+.dq-l{font-size:12.5px;font-weight:600;color:#16202b;line-height:1.35}
+.dq-note{font-size:11px;color:#78838f;margin-top:3px;line-height:1.45}
+
+details.card > summary{cursor:pointer;font-size:13.5px;padding:2px 0}
+
+@media (max-width:620px){
+  .meas{gap:4px}
+  .meas-name{min-width:0;flex:1 1 100%}
+  .meas-read{margin-left:0}
+  .dq-grid{grid-template-columns:1fr}
+}
+.meas.hit.dim{border-left-color:#e0c4c1;background:#fdfbfb}
+.meas.hit.dim .meas-val{color:#8c6560;font-weight:600}
+
+/* The contribution rows are a fixed-width label + bar + figure triple; on a phone they
+   have to stack or they push the card wider than the screen. */
+@media (max-width:620px){
+  .contrib{flex-wrap:wrap;gap:4px}
+  .contrib .bar{flex:1 1 100%;order:3}
+  .contrib .w{order:4;font-size:11px}
+  .basis{word-break:break-word}
+  .tier-h,.plan-h{flex-wrap:wrap}
 }

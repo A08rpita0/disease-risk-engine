@@ -1071,6 +1071,282 @@ def test_follow_up_timing_is_lifted_out_of_the_prose():
               "got %s" % (TIMEFRAME_RE.search(text) or [None]))
 
 
+def test_report_names_that_were_being_dropped_entirely():
+    """A parenthetical often IS the recognisable name, and only the text outside the
+    brackets was ever tried. 'HsCRP (High Sensitivity CRP)' reduced to 'hscrp', which
+    matches nothing, so hs-CRP was reported as unmapped. 'Total Leucocytes Count' lost
+    the white cell count to a singular/plural mismatch against 'total leucocyte count'.
+    """
+    cfg = get_config()
+    for name, expected in [
+            ("HsCRP (High Sensitivity CRP)", "hs_crp"),
+            ("Total Leucocytes Count (TLC)", "wbc_count"),
+            ("RhD factor (Rh typing)", "rh_factor"),
+            ("Transferin Saturation", "transferrin_saturation"),
+            ("Absolute Lymphocyte Count", "absolute_lymphocyte_count"),
+            ("Absolute Neutrophil Count", "absolute_neutrophil_count"),
+            ("Absolute Monocyte Count", "absolute_monocyte_count"),
+            ("Absolute Basophil Count", "absolute_basophil_count")]:
+        check("%r -> %s" % (name, expected), cfg.resolve_alias(name) == expected,
+              "got %s" % cfg.resolve_alias(name))
+
+    # The new fallbacks must not redirect anything that already resolved.
+    for name, expected in [("Apolipoprotein B/A1 Ratio", "apo_b_apo_a1_ratio"),
+                           ("Albumin/Globulin Ratio", "ag_ratio"),
+                           ("Apolipoproteins B", "apo_b"),
+                           ("HbA1c (HPLC method)", "hba1c"),
+                           ("Haemoglobin", "hemoglobin"),
+                           ("Absolute Eosinophil Count", "absolute_eosinophil_count")]:
+        check("%r still -> %s" % (name, expected), cfg.resolve_alias(name) == expected,
+              "got %s" % cfg.resolve_alias(name))
+
+    r = analyse({"Gender": "male", "Age": 36, "tests": [
+        {"test_name": "Total Leucocytes Count (TLC)", "value": 6700,
+         "unit": "cells/cu.mm", "reference_range": "4300 - 10300"},
+        {"test_name": "Absolute Lymphocyte Count", "value": 3236,
+         "unit": "cells/cu.mm", "reference_range": "1000 - 3000"}]})
+    alc = param(r, "absolute_lymphocyte_count")
+    check("the absolute lymphocyte count is read", alc is not None)
+    check("and graded against the report's own interval",
+          alc and alc["abnormal"] and alc["reference_source"] == "report",
+          str(alc))
+
+
+def test_a_reported_value_is_never_replaced_by_a_derived_one():
+    """The lab reports 'Transferin Saturation'; the engine also knows how to compute
+    one from iron and TIBC. While the misspelling went unrecognised the calculated
+    value was shown in its place, carrying a dictionary range instead of the lab's."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Transferin Saturation", "value": 37.43, "unit": "%",
+         "reference_range": "14 - 50"},
+        {"test_name": "Serum Iron", "value": 90, "unit": "ug/dL", "reference_range": "65 - 175"},
+        {"test_name": "TIBC", "value": 300, "unit": "ug/dL", "reference_range": "250 - 425"}]})
+    p = param(r, "transferrin_saturation")
+    check("the reported saturation wins over the computed one",
+          p and p["derived"] is False and p["value"] == 37.43, str(p))
+    check("and keeps the laboratory's own interval",
+          p and p["reference_source"] == "report" and p["reference_high"] == 50.0)
+
+
+def test_document_fields_are_not_counted_as_ignored_tests():
+    """312 values found, 70 recognised, 241 'unmapped' read as a 77% failure rate. The
+    241 were almost all LabNo / SampleCollDate / ApprovedByDoctorID - envelope keys
+    that were never test results."""
+    r = analyse({"org": "METROPOLIS", "LabNo": "260067100974782",
+                 "RegDate": "05/08/2026 10:26 AM", "ReferredBy": "SELF",
+                 "Gender": "male", "Age": 36,
+                 "results": [{"Package_name": "Lipids", "investigation": [{
+                     "SampleType": "Serum", "ApprovedByDoctorID": "2010041116",
+                     "observations": [
+                         {"name": "Total Cholesterol", "value": "180", "unit": "mg/dL",
+                          "MinValue": "0", "MaxValue": "200"},
+                         {"name": "Some Unknown Assay", "value": "4.2", "unit": "mg/L",
+                          "MinValue": "1", "MaxValue": "3"}]}]}]})
+    unmapped = {o["raw_name"] for o in r["unmapped_observations"]}
+    fields = {o["raw_name"] for o in r["document_fields_skipped"]}
+    check("an unrecognised TEST is reported as unmapped", "Some Unknown Assay" in unmapped,
+          str(unmapped))
+    for k in ("LabNo", "RegDate", "Package_name", "SampleType", "ApprovedByDoctorID"):
+        check("%s is not counted as an ignored test" % k, k not in unmapped, str(unmapped))
+        check("%s is listed as a document field" % k, k in fields, str(fields))
+    check("the summary counts them separately",
+          r["summary"]["parameters_unmapped"] == len(r["unmapped_observations"]) and
+          r["summary"]["document_fields_skipped"] == len(r["document_fields_skipped"]))
+
+
+def test_a_lab_range_and_a_decision_threshold_are_not_the_same_claim():
+    """Three different claims were sharing one 'outside the normal range' heading."""
+    r = analyse({"Gender": "male", "Age": 36, "tests": [
+        # lab interval breached
+        {"test_name": "SGPT / ALT", "value": 49, "unit": "U/L", "reference_range": "0 - 41"},
+        # inside the lab interval, but inside a cluster's configured band
+        {"test_name": "TSH", "value": 5.05, "unit": "uIU/mL", "reference_range": "0.54 - 5.3"},
+        # the report's own interval would call this normal; a guideline band would not
+        {"test_name": "Vitamin D (25-OH)", "value": 14.2, "unit": "ng/mL",
+         "reference_range": "0 - 20"},
+        # no lab interval at all, so a configured band is the only judge
+        {"test_name": "hs-CRP", "value": 4.2, "unit": "mg/L"},
+        {"test_name": "LH", "value": 4.56, "unit": "mIU/mL", "reference_range": "1.7 - 8.6"},
+        {"test_name": "FSH", "value": 1.85, "unit": "mIU/mL", "reference_range": "1.4 - 15.4"}]})
+    basis = {p["parameter_id"]: p["finding_basis"] for p in r["parameters"]}
+    check("a breached lab interval is a lab-range finding",
+          basis.get("sgpt_alt") == "lab_range", str(basis.get("sgpt_alt")))
+    check("a value inside the lab range that fires a cluster is a decision threshold",
+          basis.get("tsh") == "decision_threshold", str(basis.get("tsh")))
+    check("a guideline band overruling a lab interval is a decision threshold",
+          basis.get("vitamin_d") == "decision_threshold", str(basis.get("vitamin_d")))
+    check("a band applied where the lab gave no interval is a decision threshold",
+          basis.get("hs_crp") == "decision_threshold", str(basis.get("hs_crp")))
+    check("a calculated ratio is never a laboratory abnormality",
+          basis.get("lh_fsh_ratio") == "derived", str(basis.get("lh_fsh_ratio")))
+
+    tsh = param(r, "tsh")
+    check("TSH 5.05 is NOT flagged abnormal against a 0.54-5.3 lab range",
+          tsh["abnormal"] is False)
+    check("but the band that fired is recorded against it",
+          tsh["triggered_bands"] and "subclinical" in tsh["triggered_bands"][0]["band"].lower(),
+          str(tsh["triggered_bands"]))
+
+
+def test_findings_are_separated_by_how_strong_the_claim_is():
+    r = analyse({"Gender": "male", "Age": 36, "tests": [
+        {"test_name": "Vitamin D (25-OH)", "value": 14.2, "unit": "ng/mL",
+         "reference_range": "30 - 100"},
+        {"test_name": "Serum Calcium", "value": 9.4, "unit": "mg/dL", "reference_range": "8.6 - 10.2"},
+        {"test_name": "Serum Phosphorus", "value": 3.4, "unit": "mg/dL", "reference_range": "2.5 - 4.5"},
+        {"test_name": "Alkaline Phosphatase", "value": 64, "unit": "U/L", "reference_range": "40 - 129"}]})
+    tiers = {x["name"]: x["presentation_tier"] for x in r["disease_risks"]}
+    check("vitamin D deficiency is a direct finding",
+          tiers.get("Vitamin D Deficiency") == "direct", str(tiers))
+    for key in ("direct_findings", "derived_findings", "pattern_findings",
+                "insufficient_findings"):
+        check("the API carries a %s list" % key, key in r)
+    names = set()
+    for key in ("direct_findings", "derived_findings", "pattern_findings",
+                "insufficient_findings"):
+        for x in r[key]:
+            check("%s appears in exactly one tier" % x["name"], x["name"] not in names)
+            names.add(x["name"])
+    check("every scored condition lands in a tier",
+          names == {x["name"] for x in r["disease_risks"]})
+    check("a Limited-evidence condition is tiered as insufficient",
+          all(x["evidence_level"] == "Limited" for x in r["insufficient_findings"]))
+
+
+def test_normal_supporting_markers_are_shown_as_arguing_against():
+    """The damping was computed and then thrown away, so a pattern whose supporting
+    markers came back clean looked identical to one where nothing was ever checked."""
+    r = analyse({"Gender": "male", "Age": 36, "tests": [
+        {"test_name": "Vitamin D (25-OH)", "value": 14.2, "unit": "ng/mL",
+         "reference_range": "30 - 100"},
+        {"test_name": "Serum Calcium", "value": 9.4, "unit": "mg/dL", "reference_range": "8.6 - 10.2"},
+        {"test_name": "Serum Phosphorus", "value": 3.4, "unit": "mg/dL", "reference_range": "2.5 - 4.5"},
+        {"test_name": "Alkaline Phosphatase", "value": 64, "unit": "U/L", "reference_range": "40 - 129"}]})
+    vd = [x for x in r["disease_risks"] if x["name"] == "Vitamin D Deficiency"]
+    check("the direct finding still stands", bool(vd))
+    check("and the normal bone markers are shown as context",
+          vd and {m["name"] for m in vd[0]["context_values"]} >=
+          {"Serum Calcium", "Serum Phosphorus"},
+          str([m["name"] for m in (vd[0]["context_values"] if vd else [])]))
+    check("osteomalacia is not inferred from low vitamin D with normal support",
+          not any("Osteomalacia" in x["name"] for x in r["disease_risks"]),
+          str([x["name"] for x in r["disease_risks"]]))
+
+
+def test_isolated_alt_does_not_become_autoimmune_hepatitis():
+    """The Disease Master's own criterion is 'Elevated liver enzymes WITH positive ANA
+    and elevated globulin'. A lone mildly raised ALT is not that criterion."""
+    base = [{"test_name": "SGPT / ALT", "value": 49, "unit": "U/L", "reference_range": "0 - 41"},
+            {"test_name": "SGOT / AST", "value": 29, "unit": "U/L", "reference_range": "0 - 40"},
+            {"test_name": "Total Bilirubin", "value": 0.56, "unit": "mg/dL", "reference_range": "0 - 1.2"}]
+    normal_globulin = {"test_name": "Serum Globulin", "value": 3.24, "unit": "g/dL",
+                       "reference_range": "1.8 - 3.6"}
+
+    r = analyse({"Gender": "male", "Age": 36, "tests": base + [normal_globulin]})
+    aih0 = [x for x in r["disease_risks"] if x["name"] == "Autoimmune Hepatitis"]
+    check("a measured, normal globulin damps the signal",
+          aih0 and all(c["support_penalty"] < 1.0 for c in aih0[0]["contributions"]),
+          str([(c["cohort_name"], c["support_penalty"]) for c in (aih0[0]["contributions"] if aih0 else [])]))
+    check("and it is never presented as an established finding",
+          all(x["presentation_tier"] == "insufficient" for x in aih0),
+          str([x["presentation_tier"] for x in aih0]))
+    check("the normal globulin is named as arguing against it",
+          aih0 and "Serum Globulin" in {m["name"] for m in aih0[0]["contradicting"]},
+          str(aih0 and aih0[0]["contradicting"]))
+    check("a damped pattern pulls no Disease Master guidance",
+          not any(x["trace"] == "disease_guidance" and
+                  "autoimmune" in x["trace_detail"].lower()
+                  for x in r["recommendations"]))
+
+    # On a fuller liver panel - the shape a real report arrives in - the same damping
+    # takes it below the reporting floor outright.
+    r_full = analyse({"Gender": "male", "Age": 36, "tests": base + [normal_globulin] + [
+        {"test_name": "Alkaline Phosphatase", "value": 64, "unit": "U/L",
+         "reference_range": "40 - 129"},
+        {"test_name": "Gamma GT (GGT)", "value": 44, "unit": "U/L",
+         "reference_range": "0 - 60"}]})
+    check("with the rest of the liver panel normal it drops out entirely",
+          not any(x["name"] == "Autoimmune Hepatitis" for x in r_full["disease_risks"]),
+          str([x["name"] for x in r_full["disease_risks"]]))
+
+    # Missing is NOT normal: with globulin and ANA simply not ordered, no penalty.
+    r2 = analyse({"Gender": "male", "Age": 36, "tests": base})
+    aih = [x for x in r2["disease_risks"] if x["name"] == "Autoimmune Hepatitis"]
+    check("but an unmeasured globulin carries no penalty", bool(aih),
+          "missing support must not be scored as evidence against")
+    if aih:
+        check("and nothing is recorded as arguing against it",
+              not aih[0]["contradicting"])
+
+    # An abnormal globulin is the support the rule asks for.
+    r3 = analyse({"Gender": "male", "Age": 36, "tests": base + [
+        {"test_name": "Serum Globulin", "value": 4.9, "unit": "g/dL",
+         "reference_range": "1.8 - 3.6"}]})
+    aih3 = [x for x in r3["disease_risks"] if x["name"] == "Autoimmune Hepatitis"]
+    check("an elevated globulin supports it undamped",
+          aih3 and all(c["support_penalty"] == 1.0 for c in aih3[0]["contributions"]),
+          str([(c["cohort_name"], c["support_penalty"]) for c in (aih3[0]["contributions"] if aih3 else [])]))
+
+
+def test_isolated_prolactin_stays_an_isolated_finding():
+    """LH, FSH and testosterone measured and within range must not be turned into a
+    broader endocrine disease signal."""
+    r = analyse({"Gender": "male", "Age": 36, "tests": [
+        {"test_name": "Prolactin", "value": 21.3, "unit": "ng/mL", "reference_range": "4.04 - 15.2"},
+        {"test_name": "LH", "value": 4.56, "unit": "mIU/mL", "reference_range": "1.7 - 8.6"},
+        {"test_name": "FSH", "value": 1.85, "unit": "mIU/mL", "reference_range": "1.4 - 15.4"},
+        {"test_name": "Testosterone Total", "value": 397, "unit": "ng/dL",
+         "reference_range": "249 - 836"}]})
+    hp = [x for x in r["disease_risks"] if x["name"] == "Hyperprolactinemia"]
+    check("the raised prolactin itself is reported", bool(hp))
+    check("as a direct finding, not a pattern",
+          hp and hp[0]["presentation_tier"] == "direct", str(hp and hp[0]["presentation_tier"]))
+    strong = [x["name"] for x in r["disease_risks"]
+              if x["evidence_level"] in ("High", "Moderate") and x["name"] != "Hyperprolactinemia"]
+    check("no other condition is raised above weak evidence from it alone",
+          not strong, str(strong))
+
+
+def test_every_recommendation_traces_back_to_its_rule():
+    r = analyse({"Gender": "male", "Age": 36, "tests": [
+        {"test_name": "Vitamin D (25-OH)", "value": 14.2, "unit": "ng/mL",
+         "reference_range": "30 - 100"},
+        {"test_name": "Apolipoproteins A1", "value": 115, "unit": "mg/dL", "reference_range": "104 - 202"},
+        {"test_name": "Apolipoproteins B", "value": 142, "unit": "mg/dL", "reference_range": "66 - 133"}]})
+    known = {"urgency", "disease_guidance", "cohort_action", "parameter_action",
+             "coverage_gap", "record_context", "baseline", "general"}
+    for rec in r["recommendations"]:
+        check("a step names the rule that produced it (%s)" % rec["category"],
+              rec["trace"] in known, "%r for %r" % (rec["trace"], rec["text"][:40]))
+        check("and the specific entry inside it", bool(rec["trace_detail"]))
+
+    cohort_ids = {c["cohort_id"] for c in r["cohorts"]}
+    disease_ids = {x["disease_id"] for x in r["disease_risks"]}
+    for rec in r["recommendations"]:
+        if rec["trace"] == "cohort_action":
+            check("a cohort step cites a cluster that actually fired",
+                  rec["trace_detail"] in cohort_ids, rec["trace_detail"])
+        if rec["trace"] == "disease_guidance":
+            check("a guidance step cites a condition that was actually reported",
+                  rec["trace_detail"].split(" > ")[0] in disease_ids, rec["trace_detail"])
+
+
+def test_a_vetoed_condition_reaches_nothing_downstream():
+    r = analyse({"Gender": "male", "Age": 36, "tests": [
+        {"test_name": "SGPT / ALT", "value": 120, "unit": "U/L", "reference_range": "0 - 41"},
+        {"test_name": "SGOT / AST", "value": 110, "unit": "U/L", "reference_range": "0 - 40"},
+        {"test_name": "HBsAg", "value": "Non Reactive, 0.26"}]})
+    check("Hepatitis B is suppressed",
+          "Hepatitis B" in {s["disease"] for s in r["suppressed_findings"] if s.get("disease")})
+    for key in ("disease_risks", "direct_findings", "derived_findings",
+                "pattern_findings", "insufficient_findings"):
+        check("and appears in no %s" % key,
+              not any(x["name"] == "Hepatitis B" for x in r[key]))
+    blob = " ".join(x["text"] + " " + " ".join(x["sources"]) + " " + x["finding"]
+                    for x in r["recommendations"])
+    check("and drives no recommendation", "Hepatitis B" not in blob, blob[:160])
+
+
 # ---------------------------------------------------------------- run
 
 def main():

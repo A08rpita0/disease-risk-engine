@@ -67,6 +67,7 @@ class Pipeline:
         cohort_hits, cohorts_skipped, cohorts_suppressed = self.cohort_engine.detect(
             patient, vetoes)
         risks, risks_suppressed = self.risk_engine.score(patient, cohort_hits, vetoes)
+        self._classify_bases(patient, cohort_hits)
         recommendations = self.rec_engine.build(patient, cohort_hits, risks)
 
         return self._assemble(patient, observations, cohort_hits, cohorts_skipped,
@@ -74,6 +75,51 @@ class Pipeline:
                               cohorts_suppressed + risks_suppressed)
 
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _classify_bases(patient, cohort_hits):
+        """Record WHY each result is being shown, which is not the same as whether it
+        is abnormal.
+
+        Three claims were being merged into one "outside the normal range" list:
+          - the report's own interval says it is out of range
+          - the report gave no interval, so a configured guideline band decided
+          - this engine calculated the number; no lab measured it
+        and a fourth case had nowhere to go at all: a value INSIDE the lab's interval
+        that still met a cluster's configured condition. TSH 5.05 in a 0.54-5.3 range
+        drives the hypothyroid pattern while sitting in the normal-results table, so
+        the advice that follows from it looked unattached to anything.
+        """
+        fired = {}
+        for hit in cohort_hits:
+            for h in hit.hits:
+                if h.effective_weight > 0:
+                    fired.setdefault(h.parameter_id, []).append(
+                        {"cohort": hit.name, "band": h.label or h.parameter_name,
+                         "observed": h.observed})
+
+        for pid, q in patient.parameters.items():
+            bands = fired.get(pid, [])
+            if q.derived:
+                q.finding_basis = "derived"
+            elif q.abnormal:
+                # Two things have to line up before this can be called a laboratory
+                # abnormality: the lab supplied the interval AND that interval is what
+                # the verdict rests on. A vitamin D of 14.2 against a report interval of
+                # "up to 20" is called deficient by a configured guideline band, not by
+                # the lab's own interval, and saying otherwise put words in the lab's
+                # mouth.
+                q.finding_basis = ("lab_range"
+                                   if (q.reference_source.startswith("report")
+                                       and q.graded_by != "decision_band")
+                                   else "decision_threshold")
+            elif bands:
+                q.finding_basis = "decision_threshold"
+            else:
+                q.finding_basis = "normal"
+            # Only worth recording where it explains something the lab range does not.
+            if bands and not (q.abnormal and q.finding_basis == "lab_range"):
+                q.triggered_bands = bands
 
     def _rejected(self, patient, observations, document, filename):
         """A minimal, honest response for a document that is not a lab report.
@@ -100,6 +146,12 @@ class Pipeline:
                   risks, recommendations, filename, document=None, suppressed=None):
         params = list(patient.parameters.values())
         abnormal = [p for p in params if p.abnormal]
+
+        # "Unmapped" conflated two very different things: a test this dictionary does
+        # not know, and a document field that was never a test. Reporting one number
+        # for both told the reader that 241 of 312 results had been thrown away.
+        unmapped_tests = [o for o in patient.unmapped if o.shape == "result"]
+        document_fields = [o for o in patient.unmapped if o.shape != "result"]
 
         by_profile = {}
         for p in params:
@@ -132,13 +184,22 @@ class Pipeline:
             "summary": {
                 "observations_found": len(observations),
                 "parameters_recognised": len(params),
-                "parameters_unmapped": len(patient.unmapped),
+                "parameters_unmapped": len(unmapped_tests),
+                "document_fields_skipped": len(document_fields),
+                "values_rejected": len(patient.rejected_values),
+                "derived_values": sum(1 for p in params if p.derived),
+                "duplicates_resolved": len(patient.duplicates_resolved),
                 "abnormal_count": len(abnormal),
+                "decision_threshold_count": sum(
+                    1 for p in params if p.finding_basis == "decision_threshold"),
                 "profiles_touched": sorted(by_profile),
                 "cohorts_detected": len(cohort_hits),
                 "conditions_flagged": len(risks),
-                "direct_findings": sum(1 for r in risks if r.finding_type == "direct"),
-                "pattern_findings": sum(1 for r in risks if r.finding_type != "direct"),
+                "direct_findings": sum(1 for r in risks if r.presentation_tier == "direct"),
+                "derived_findings": sum(1 for r in risks if r.presentation_tier == "derived"),
+                "pattern_findings": sum(1 for r in risks if r.presentation_tier == "pattern"),
+                "insufficient_findings": sum(
+                    1 for r in risks if r.presentation_tier == "insufficient"),
                 "suppressed_by_exclusion": len(suppressed or []),
                 "high_evidence": sum(1 for r in risks if r.evidence_level == "High"),
                 "moderate_evidence": sum(1 for r in risks if r.evidence_level == "Moderate"),
@@ -151,7 +212,9 @@ class Pipeline:
             "abnormal_parameters": [p.to_dict() for p in sorted(
                 abnormal, key=lambda x: -x.severity_score)],
             "parameters_by_profile": by_profile,
-            "unmapped_observations": [o.to_dict() for o in patient.unmapped],
+            "unmapped_observations": [o.to_dict() for o in unmapped_tests],
+            "document_fields_skipped": [o.to_dict() for o in document_fields],
+            "rejected_values": patient.rejected_values,
             "duplicates_resolved": patient.duplicates_resolved,
             "warnings": patient.extraction_warnings,
             "cohorts": [c.to_dict() for c in cohort_hits],
@@ -160,8 +223,18 @@ class Pipeline:
             # Two presentation tiers. A direct finding is established by one measured
             # value against a configured threshold; a pattern is a multi-marker
             # hypothesis. Mixing them lets a hypothesis read like a measured fact.
-            "direct_findings": [r.to_dict() for r in risks if r.finding_type == "direct"],
-            "pattern_findings": [r.to_dict() for r in risks if r.finding_type != "direct"],
+            # Kept for anything still reading the two-tier shape.
+            "direct_findings": [r.to_dict() for r in risks
+                                if r.presentation_tier == "direct"],
+            "pattern_findings": [r.to_dict() for r in risks
+                                 if r.presentation_tier == "pattern"],
+            # A value this engine CALCULATED is not a laboratory abnormality, and a
+            # pattern the evidence does not support is not a finding. Both were being
+            # rendered in the same list as measured, supported ones.
+            "derived_findings": [r.to_dict() for r in risks
+                                 if r.presentation_tier == "derived"],
+            "insufficient_findings": [r.to_dict() for r in risks
+                                      if r.presentation_tier == "insufficient"],
             "suppressed_findings": suppressed or [],
             "urgent_findings": [r.to_dict() for r in urgent],
             "recommendations": [r.to_dict() for r in recommendations],

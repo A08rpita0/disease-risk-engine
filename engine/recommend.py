@@ -71,6 +71,7 @@ class RecommendationEngine:
             add(Recommendation(
                 category=spec["category"], priority=spec["priority"], text=spec["text"],
                 because="based on the most urgent finding in this report",
+                trace="urgency", trace_detail=top_tier,
                 sources=names or ["overall triage level"]))
 
         # ---- 2. Disease Master guidance for the conditions actually flagged ----
@@ -84,12 +85,16 @@ class RecommendationEngine:
                     category="Lifestyle", priority=_priority_for(risk),
                     text=guidance,
                     because="advised for %s" % risk.name,
+                    trace="disease_guidance",
+                    trace_detail="%s > Prevention/Lifestyle Guidance" % risk.disease_id,
                     sources=[risk.name]))
             if next_step:
                 add(Recommendation(
                     category="Consultation", priority=_priority_for(risk),
                     text=next_step,
                     because="the usual next step for %s" % risk.name,
+                    trace="disease_guidance",
+                    trace_detail="%s > Recommended Next Step" % risk.disease_id,
                     sources=[risk.name]))
 
         # ---- 3. cohort-specific actions ----
@@ -99,6 +104,7 @@ class RecommendationEngine:
                 add(Recommendation(
                     category=spec["category"], priority=spec["priority"], text=spec["text"],
                     because="your results match %s" % hit.name,
+                    trace="cohort_action", trace_detail=hit.cohort_id,
                     sources=[hit.name]))
 
         # ---- 4. parameter-level actions for abnormal results ----
@@ -110,6 +116,7 @@ class RecommendationEngine:
                     category=spec["category"], priority=spec["priority"], text=spec["text"],
                     because="your %s was flagged (%s)" % (
                         param.name, (param.grade_label or "abnormal").lower()),
+                    trace="parameter_action", trace_detail=pid,
                     sources=[param.name]))
 
         # ---- 5. follow-up testing that would raise confidence ----
@@ -121,6 +128,7 @@ class RecommendationEngine:
                       "confidence of this assessment: %s. Discuss with your doctor which are "
                       "worth adding." % ", ".join(name for name, _ in follow_up[:8])),
                 because="these tests were not in your report",
+                trace="coverage_gap", trace_detail="missing_parameters",
                 finding="Tests not in this report", finding_kind="general",
                 sources=[name for name, _ in follow_up[:8]]))
 
@@ -132,6 +140,7 @@ class RecommendationEngine:
                      "(haemoglobin, ferritin, creatinine, HDL, uric acid and others) differ "
                      "between men and women, so some results may change once sex is supplied.",
                 because="sex was not recorded in this report",
+                trace="record_context", trace_detail="sex",
                 sources=["record completeness"]))
 
         # ---- 7. baseline ----
@@ -139,10 +148,12 @@ class RecommendationEngine:
             for spec in self.lib.get("no_abnormality", []):
                 add(Recommendation(category=spec["category"], priority=spec["priority"],
                                    text=spec["text"], because="all your results were in range",
+                                   trace="baseline", trace_detail="no_abnormality",
                                    sources=["overall result"]))
         for spec in self.lib.get("general", []):
             add(Recommendation(category=spec["category"], priority=spec["priority"],
                                text=spec["text"], because="applies to every report",
+                               trace="general", trace_detail="general",
                                sources=["General advice"]))
 
         # Resolve each step to the condition it is ultimately about BEFORE collapsing,

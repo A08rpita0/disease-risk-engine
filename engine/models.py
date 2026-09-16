@@ -20,6 +20,16 @@ class RawObservation:
     raw_flag: Optional[str] = None
     source_path: Optional[str] = None      # JSON pointer or page/line reference
     source_kind: str = "unknown"           # json | pdf | csv | text | manual
+    # How this was found, which decides whether failing to recognise it is worth
+    # reporting to the user:
+    #   result - a name/value pair in a result-shaped record, or one carrying a unit
+    #            or a reference range. If the dictionary does not know it, that is a
+    #            genuine gap.
+    #   field  - a loose scalar off the document envelope: LabNo, SampleCollDate,
+    #            ApprovedByDoctorID, Package_name. Never a test, so counting it as an
+    #            "ignored parameter" told the user 241 results were dropped when the
+    #            real number was 28.
+    shape: str = "result"
 
     def to_dict(self):
         return asdict(self)
@@ -52,6 +62,23 @@ class NormalizedParameter:
     raw: Optional[RawObservation] = None
     conversion_note: Optional[str] = None
     notes: list = field(default_factory=list)
+
+    # WHY this result is being shown, which is not the same question as whether it is
+    # abnormal. "Outside the laboratory's own reference range", "inside that range but
+    # past a configured clinical decision threshold" and "a number this engine
+    # calculated" are three different claims, and presenting them in one list let the
+    # weakest of them borrow the authority of the strongest.
+    #   lab_range          - the report's own interval says it is out of range
+    #   decision_threshold - a configured guideline band decided it, not the lab
+    #   derived            - computed here from other results, never measured
+    #   normal             - within range on whichever basis applied
+    finding_basis: str = "normal"
+    # What decided abnormality: range | decision_band | none. Distinct from
+    # reference_source, which says where the interval came from.
+    graded_by: str = "range"
+    # Set when the value sits inside the lab's interval yet still met a cluster's
+    # configured condition - TSH 5.05 in a 0.54-5.3 range is the worked example.
+    triggered_bands: list = field(default_factory=list)
 
     def to_dict(self):
         d = asdict(self)
@@ -194,6 +221,24 @@ class DiseaseRisk:
     finding_type: str = "pattern"
     direct_evidence: Optional[dict] = None  # parameter, value, unit, reference, statement
 
+    # The section this belongs under. finding_type answers "what KIND of evidence is
+    # this"; the tier answers "how should it be presented", which is a different
+    # question once evidence strength is folded in:
+    #   direct        one measured, lab-reported value establishes it
+    #   derived       the establishing value was calculated here, not measured
+    #   pattern       a multi-marker association worth exploring
+    #   insufficient  considered, but the evidence does not support reporting it as a
+    #                 finding. Kept visible so the user can see it was assessed rather
+    #                 than silently dropped.
+    presentation_tier: str = "pattern"
+    # Measured results that argue AGAINST this, i.e. expected supporting markers that
+    # were checked and came back normal. Computed during scoring and previously
+    # thrown away, which left a damped pattern looking identical to an undamped one.
+    contradicting: list = field(default_factory=list)
+    # Expected markers that were measured and normal but carry no configured penalty;
+    # shown as context so the picture is not one-sided.
+    context_values: list = field(default_factory=list)
+
     def to_dict(self):
         d = asdict(self)
         d["contributions"] = [c.to_dict() for c in self.contributions]
@@ -213,6 +258,11 @@ class Recommendation:
     finding_kind: str = ""                  # condition | pattern | parameter | general
     values: list = field(default_factory=list)    # the measured results behind it
     timeframe: str = ""                     # "4-6 weeks" etc., lifted out of the text
+    # Which rule produced this step, so every line can be walked back to its evidence:
+    # urgency | disease_guidance | cohort_action | parameter_action | coverage_gap |
+    # record_context | baseline | general
+    trace: str = ""
+    trace_detail: str = ""                  # the cohort id / parameter id / disease name
 
     def to_dict(self):
         return asdict(self)
