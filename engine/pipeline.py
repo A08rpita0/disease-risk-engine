@@ -16,6 +16,7 @@ from .config import get_config
 from .doccheck import assess
 from .gatekeeper import Gatekeeper
 from .extract import extract_with_text
+from .findings import build_lab_findings
 from .models import PatientContext
 from .normalize import Normalizer
 from .recommend import RecommendationEngine
@@ -39,7 +40,10 @@ class Pipeline:
         self.rec_engine = RecommendationEngine(self.cfg)
 
     def run(self, data, filename="input", sex=None, age=None, patient_id=None):
-        observations, context, warnings, raw_text = extract_with_text(data, filename)
+        # The dictionary's alias lookup helps the row parser choose between ambiguous
+        # splits ("CA 125 34.5") and accept a known test printed without unit or range.
+        observations, context, warnings, raw_text = extract_with_text(
+            data, filename, self.cfg.resolve_alias)
 
         # Caller-supplied demographics win over anything scraped from the document,
         # because the caller is stating them explicitly.
@@ -68,11 +72,14 @@ class Pipeline:
             patient, vetoes)
         risks, risks_suppressed = self.risk_engine.score(patient, cohort_hits, vetoes)
         self._classify_bases(patient, cohort_hits)
-        recommendations = self.rec_engine.build(patient, cohort_hits, risks)
+        # Listed independently of the Disease Master: a result does not have to feed a
+        # condition to be worth showing.
+        lab_findings = build_lab_findings(patient, cohort_hits, risks)
+        recommendations = self.rec_engine.build(patient, cohort_hits, risks, lab_findings)
 
         return self._assemble(patient, observations, cohort_hits, cohorts_skipped,
                               risks, recommendations, filename, document,
-                              cohorts_suppressed + risks_suppressed)
+                              cohorts_suppressed + risks_suppressed, lab_findings)
 
     # ------------------------------------------------------------------
 
@@ -102,6 +109,10 @@ class Pipeline:
             bands = fired.get(pid, [])
             if q.derived:
                 q.finding_basis = "derived"
+            elif q.abnormal and q.kind in ("qualitative", "categorical"):
+                # A reported positive is the laboratory's own result against its expected
+                # negative - not a threshold this engine applied.
+                q.finding_basis = "lab_range"
             elif q.abnormal:
                 # Two things have to line up before this can be called a laboratory
                 # abnormality: the lab supplied the interval AND that interval is what
@@ -143,7 +154,9 @@ class Pipeline:
         }
 
     def _assemble(self, patient, observations, cohort_hits, cohorts_skipped,
-                  risks, recommendations, filename, document=None, suppressed=None):
+                  risks, recommendations, filename, document=None, suppressed=None,
+                  lab_findings=None):
+        lab_findings = lab_findings or []
         params = list(patient.parameters.values())
         abnormal = [p for p in params if p.abnormal]
 
@@ -190,6 +203,9 @@ class Pipeline:
                 "derived_values": sum(1 for p in params if p.derived),
                 "duplicates_resolved": len(patient.duplicates_resolved),
                 "abnormal_count": len(abnormal),
+                "abnormal_findings": sum(1 for f in lab_findings if not f["in_lab_range"]),
+                "abnormal_standalone": sum(1 for f in lab_findings
+                                           if not f["in_lab_range"] and f["standalone"]),
                 "decision_threshold_count": sum(
                     1 for p in params if p.finding_basis == "decision_threshold"),
                 "profiles_touched": sorted(by_profile),
@@ -211,6 +227,10 @@ class Pipeline:
                 params, key=lambda x: (not x.abnormal, x.profile or "", x.name))],
             "abnormal_parameters": [p.to_dict() for p in sorted(
                 abnormal, key=lambda x: -x.severity_score)],
+            # Every abnormal or threshold-crossing result as a finding in its own right,
+            # whether or not any Disease Master rule interprets it.
+            "abnormal_findings": [f for f in lab_findings if not f["in_lab_range"]],
+            "threshold_findings": [f for f in lab_findings if f["in_lab_range"]],
             "parameters_by_profile": by_profile,
             "unmapped_observations": [o.to_dict() for o in unmapped_tests],
             "document_fields_skipped": [o.to_dict() for o in document_fields],

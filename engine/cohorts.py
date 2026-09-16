@@ -74,7 +74,9 @@ def evaluate_condition(param, cond):
         return param.grade in cond["grade_in"], _observed(param)
 
     # --- numeric comparisons ---
-    if param.value is None:
+    # Thresholds are written in the canonical unit. A value in a unit the dictionary could
+    # not convert is never compared with them.
+    if param.value is None or not getattr(param, "interpretable", True):
         return False, None
     v = param.value
     if "between" in cond:
@@ -213,11 +215,33 @@ class CohortEngine:
             for r in cohort.get("supporting", [])
             if patient.present(r["parameter"]))
         denom = sum(top_triggers) + min(SUPPORT_ALLOWANCE, available_support)
-        confidence = min(1.0, fired / denom) if denom else 0.0
-        confidence = self._apply_coverage(confidence, coverage, cohort)
+        raw = min(1.0, fired / denom) if denom else 0.0
+        confidence = self._apply_coverage(raw, coverage, cohort)
 
-        return self._build_hit(cohort, patient, all_hits, [], [], confidence,
-                               coverage, observed, missing), None
+        hit = self._build_hit(cohort, patient, all_hits, [], [], confidence,
+                              coverage, observed, missing)
+        hit.confidence_breakdown = {
+            "mode": "weighted",
+            "signals": [{
+                "parameter": h.parameter_name, "role": h.role, "base_weight": h.weight,
+                "effective_weight": h.effective_weight,
+                "severity_factor": round(h.effective_weight / h.weight, 4)
+                if h.weight and not h.suppressed_by else None,
+                "redundancy": h.suppressed_by,
+            } for h in all_hits],
+            "fired_weight": round(fired, 4),
+            "denominator": {"required_trigger_weight": round(sum(top_triggers), 4),
+                            "measured_support_allowance": round(
+                                min(SUPPORT_ALLOWANCE, available_support), 4)},
+            "raw_confidence": round(raw, 4),
+            "coverage": round(coverage, 4),
+            "coverage_factor": self._coverage_factor(coverage, cohort),
+            "confidence": confidence,
+            "constants": {"SUPPORTING_FACTOR": SUPPORTING_FACTOR,
+                          "REDUNDANCY_DISCOUNT": REDUNDANCY_DISCOUNT,
+                          "SUPPORT_ALLOWANCE": SUPPORT_ALLOWANCE},
+        }
+        return hit, None
 
     def _eval_count_of(self, cohort, patient, observed, missing, coverage):
         met, unmet, comp_hits = [], [], []
@@ -258,10 +282,21 @@ class CohortEngine:
         confidence = 0.7 + 0.25 * min(1.0, extra)
         confidence += 0.05 * min(1.0, sum(h.effective_weight for h in support_hits) / 2.0)
         confidence = min(1.0, confidence)
+        raw = confidence
         confidence = self._apply_coverage(confidence, coverage, cohort)
 
-        return self._build_hit(cohort, patient, all_hits, met, unmet, confidence,
-                               coverage, observed, missing), None
+        hit = self._build_hit(cohort, patient, all_hits, met, unmet, confidence,
+                              coverage, observed, missing)
+        hit.confidence_breakdown = {
+            "mode": "count_of",
+            "components_met": len(met), "components_required": required,
+            "components_total": total_components,
+            "raw_confidence": round(raw, 4),
+            "coverage": round(coverage, 4),
+            "coverage_factor": self._coverage_factor(coverage, cohort),
+            "confidence": confidence,
+        }
+        return hit, None
 
     # ------------------------------------------------------------------
 
@@ -279,9 +314,12 @@ class CohortEngine:
             # markedly deranged one. Floor at 0.6 so a genuine threshold crossing
             # always carries real weight.
             sev = 0.6 + 0.4 * min(1.0, p.severity_score)
+            label = ref.get("label", "")
+            if p.parameter_id != ref["parameter"]:
+                label = "%s (measured as %s)" % (label or ref["parameter"], p.name)
             out.append(TriggerHit(
-                parameter_id=ref["parameter"], parameter_name=p.name,
-                label=ref.get("label", ""), observed=desc,
+                parameter_id=p.parameter_id, parameter_name=p.name,
+                label=label, observed=desc,
                 weight=round(base, 4), effective_weight=round(base * sev, 4), role=role,
                 redundancy_group=self.cfg.param_by_id[ref["parameter"]].get("redundancy_group")))
         return out
@@ -320,6 +358,12 @@ class CohortEngine:
                 h.effective_weight = 0.0
                 h.suppressed_by = "same parameter, stronger condition matched"
         return sorted(out, key=lambda h: h.effective_weight, reverse=True)
+
+    @staticmethod
+    def _coverage_factor(coverage, cohort):
+        if not cohort.get("expected_parameters"):
+            return 1.0
+        return round(0.72 + 0.28 * min(1.0, coverage / 0.6), 4)
 
     @staticmethod
     def _apply_coverage(confidence, coverage, cohort):

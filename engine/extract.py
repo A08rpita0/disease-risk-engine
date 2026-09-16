@@ -19,6 +19,7 @@ import json
 import re
 
 from .models import RawObservation, PatientContext
+from .layout import rows_from_words, rows_from_text, drop_repeated, parse_rows, parse_row, Row
 
 # --- keys a JSON payload might use for each field, in priority order ---
 NAME_KEYS = ["test_name", "testname", "test", "name", "parameter", "parameter_name",
@@ -365,11 +366,23 @@ def _match_header(cells):
     return idx if "name" in idx and "value" in idx else None
 
 
-def extract_table_rows(rows, source_kind="csv", source_name="input"):
+# A table cell that holds only a number (optionally with a comparator), or a clean
+# qualitative word, needs no re-parsing.
+_CLEAN_VALUE = re.compile(
+    r"^\s*(?:[<>\u2264\u2265]=?\s*)?[-+]?[\d.,]+\s*$|^\s*[A-Za-z][A-Za-z \-]{1,24}\s*$")
+
+
+def extract_table_rows(rows, source_kind="csv", source_name="input", header=None,
+                       resolver=None):
     """Consume a list of cell-lists. Re-detects a header whenever one appears,
-    which is what multi-section lab reports actually look like."""
+    which is what multi-section lab reports actually look like.
+
+    `header` carries the column map in from a previous page: a results table that runs
+    over a page break has no header row on its second page, and every row there was
+    being dropped.
+    """
     obs, warnings = [], []
-    cols = None
+    cols = header
     for n, cells in enumerate(rows):
         cells = [("" if c is None else str(c).strip()) for c in cells]
         if not any(cells):
@@ -386,85 +399,63 @@ def extract_table_rows(rows, source_kind="csv", source_name="input"):
                 return None
             return cells[i] or None
         name, value = cell("name"), cell("value")
-        if not name or value is None:
+        if name and _match_header([name]):          # a repeated header inside the body
             continue
-        if _match_header([name]):          # a repeated header inside the body
+        # A merged cell ("18.40 H", "7.9 %") or a shifted column leaves the value cell
+        # unusable; read the whole row with the value-anchored parser instead.
+        if source_kind == "pdf" and (not name or value is None or
+                                     not _CLEAN_VALUE.match(value or "")):
+            parsed = parse_row(Row(cells=[(float(i), c) for i, c in enumerate(cells) if c],
+                                   source="row %d" % (n + 1)), resolver)
+            if parsed is not None:
+                o = _obs_from_parsed(parsed, source_kind)
+                o.raw_flag = o.raw_flag or cell("flag")
+                obs.append(o)
+                continue
+        if not name or value is None:
             continue
         obs.append(RawObservation(
             raw_name=name, raw_value=value, raw_unit=cell("unit"),
             raw_range=cell("range"), raw_flag=cell("flag"),
             source_path="row %d" % (n + 1), source_kind=source_kind))
-    if cols is None:
+    if cols is None and source_kind != "pdf":
         warnings.append("no recognisable result table header was found")
-    return obs, warnings
+    return obs, warnings, cols
 
 
-def extract_csv(text, source_name="input.csv"):
+def extract_csv(text, source_name="input.csv", resolver=None):
     sample = text[:4096]
     try:
         dialect = csv.Sniffer().sniff(sample, delimiters=",;\t|")
     except csv.Error:
         dialect = csv.excel
     rows = list(csv.reader(io.StringIO(text), dialect))
-    obs, warnings = extract_table_rows(rows, "csv", source_name)
+    obs, warnings, _ = extract_table_rows(rows, "csv", source_name, resolver=resolver)
     ctx = _context_from_text(text, source_name)
     if not obs:
         # fall back to line parsing for reports exported as CSV without a header
-        obs, w2 = extract_free_text(text, source_name)
+        obs, w2 = extract_free_text(text, source_name, resolver)
         warnings += w2
     return obs, ctx, warnings
 
 
-# 'Haemoglobin      13.5   g/dL     13.0 - 17.0'
-LINE_RE = re.compile(
-    r"^(?P<name>[A-Za-z][A-Za-z0-9 ,.\-/()%'+&]{2,60}?)"
-    r"[\s:.]{2,}"
-    r"(?P<value>[<>]?\s*[-+]?\d[\d,]*\.?\d*|[A-Za-z][A-Za-z \-]{1,24}?)"
-    r"(?:\s{2,}(?P<unit>[A-Za-zµ%/^\d.\-]{1,18}))?"
-    r"(?:\s{2,}(?P<range>[<>≤≥]?\s*[-+]?\d[\d.,]*\s*(?:[-–—]|to)?\s*[\d.,]*\s*[A-Za-zµ%/^\d.\-]*))?"
-    r"\s*(?P<flag>\b(?:H|L|HIGH|LOW|ABNORMAL|NORMAL|BORDERLINE)\b)?\s*$")
-
-# 'Haemoglobin 11.2 g/dL (13.0-17.0)'  /  'TSH: 9.4 uIU/mL'
-# Single-spaced lines, which column-based LINE_RE cannot see. Matching these loosely
-# would pull numbers out of ordinary prose ("Payment within 30 days"), so a unit or a
-# bracketed reference range is REQUIRED - that is what makes a line a measurement.
-LINE_RE_TIGHT = re.compile(
-    r"^(?P<name>[A-Za-z][A-Za-z0-9 ,.\-/()%'+&]{2,60}?)"
-    r"\s*[:\-]?\s+"
-    r"(?P<value>[<>]?\s*[-+]?\d[\d,]*\.?\d*)"
-    r"(?:\s*(?P<unit>[A-Za-zµ%][A-Za-zµ%/^\d.\-]{0,17}))?"
-    r"(?:\s*[\(\[]\s*(?P<range>[<>≤≥]?\s*[-+]?[\d.,]+\s*(?:[-–—]|to)\s*[\d.,]+)\s*[^\s]*\s*[\)\]])?"
-    r"\s*(?P<flag>\b(?:H|L|HIGH|LOW)\b)?\s*$")
+def _obs_from_parsed(parsed, source_kind):
+    return RawObservation(
+        raw_name=parsed.name, raw_value=parsed.value, raw_unit=parsed.unit,
+        raw_range=parsed.range, raw_flag=parsed.flag,
+        source_path=parsed.source, source_kind=source_kind)
 
 
-def extract_free_text(text, source_name="input.txt"):
-    """Line-oriented parsing for reports whose layout defeats table detection."""
-    obs, warnings = [], []
-    for n, line in enumerate(text.splitlines(), 1):
-        line = line.rstrip()
-        if not line.strip() or len(line) > 220:
-            continue
-        m = LINE_RE.match(line)
-        if not m:
-            m = LINE_RE_TIGHT.match(line)
-            # A single-spaced line only counts as a result if it carries a unit or a
-            # reference range; otherwise it is prose that happens to contain a number.
-            if not m or not (m.group("unit") or m.group("range")):
-                continue
-        g = m.groupdict()
-        name = g["name"].strip(" .:-")
-        value = (g["value"] or "").strip()
-        if not name or not value or len(name) < 3:
-            continue
-        if re.fullmatch(r"[\d\s.,/-]+", name):
-            continue
-        obs.append(RawObservation(
-            raw_name=name, raw_value=value,
-            raw_unit=(g["unit"] or None), raw_range=(g["range"] or None),
-            raw_flag=(g["flag"] or None),
-            source_path="line %d" % n, source_kind="text"))
-    if not obs:
-        warnings.append("no result lines could be parsed from the text layer")
+def extract_free_text(text, source_name="input.txt", resolver=None):
+    """Line-oriented parsing for reports whose layout defeats table detection.
+
+    Uses the same value-anchored row parser as the PDF path (engine/layout.py). The
+    two regular expressions this replaced let a test name absorb digits, so on
+    single-spaced text the reference range's upper bound was read as the result.
+    """
+    obs = [_obs_from_parsed(pr, "text")
+           for pr in parse_rows(rows_from_text(text), resolver)]
+    warnings = [] if obs else ["no result lines could be parsed from the text layer"]
     return obs, warnings
 
 
@@ -529,27 +520,116 @@ def _context_from_text(text, source_name):
 
 # ------------------------- PDF -------------------------
 
-def extract_pdf(data, source_name="input.pdf"):
+def _value_key(v):
+    return re.sub(r"[\s,]", "", str(v or "")).lower()
+
+
+def _completeness(o, resolver):
+    s = 2 if re.search(r"\d", str(o.raw_value or "")) else 1
+    s += 1 if o.raw_unit else 0
+    s += 1 if o.raw_range else 0
+    s += 2 if (resolver and resolver(o.raw_name)) else 0
+    return s
+
+
+def _merge_table_and_text(table_obs, text_obs, resolver):
+    """Tables and the text layer see the same results twice. Keep one of each.
+
+    Matching is per parameter AND page, so a test genuinely reported twice in one
+    document still reaches duplicate resolution, where the conflict is recorded.
+    Where the two readings of the same row disagree, the one that carried more
+    structure wins - a table cell that merged "18.40 H" is worse than a text row that
+    separated value, flag, unit and range.
+    """
+    def key(o):
+        pid = resolver(o.raw_name) if resolver else None
+        page = (o.source_path or "").split(",")[0]
+        return (pid or re.sub(r"\W+", " ", o.raw_name.lower()).strip(), page)
+
+    merged = list(table_obs)
+    index = {}
+    printed = set()
+    for n, o in enumerate(merged):
+        index.setdefault(key(o), []).append(n)
+        if o.raw_range and re.search(r"\d", str(o.raw_value or "")):
+            printed.add(((o.source_path or "").split(",")[0], _value_key(o.raw_value),
+                         (o.raw_unit or "").lower(), _value_key(o.raw_range)))
+    for o in text_obs:
+        # The same printed row read twice - once from the table, once from the text layer
+        # where a wrapped name may have been cut - is the table's reading.
+        sig = ((o.source_path or "").split(",")[0], _value_key(o.raw_value),
+               (o.raw_unit or "").lower(), _value_key(o.raw_range))
+        if o.raw_range and sig in printed:
+            continue
+        k = key(o)
+        hits = index.get(k, [])
+        if not hits:
+            index.setdefault(k, []).append(len(merged))
+            merged.append(o)
+            continue
+        if any(_value_key(merged[h].raw_value) == _value_key(o.raw_value) for h in hits):
+            continue
+        h = hits[0]
+        if _completeness(o, resolver) > _completeness(merged[h], resolver):
+            merged[h] = o
+    return merged
+
+
+def _has_stacked_glyphs(page):
+    """True if any glyph is drawn twice at the same position - one pass, no copies."""
+    seen = set()
+    for ch in page.chars:
+        key = (ch.get("text"), round(ch.get("x0", 0), 1), round(ch.get("top", 0), 1))
+        if key in seen:
+            return True
+        seen.add(key)
+    return False
+
+
+def extract_pdf(data, source_name="input.pdf", resolver=None):
+    """Tables AND the text layer, on every page, reconciled.
+
+    Previously the text layer was read only if no table existed anywhere in the file,
+    so a single detected table - a patient-details box, one CBC grid - silenced every
+    text-layout result on every other page.
+    """
     try:
         import pdfplumber
     except ImportError:
         return [], PatientContext(source_file=source_name), ["pdfplumber is not installed"], ""
 
-    obs, warnings, text_parts = [], [], []
+    table_obs, text_obs, warnings, text_parts, rows_by_page = [], [], [], [], []
+    header = None
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         for pageno, page in enumerate(pdf.pages, 1):
+            # Fake-bold text is drawn two or three times at the same spot, which reads as
+            # "BBBooorrrdddeeerrr". De-duplicating glyphs is expensive (two thirds of the
+            # time on an ordinary report), so it runs only on a page that has them.
+            if _has_stacked_glyphs(page):
+                try:
+                    page = page.dedupe_chars()
+                except Exception:                           # older pdfplumber
+                    pass
             page_text = page.extract_text() or ""
             text_parts.append(page_text)
             for table in (page.extract_tables() or []):
-                rows_obs, _ = extract_table_rows(table, "pdf", source_name)
+                rows_obs, _w, header = extract_table_rows(
+                    table, "pdf", source_name, header=header, resolver=resolver)
                 for o in rows_obs:
                     o.source_path = "page %d, %s" % (pageno, o.source_path)
-                obs += rows_obs
+                table_obs += rows_obs
+            words = page.extract_words(x_tolerance=1.5, y_tolerance=2.5,
+                                       keep_blank_chars=False, use_text_flow=False)
+            rows_by_page.append(rows_from_words(words, pageno, page.width))
 
+    for page_rows in drop_repeated(rows_by_page, resolver):
+        for pr in parse_rows(page_rows, resolver):
+            text_obs.append(_obs_from_parsed(pr, "pdf"))
+
+    obs = _merge_table_and_text(table_obs, text_obs, resolver)
     full_text = "\n".join(text_parts)
     if not obs:
-        obs, w = extract_free_text(full_text, source_name)
-        warnings += w
+        warnings.append("no result rows could be read from this PDF")
     if not full_text.strip():
         warnings.append("this PDF has no extractable text layer - it is probably a scan, "
                         "and would need OCR before it can be read")
@@ -559,15 +639,15 @@ def extract_pdf(data, source_name="input.pdf"):
 
 # ------------------------- entry point -------------------------
 
-def extract(data, filename):
+def extract(data, filename, resolver=None):
     """Dispatch on file extension. `data` is bytes; JSON may also be passed as an object.
 
     Returns (observations, context, warnings) - the historic three-value form.
     """
-    return extract_with_text(data, filename)[:3]
+    return extract_with_text(data, filename, resolver)[:3]
 
 
-def extract_with_text(data, filename):
+def extract_with_text(data, filename, resolver=None):
     """As `extract`, plus the raw text the file yielded.
 
     That text is what lets the document check separate a sparse laboratory report from
@@ -581,7 +661,7 @@ def extract_with_text(data, filename):
 
     if isinstance(data, bytes):
         if lower.endswith(".pdf") or data[:5] == b"%PDF-":
-            return extract_pdf(data, filename)
+            return extract_pdf(data, filename, resolver)
         text = data.decode("utf-8", errors="replace")
     else:
         text = str(data)
@@ -594,12 +674,12 @@ def extract_with_text(data, filename):
         except json.JSONDecodeError as e:
             return [], PatientContext(source_file=filename), ["invalid JSON: %s" % e], text
     if lower.endswith((".csv", ".tsv")):
-        obs, ctx, w = extract_csv(text, filename)
+        obs, ctx, w = extract_csv(text, filename, resolver)
         return obs, ctx, w, text
 
     ctx = _context_from_text(text, filename)
     if text.count(",") + text.count("\t") > max(10, text.count("\n")):
-        obs, _, w = extract_csv(text, filename)
+        obs, _, w = extract_csv(text, filename, resolver)
         return obs, ctx, w, text
-    obs, w = extract_free_text(text, filename)
+    obs, w = extract_free_text(text, filename, resolver)
     return obs, ctx, w, text

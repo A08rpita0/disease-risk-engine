@@ -57,6 +57,11 @@ class NormalizedParameter:
     grade_label: Optional[str] = None
     severity_score: float = 0.0             # 0..1, used to modulate evidence weight
 
+    # False when the report's unit is not one this dictionary can convert. The number is
+    # still shown as reported, and graded against the REPORT's own interval (same unit),
+    # but it is never compared with a threshold written in the canonical unit: HbA1c
+    # 48 mmol/mol read as 48 % is a diabetic crisis that does not exist.
+    interpretable: bool = True
     derived: bool = False                   # computed rather than measured
     derivation: Optional[str] = None
     raw: Optional[RawObservation] = None
@@ -110,12 +115,20 @@ class StandardizedPatient:
     duplicates_resolved: list = field(default_factory=list)
     rejected_values: list = field(default_factory=list)   # impossible values, not used
     extraction_warnings: list = field(default_factory=list)
+    # requested id -> the measured parameter that may answer for it when the requested
+    # one is absent (hs-CRP for CRP). Built from `stands_in_for` in the dictionary, so it
+    # is configuration, not code. Rule evaluation goes through get()/present(); the
+    # results list (`parameters`) is never altered, so nothing is shown twice.
+    substitutes: dict = field(default_factory=dict)
 
     def get(self, pid):
-        return self.parameters.get(pid)
+        p = self.parameters.get(pid)
+        if p is None and pid in self.substitutes:
+            p = self.parameters.get(self.substitutes[pid])
+        return p
 
     def present(self, pid):
-        return pid in self.parameters
+        return self.get(pid) is not None
 
     def to_dict(self):
         return {
@@ -165,6 +178,9 @@ class CohortHit:
     evidence: list = field(default_factory=list)
     urgency_override: Optional[str] = None
     explanation: str = ""
+    # fired weight, denominator, raw confidence and coverage factor - every number
+    # behind `confidence`, so a cluster's strength can be checked by hand.
+    confidence_breakdown: dict = field(default_factory=dict)
 
     def to_dict(self):
         d = asdict(self)
@@ -231,6 +247,9 @@ class DiseaseRisk:
     #                 finding. Kept visible so the user can see it was assessed rather
     #                 than silently dropped.
     presentation_tier: str = "pattern"
+    # Every number behind the final level, for audit: contributions (link weight,
+    # cohort confidence, role, support damping), the raw band, any cap and why.
+    score_breakdown: dict = field(default_factory=dict)
     # Measured results that argue AGAINST this, i.e. expected supporting markers that
     # were checked and came back normal. Computed during scoring and previously
     # thrown away, which left a damped pattern looking identical to an undamped one.

@@ -557,7 +557,31 @@
           "name": "Prediabetes",
           "role": "primary",
           "weight": 0.9,
-          "dm_basis": "High-Risk Indicators: 'Fasting glucose in impaired range, especially combined with obesity or family history'; Related Markers/Tests: Fasting Blood Glucose, HbA1c"
+          "dm_basis": "High-Risk Indicators: 'Fasting glucose in impaired range, especially combined with obesity or family history'; Related Markers/Tests: Fasting Blood Glucose, HbA1c",
+          "direct_evidence": [
+            {
+              "parameter": "hba1c",
+              "condition": {
+                "between": [
+                  5.7,
+                  6.49
+                ]
+              },
+              "statement": "HbA1c is in the 5.7-6.4% range the Disease Master gives for prediabetes.",
+              "source": "Disease Master, Prediabetes, Confirmatory/Diagnostic Tests: 'Fasting glucose 100-125 mg/dL or HbA1c 5.7-6.4%'. The row itself states each marker as a sufficient criterion on its own, and these are the thresholds this cluster already triggers on - nothing new is introduced. Diabetes Mellitus already had the equivalent single-marker route; Prediabetes did not, so an HbA1c squarely in the prediabetes range was scored as a multi-marker pattern and marked down for the glucose and insulin tests nobody ordered. Meeting a laboratory threshold is not a diagnosis; confirmation is clinical."
+            },
+            {
+              "parameter": "fasting_glucose",
+              "condition": {
+                "between": [
+                  100,
+                  125.9
+                ]
+              },
+              "statement": "Fasting glucose is in the 100-125 mg/dL range the Disease Master gives for prediabetes.",
+              "source": "Disease Master, Prediabetes, Confirmatory/Diagnostic Tests: 'Fasting glucose 100-125 mg/dL or HbA1c 5.7-6.4%'. The row itself states each marker as a sufficient criterion on its own, and these are the thresholds this cluster already triggers on - nothing new is introduced. Diabetes Mellitus already had the equivalent single-marker route; Prediabetes did not, so an HbA1c squarely in the prediabetes range was scored as a multi-marker pattern and marked down for the glucose and insulin tests nobody ordered. Meeting a laboratory threshold is not a diagnosis; confirmation is clinical."
+            }
+          ]
         },
         {
           "name": "Metabolic Syndrome",

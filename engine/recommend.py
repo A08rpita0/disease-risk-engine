@@ -20,6 +20,13 @@ import re
 from .models import Recommendation
 
 PRIORITY_ORDER = {"urgent": 0, "high": 1, "medium": 2, "low": 3}
+# Steps that confirm or rule a pattern out. The only ones an unsupported pattern gets.
+CONFIRMATION_CATEGORIES = {"Urgent", "Consultation", "Testing"}
+
+
+def _one_lower(priority):
+    """urgent stays urgent - a safety escalation is never softened by this rule."""
+    return {"high": "medium", "medium": "low"}.get(priority, priority)
 CATEGORY_ORDER = ["Urgent", "Consultation", "Testing", "Monitoring", "Diet", "Activity", "Lifestyle"]
 
 # Only conditions at or above this evidence level pull their reference guidance,
@@ -38,14 +45,30 @@ TIMEFRAME_RE = re.compile(
     r"\d+\s*(?:-|to|–)?\s*\d*\s*(?:day|week|month|year)s?\b", re.I)
 
 
+def _fmt_value(v):
+    if isinstance(v, float):
+        return ("%g" % round(v, 3)) if abs(v) < 1000 else format(int(round(v)), ",d")
+    return str(v)
+
+
+def _band_clause(f):
+    """The configured band label or the lab interval - the evidence, quoted, not advice."""
+    if f.get("grade_label") and f.get("finding_basis") == "decision_threshold":
+        return "It falls in the configured band \"%s\"." % f["grade_label"]
+    if f.get("reference_text"):
+        return "The laboratory's reference interval is %s." % f["reference_text"]
+    return ""
+
+
 class RecommendationEngine:
     def __init__(self, config):
         self.cfg = config
         self.lib = config.recommendations
 
-    def build(self, patient, cohort_hits, risks):
+    def build(self, patient, cohort_hits, risks, lab_findings=None):
         recs = []
         seen = set()
+        lab_findings = lab_findings or []
 
         def add(rec):
             key = (rec.category, rec.text.strip().lower()[:120])
@@ -98,12 +121,28 @@ class RecommendationEngine:
                     sources=[risk.name]))
 
         # ---- 3. cohort-specific actions ----
+        # A cluster whose conditions are ALL unsupported (insufficient evidence, or none
+        # reported) contributes only the steps that would confirm or rule it out -
+        # talking to a doctor, and tests - one priority lower. Diet, activity, lifestyle
+        # and medication advice presume the pattern is real; for a subclinical TSH with
+        # nothing else behind it, "take thyroid medication on an empty stomach" was
+        # being printed to someone who has no reason to be on any.
+        supported = {c.get("id") for r in risks if r.presentation_tier != "insufficient"
+                     for c in (r.cohorts or []) if isinstance(c, dict)}
         top_cohorts = sorted(cohort_hits, key=lambda h: -h.confidence)[:MAX_COHORT_SOURCES]
         for hit in top_cohorts:
+            confirm_only = hit.cohort_id not in supported
             for spec in self.lib.get("cohort_actions", {}).get(hit.cohort_id, []):
+                if confirm_only and spec["category"] not in CONFIRMATION_CATEGORIES:
+                    continue
+                priority = spec["priority"]
+                if confirm_only:
+                    priority = _one_lower(priority)
                 add(Recommendation(
-                    category=spec["category"], priority=spec["priority"], text=spec["text"],
-                    because="your results match %s" % hit.name,
+                    category=spec["category"], priority=priority, text=spec["text"],
+                    because=("your results partly match %s, which the evidence here does not "
+                             "yet support" % hit.name) if confirm_only
+                    else "your results match %s" % hit.name,
                     trace="cohort_action", trace_detail=hit.cohort_id,
                     sources=[hit.name]))
 
@@ -164,6 +203,57 @@ class RecommendationEngine:
             self._enrich(rec, patient, risks, cohort_hits)
         recs = self._collapse(recs)
 
+        # ---- every abnormal result is cited somewhere in the plan ----
+        # Checked directly, after everything else has been built: which abnormal
+        # results does no step quote? Only 10 of the dictionary's parameters carry
+        # advice of their own, and a result can feed a cluster whose conditions all
+        # sit in insufficient evidence, so "linked to a rule" did not mean "something
+        # in the plan mentions it". hs-CRP 31.98 mg/L was reaching the plan with nothing
+        # about it. The added step says only what the finding supports - the value is
+        # outside its range, and a clinician should decide whether to repeat or
+        # investigate it. It names no condition and suggests no treatment.
+        cited = {v.get("parameter_id") for r in recs for v in r.values}
+        # A MARKED abnormality needs a step at a priority that matches it. Being quoted in
+        # a low-priority confirmation step for an unsupported pattern is not enough.
+        cited_high = {v.get("parameter_id") for r in recs for v in r.values
+                      if r.priority in ("urgent", "high")}
+        uncited = [f for f in lab_findings if f["abnormal"] and (
+            f["parameter_id"] not in cited or
+            (f["severity_score"] >= 0.75 and f["parameter_id"] not in cited_high))]
+        extra = []
+        for f in uncited:
+            if f["severity_score"] < 0.75:
+                continue
+            extra.append(Recommendation(
+                category="Consultation", priority="high",
+                text=("Raise your %s result (%s%s) with your doctor. %s Ask whether it "
+                      "should be repeated or investigated further."
+                      % (f["name"], _fmt_value(f["value"]),
+                         (" " + f["unit"]) if f["unit"] else "", _band_clause(f))),
+                because="your %s is markedly outside its range" % f["name"],
+                trace="lab_finding", trace_detail=f["parameter_id"],
+                finding=f["name"], finding_kind="parameter",
+                sources=[f["name"]]))
+        milder = [f for f in uncited if f["severity_score"] < 0.75]
+        if milder:
+            extra.append(Recommendation(
+                category="Consultation", priority="medium",
+                text=("These results are outside their range and no other step in this plan "
+                      "covers them: %s. Show them to your doctor, who can judge whether any "
+                      "needs repeating."
+                      % "; ".join("%s %s%s" % (f["name"], _fmt_value(f["value"]),
+                                               (" " + f["unit"]) if f["unit"] else "")
+                                  for f in milder[:10])),
+                because="results outside range not covered by another step",
+                trace="lab_finding",
+                trace_detail=",".join(f["parameter_id"] for f in milder[:10]),
+                finding="Other results outside range", finding_kind="general",
+                sources=[f["name"] for f in milder[:10]]))
+        for rec in extra:
+            rec.finding = rec.finding or rec.sources[0]
+            self._enrich(rec, patient, risks, cohort_hits)
+        recs += extra
+
         recs.sort(key=lambda r: (PRIORITY_ORDER[r.priority],
                                  CATEGORY_ORDER.index(r.category) if r.category in CATEGORY_ORDER else 99))
         return recs
@@ -211,6 +301,11 @@ class RecommendationEngine:
         by_name = {r.name: r for r in risks}
         if label in by_name:
             return label, ("direct" if by_name[label].finding_type == "direct" else "condition")
+
+        # Only a SUPPORTED condition may title a step. Advice prompted by hs-CRP was being
+        # filed under "Rheumatoid Arthritis" - a condition the evidence did not support -
+        # simply because it was the strongest thing that cluster feeds.
+        risks = [r for r in risks if r.presentation_tier != "insufficient"]
 
         if label in cohort_names:
             # risk.cohorts holds {id, name, confidence, role} records, not bare names.
@@ -279,6 +374,9 @@ class RecommendationEngine:
         if risk:
             _add([t["parameter_id"] for t in risk.triggering_parameters
                   if not t.get("discounted")])
+        if rec.trace == "lab_finding":
+            # quote exactly the results the step names, nothing inherited from a cluster
+            wanted[:] = [pid for pid in rec.trace_detail.split(",") if pid]
         _add([p.parameter_id for p in patient.parameters.values()
               if p.name == rec.finding or p.parameter_id in rec.sources])
 
@@ -289,9 +387,10 @@ class RecommendationEngine:
             note = notes.get(pid)
             if not p.abnormal and not note:
                 continue
-            if len(rec.values) >= 4:
+            if len(rec.values) >= (10 if rec.trace == "lab_finding" else 4):
                 break
             rec.values.append({
+                "parameter_id": p.parameter_id,
                 "name": p.name,
                 "value": p.value if p.value is not None else p.status,
                 "unit": p.unit,

@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "purpose": "Decisions taken on rows flagged by tools/dm_audit.py. A flag is a prompt to compare the Disease Master's own wording with how the engine infers the condition; it is not a defect by itself. Each decision records what the row says, what the engine does, and why the engine was or was not changed, so the audit distinguishes reviewed rows from open ones.",
+    "reviewed_on": "2026-09-17"
+  },
+  "decisions": [
+    {
+      "condition": "Prediabetes",
+      "flag": "SINGLE_MARKER_CRITERION",
+      "decision": "changed",
+      "reason": "Confirmatory/Diagnostic Tests: 'Fasting glucose 100-125 mg/dL or HbA1c 5.7-6.4%' - each marker stated as sufficient alone. Added direct_evidence for both, at the thresholds the cluster already used. Previously an HbA1c squarely in range was scored as a multi-marker pattern and shown as a weak signal."
+    },
+    {
+      "condition": "Autoimmune Hepatitis",
+      "flag": "COMBINATION_CRITERION",
+      "decision": "changed",
+      "reason": "High-Risk Indicators: 'Elevated liver enzymes with positive ANA and elevated globulin'. requires_support on ANA/globulin: measured-normal support damps the signal, unmeasured support does not."
+    },
+    {
+      "condition": "Reactive Leukocytosis",
+      "flag": "DEFINITION_NOT_ENFORCED",
+      "decision": "changed",
+      "reason": "Definition: 'An elevated white blood cell count ...'. The acute-inflammation cluster credited it from a raised CRP or procalcitonin with a normal WBC. requires_any wbc_count added, so the WBC trigger itself must fire."
+    },
+    {
+      "condition": "Sepsis",
+      "flag": "DEFINITION_NOT_ENFORCED",
+      "decision": "changed",
+      "reason": "High-Risk Indicators: 'Markedly abnormal WBC ... with suspected infection source'. From the acute-inflammation cluster a raised CRP alone credited sepsis. requires_any wbc_count / procalcitonin / blood_culture added."
+    },
+    {
+      "condition": "Diabetes Mellitus",
+      "flag": "COMBINATION_CRITERION",
+      "decision": "retained",
+      "reason": "High-Risk Indicators list alternatives separated by ';', including 'HbA1c alone above abnormal threshold'. The single-marker route is the row's own wording; a direct_evidence route already exists."
+    },
+    {
+      "condition": "Cardiovascular / Coronary Artery Disease",
+      "flag": "COMBINATION_CRITERION",
+      "decision": "retained",
+      "reason": "High-Risk Indicators list separate alternatives ('High LDL + Low HDL + High Triglycerides together'; 'High Troponin (acute)'; 'High Homocysteine'; 'High APO B / Low APO A ratio'). Each single-arm primary cluster corresponds to one of those alternatives."
+    },
+    {
+      "condition": "Vitamin D Deficiency",
+      "flag": "COMBINATION_CRITERION",
+      "decision": "retained",
+      "reason": "'Vitamin D level in the deficient range, especially with elevated PTH or low calcium' - 'especially' marks PTH/calcium as strengthening, not required. Direct route on vitamin D alone is correct."
+    },
+    {
+      "condition": "Hyperparathyroidism",
+      "flag": "COMBINATION_CRITERION",
+      "decision": "retained",
+      "reason": "Confirmatory text: 'Elevated calcium with elevated OR INAPPROPRIATELY NORMAL parathyroid hormone'. A normal PTH alongside high calcium supports the diagnosis, so a 'normal support argues against' damping would invert the Disease Master's meaning. Left as a pattern driven by calcium with PTH as support."
+    },
+    {
+      "condition": "Hypothyroidism",
+      "flag": "COMBINATION_CRITERION",
+      "decision": "retained",
+      "reason": "High-Risk Indicators: 'High TSH with Low FT3/FT4'. A raised TSH with normal FT4 is subclinical hypothyroidism, which the row's name covers, and a TSH of 10 or more is a treatment threshold in its own right. Damping on normal FT4 (the Autoimmune Hepatitis mechanism) would drop TSH >= 10 below the reporting floor. Retained at the existing weights; a measured normal FT4/FT3 is shown on the card as related in-range context so the subclinical picture is visible. Flagged for clinical review."
+    },
+    {
+      "condition": "Chronic Kidney Disease (CKD)",
+      "flag": "SINGLE_MARKER_CRITERION",
+      "decision": "retained",
+      "reason": "Confirmatory text: 'Reduced eGFR (<60) or albuminuria persisting >3 months'. Chronicity cannot be established from one report, so a single eGFR is not given a direct route; it remains a pattern and the low eGFR is still listed as an abnormal laboratory finding."
+    },
+    {
+      "condition": "Diabetic Ketoacidosis (DKA)",
+      "flag": "SINGLE_MARKER_CRITERION",
+      "decision": "retained",
+      "reason": "Confirmatory text requires glucose WITH ketones AND acidosis. Not a single-marker criterion; the audit heuristic matched the glucose threshold."
+    },
+    {
+      "condition": "Iron Deficiency Anemia",
+      "flag": "COMBINATION_CRITERION",
+      "decision": "retained",
+      "reason": "Low ferritin is the most specific single iron marker and the cluster already treats haemoglobin, MCV, TIBC and saturation as supporting. With a normal haemoglobin the condition already lands in insufficient evidence (it is anaemia by name), while the low ferritin itself is listed as an abnormal laboratory finding."
+    },
+    {
+      "condition": "Leukemia (Suspected/Screening)",
+      "flag": "COMBINATION_CRITERION",
+      "decision": "retained",
+      "reason": "The primary cluster triggers only on markedly abnormal counts (WBC >= 20,000 or < 2,000), matching 'Markedly abnormal WBC count'. Low haemoglobin and platelets are supporting, as the row's 'especially with' wording describes. A mild leukocytosis does not reach it."
+    }
+  ]
+}

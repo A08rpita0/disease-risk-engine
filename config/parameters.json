@@ -533,7 +533,8 @@
         "apolipoprotein b/a1 ratio",
         "apolipoproteins b/a1 ratio",
         "apo b/a1 ratio",
-        "apolipoprotein b a1 ratio"
+        "apolipoprotein b a1 ratio",
+        "apo b / apo a1 ratio"
       ],
       "ref": {
         "male": [
@@ -989,7 +990,12 @@
       "unit": "%",
       "units": {
         "%": 1,
-        "percent": 1
+        "percent": 1,
+        "mmol/mol": {
+          "scale": 0.09148,
+          "offset": 2.152,
+          "source": "IFCC-NGSP master equation: NGSP % = 0.09148 x IFCC mmol/mol + 2.152 (Hoelzel W et al., Clin Chem 2004;50:166-74)"
+        }
       },
       "aliases": [
         "hba1c",
@@ -2863,7 +2869,12 @@
         }
       ],
       "source": "AHA/CDC hs-CRP risk bands",
-      "bands_are_decision_thresholds": true
+      "bands_are_decision_thresholds": true,
+      "stands_in_for": {
+        "parameter": "crp",
+        "basis": "hs-CRP and CRP measure the same molecule, C-reactive protein, in the same unit (mg/L). The high-sensitivity assay differs only in reading low concentrations precisely, so a quantitative hs-CRP result IS a CRP result and may be evaluated wherever a rule asks for CRP and no standard CRP was reported. Without this an hs-CRP of 18 or 32 mg/L reached no inflammatory rule at all: the only rule written for hs-CRP is the 3-10 mg/L cardiovascular band, and every acute-inflammation rule asks for CRP.",
+        "one_way": "Not the reverse. A standard CRP assay is not precise in the 1-3 mg/L range the cardiovascular bands depend on, so CRP never stands in for hs-CRP."
+      }
     },
     {
       "id": "procalcitonin",
@@ -3217,7 +3228,10 @@
         "vitamin d 25 hydroxy",
         "vitamin d total",
         "25(oh)d",
-        "calcidiol"
+        "calcidiol",
+        "vitamin d3",
+        "25 oh vitamin d3",
+        "vitamin d3 25 oh"
       ],
       "ref": {
         "default": [
@@ -3255,7 +3269,12 @@
         }
       ],
       "source": "Endocrine Society vitamin D thresholds",
-      "bands_are_decision_thresholds": true
+      "bands_are_decision_thresholds": true,
+      "alias_notes": {
+        "vitamin d3": "Indian laboratory reports print the routine 25-hydroxy vitamin D assay as 'Vitamin D3'. 1,25-dihydroxy vitamin D is a different test with a different name and is guarded against in tests/fixtures/name_corpus.py.",
+        "25 oh vitamin d3": "Indian laboratory reports print the routine 25-hydroxy vitamin D assay as 'Vitamin D3'. 1,25-dihydroxy vitamin D is a different test with a different name and is guarded against in tests/fixtures/name_corpus.py.",
+        "vitamin d3 25 oh": "Indian laboratory reports print the routine 25-hydroxy vitamin D assay as 'Vitamin D3'. 1,25-dihydroxy vitamin D is a different test with a different name and is guarded against in tests/fixtures/name_corpus.py."
+      }
     },
     {
       "id": "calcium",
@@ -5264,7 +5283,6 @@
         "pus cells",
         "urine pus cells",
         "wbc urine",
-        "leucocytes urine",
         "pus cell"
       ],
       "ref": {
@@ -5274,7 +5292,10 @@
         ]
       },
       "direction_of_concern": "high",
-      "redundancy_group": "pyuria"
+      "redundancy_group": "pyuria",
+      "alias_notes": {
+        "leucocytes urine": "Removed: collided with urine_leukocyte_esterase. A dipstick 'Leukocytes' field is the esterase test; microscopy results are reported as pus cells / WBC per HPF."
+      }
     },
     {
       "id": "urine_leukocyte_esterase",

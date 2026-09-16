@@ -225,7 +225,7 @@
 
   function render() {
     var d = state.result;
-    $("pillRisks").textContent = d.disease_risks.length;
+    $("pillRisks").textContent = (d.abnormal_findings || []).length + d.disease_risks.length;
     var tabBtn = $("tabbtn-risks");
     if (tabBtn && (d.direct_findings || []).length) {
       tabBtn.title = (d.direct_findings.length) + " direct, " +
@@ -304,6 +304,22 @@
         d.urgent_findings.map(function (r) { return esc(r.name); }).join(", ") +
         " — these need prompt medical assessment. " +
         "Seek medical care now rather than waiting for a routine appointment.</div>";
+    }
+
+    if ((d.abnormal_findings || []).length) {
+      var af = d.abnormal_findings;
+      out += '<div class="card"><h2>Results outside their range (' + af.length + ")</h2>" +
+        '<p class="small muted" style="margin:-4px 0 10px">Every one is listed under <b>What we found</b>, ' +
+        "whether or not any condition is linked to it.</p>" +
+        af.slice(0, 6).map(function (f) {
+          return '<div class="finding-row"><span class="badge b-' +
+            (f.severity_score >= 0.75 ? "High" : f.severity_score >= 0.5 ? "Moderate" : "Low") + '">' +
+            esc(f.grade_label || (f.direction === "low" ? "Low" : "High")) + "</span>" +
+            "<b>" + esc(f.name) + "</b> " + '<span class="num">' + num(f.value) + "</span> " +
+            '<span class="muted small">' + esc(f.unit || "") + "</span></div>";
+        }).join("") +
+        (af.length > 6 ? '<p class="small muted" style="margin:8px 0 0">and ' + (af.length - 6) +
+          " more.</p>" : "") + "</div>";
     }
 
     if (!(d.direct_findings || []).length && !(d.derived_findings || []).length &&
@@ -530,6 +546,14 @@
       if (c.support_note) out += '<div class="basis">Damped — ' + esc(c.support_note) + "</div>";
       if (c.dm_basis) out += '<div class="basis">Clinical basis — ' + esc(c.dm_basis) + "</div>";
     });
+    var sb = r.score_breakdown || {};
+    if (sb.band_from_score) {
+      out += '<div class="basis">Score ' + (sb.score !== undefined ? sb.score.toFixed(3) : "") +
+        " gives band " + esc(sb.band_from_score) + " → reported as " + esc(sb.final_level) +
+        (sb.cap_applied ? " (" + esc(sb.cap_applied) + ")" : "") +
+        (sb.direct_exempt_from_coverage_cap ? " (direct finding: not capped for untested markers)" : "") +
+        ". Coverage " + pct(sb.coverage || 0) + ".</div>";
+    }
     out += '<p class="small muted" style="margin:8px 0 0">These weights are engineering ' +
       "design values chosen so the rules behave consistently. They are not validated " +
       "clinical coefficients, and the score is a measure of evidence strength — it is " +
@@ -555,6 +579,66 @@
     return out + "</div></div>";
   }
 
+  var BASIS_LABEL = {
+    lab_range: "Outside the laboratory's range",
+    decision_threshold: "Guideline threshold",
+    derived: "Calculated here"
+  };
+
+  /* Every abnormal result, whether or not any rule interprets it. A result used to
+     reach this page only by feeding a Disease Master condition, so an hs-CRP of 31.98
+     mg/L - which feeds none on its own - was flagged and then shown nowhere but the raw
+     results table. The Disease Master enriches this list; it does not filter it. */
+  function labFindingRow(f) {
+    var links = (f.linked || []).map(function (l) {
+      var tier = l.kind === "pattern" ? "pattern"
+        : (l.tier === "insufficient" ? "considered, not supported" : l.tier + " finding");
+      return '<span class="chip">' + esc(l.name) + ' <span class="muted">' + esc(tier) +
+        "</span></span>";
+    }).join("");
+    return '<div class="labf sev-' + (f.severity_score >= 0.75 ? "hi" : f.severity_score >= 0.5 ? "mid" : "lo") +
+      (f.in_lab_range ? " in-range" : "") + '">' +
+      '<div class="labf-top">' +
+        '<span class="labf-name">' + esc(f.name) + "</span>" +
+        '<span class="labf-val">' + num(f.value) +
+          (f.unit ? ' <span class="meas-unit">' + esc(f.unit) + "</span>" : "") + "</span>" +
+        (f.reference_text ? '<span class="labf-ref">ref ' + esc(f.reference_text) + "</span>" : "") +
+        '<span class="badge b-tag">' + esc(f.kind === "qualitative" || f.kind === "categorical"
+          ? "Reported by the laboratory" : (BASIS_LABEL[f.finding_basis] || f.finding_basis)) + "</span>" +
+        (f.grade_label ? '<span class="labf-grade">' + esc(f.grade_label) + "</span>" : "") +
+        (f.lab_flag ? '<span class="labf-flag" title="Flag printed on the report">report flag: ' +
+          esc(f.lab_flag) + "</span>" : "") +
+      "</div>" +
+      '<div class="labf-say">' + esc(f.statement) +
+        (f.standalone ? " No condition or pattern in this analysis rests on this result on " +
+          "its own, so none is suggested - it is listed so it is not missed." : "") + "</div>" +
+      (links ? '<div class="labf-links"><span class="small muted">Also part of:</span> ' + links + "</div>" : "") +
+      "</div>";
+  }
+
+  function labFindingsSection(d) {
+    var abn = d.abnormal_findings || [];
+    var thr = d.threshold_findings || [];
+    if (!abn.length && !thr.length) return "";
+    var out = '<section class="tier"><h2 class="tier-h">Abnormal laboratory results' +
+      '<span class="tier-n">' + abn.length + "</span></h2>" +
+      '<p class="tier-lead">Every result outside its range, most marked first, with what judged ' +
+      "it: the laboratory's own interval, a guideline threshold configured here, or a value " +
+      "calculated here. These are measurements, not diagnoses.</p>";
+    if (!abn.length) {
+      out += '<div class="empty small">No result is outside its range.</div>';
+    }
+    abn.forEach(function (f) { out += labFindingRow(f); });
+    if (thr.length) {
+      out += '<h3 class="tier-sub">Inside the laboratory range, past a guideline threshold' +
+        '<span class="tier-n">' + thr.length + "</span></h3>" +
+        '<p class="tier-lead">The laboratory would call these normal. They are listed because ' +
+        "a configured guideline condition uses a narrower line.</p>";
+      thr.forEach(function (f) { out += labFindingRow(f); });
+    }
+    return out + "</section>";
+  }
+
   function renderRisks(d) {
     var direct = d.direct_findings || [];
     var derived = d.derived_findings || [];
@@ -563,9 +647,10 @@
     var vetoed = (d.suppressed_findings || []).filter(function (s) { return s.disease; });
 
     if (!direct.length && !derived.length && !patterns.length &&
-        !insufficient.length && !vetoed.length) {
+        !insufficient.length && !vetoed.length && !(d.abnormal_findings || []).length &&
+        !(d.threshold_findings || []).length) {
       $("tab-risks").innerHTML = '<div class="empty"><div class="big">✓</div>' +
-        "No conditions reached the reporting threshold.</div>";
+        "No result is outside its range and no condition reached the reporting threshold.</div>";
       return;
     }
 
@@ -574,6 +659,8 @@
       "ordered by how directly the evidence supports them: a single measured value that " +
       "meets a defined threshold is the strongest claim this engine can make; a pattern " +
       "across several results is a prompt to investigate, not a conclusion.</div>";
+
+    out += labFindingsSection(d);
 
     if (direct.length) {
       out += '<section class="tier"><h2 class="tier-h">Direct findings' +

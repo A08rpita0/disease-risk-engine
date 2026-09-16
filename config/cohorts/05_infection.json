@@ -112,13 +112,23 @@
           "name": "Reactive Leukocytosis",
           "role": "primary",
           "weight": 0.72,
-          "dm_basis": "High-Risk Indicators: 'Elevated WBC with a clear infectious/inflammatory trigger and normal differential pattern'; Related Markers/Tests: WBC count and differential"
+          "dm_basis": "High-Risk Indicators: 'Elevated WBC with a clear infectious/inflammatory trigger and normal differential pattern'; Related Markers/Tests: WBC count and differential",
+          "requires_any": [
+            "wbc_count"
+          ],
+          "requires_any_basis": "Disease Master Definition: 'An elevated white blood cell count occurring as a normal immune response'. The condition IS a raised WBC, so it is credited only when the WBC trigger itself fired - a raised CRP or procalcitonin with a normal or unmeasured WBC is not leukocytosis."
         },
         {
           "name": "Sepsis",
           "role": "supporting",
           "weight": 0.45,
-          "dm_basis": "High-Risk Indicators: 'Markedly abnormal WBC (very high or very low) with fever/hypotension and suspected infection source'; Related Markers/Tests: CBC (WBC), CRP/inflammatory markers, blood culture. Weight held moderate because fever and hypotension are not lab-derivable."
+          "dm_basis": "High-Risk Indicators: 'Markedly abnormal WBC (very high or very low) with fever/hypotension and suspected infection source'; Related Markers/Tests: CBC (WBC), CRP/inflammatory markers, blood culture. Weight held moderate because fever and hypotension are not lab-derivable.",
+          "requires_any": [
+            "wbc_count",
+            "procalcitonin",
+            "blood_culture"
+          ],
+          "requires_any_basis": "Disease Master High-Risk Indicators: 'Markedly abnormal WBC ... with suspected infection source'; Related Markers/Tests: CBC (WBC), blood culture. Procalcitonin is admitted because this cluster already cites Wacker 2013 for it as a sepsis marker. A raised CRP on its own is none of these and does not credit sepsis."
         },
         {
           "name": "Urinary Tract Infection",

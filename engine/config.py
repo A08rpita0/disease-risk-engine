@@ -36,9 +36,49 @@ def norm_key(text):
         text = text.replace(a, b)
     # Drop honorific/specimen prefixes and filler words that labs add freely.
     # 'S. Creatinine', 'Serum Creatinine' and 'Creatinine' must all land on one key.
-    text = re.sub(r"\b(serum|plasma|s|b|blood|test|level|levels|value|result|estimation)\b",
+    text = re.sub(r"\b(serum|plasma|blood|test|level|levels|value|result|estimation)\b",
                   " ", text)
-    return re.sub(r"\s+", " ", text).strip()
+    # "S." and "B." are specimen PREFIXES ("S. Creatinine", "B. Glucose") and only ever
+    # stripped at the start. Stripping the letter anywhere turned "Apo B" into "apo" -
+    # so a bare "Apolipoprotein" resolved to ApoB - and "Influenza B" into "influenza".
+    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"^(?:s|b)\s+", "", text)
+    return text
+
+
+# Words laboratories use interchangeably for the same thing. Folded before the fallback
+# lookup only - never used to decide between two exact aliases. Each pair is a naming
+# variant of ONE assay; nothing here merges two different tests.
+_NAME_SYNONYMS = [
+    (re.compile(r"\b(?:highly|high|hi)\s+sensitiv(?:e|ity)\b"), "hs"),
+    (re.compile(r"\bc\s*reactive\s+protein\b"), "crp"),
+    (re.compile(r"\bglycosylated\b"), "glycated"),
+    (re.compile(r"\bapolipoproteins?\b"), "apo"),
+    (re.compile(r"\bvit\b"), "vitamin"),
+    (re.compile(r"\bhaemoglobin\b"), "hemoglobin"),
+]
+# Word order may vary ("C-Reactive Protein, High Sensitivity") EXCEPT where order is the
+# meaning: LDL/HDL and HDL/LDL are reciprocal ratios.
+_ORDERED = re.compile(r"\bratio\b|/|\bindex\b|\bper\b")
+
+
+def canon_keys(nk):
+    """Fallback lookup keys for an already-normalised name.
+
+    Returns (compact, bag): synonyms folded, then either all spaces removed - "HsCRP"
+    and "hs crp" meet at "hscrp" - or the words sorted, so that "c reactive protein high
+    sensitivity" meets "high sensitivity c reactive protein". The bag form is withheld
+    for ratios and indices, where word order carries the meaning.
+    """
+    if not nk:
+        return None, None
+    folded = nk
+    for pat, rep in _NAME_SYNONYMS:
+        folded = pat.sub(rep, folded)
+    folded = re.sub(r"\s+", " ", folded).strip()
+    compact = re.sub(r"[\s/]+", "", folded)
+    bag = None if _ORDERED.search(folded) else " ".join(sorted(folded.split()))
+    return compact, bag
 
 
 def norm_unit(unit):
@@ -116,9 +156,14 @@ class Config:
         self.disease_by_name = {d["name"]: d for d in self.diseases}
         self.cohort_by_id = {c["id"]: c for c in self.cohorts}
 
-        # alias -> parameter id. Longest alias wins on collision so that
-        # 'total iga' beats 'iga' when both could match.
+        # alias -> parameter id. The first parameter to claim a key keeps it, and every
+        # later claim by a DIFFERENT parameter is recorded as a collision for validate()
+        # to report. The previous rule compared the alias's length against the length of
+        # the parameter ID it was already mapped to - two unrelated strings - so which
+        # test won a shared name was effectively arbitrary.
         self.alias_index = {}
+        self.alias_collisions = {}
+        canon_claims = {}
         for p in self.parameters:
             keys = [p["name"], p["id"].replace("_", " ")] + list(p.get("aliases", []))
             for k in keys:
@@ -126,8 +171,19 @@ class Config:
                 if not nk:
                     continue
                 prev = self.alias_index.get(nk)
-                if prev is None or len(nk) > len(norm_key(prev)):
+                if prev is None:
                     self.alias_index[nk] = p["id"]
+                elif prev != p["id"]:
+                    self.alias_collisions.setdefault(nk, {prev}).add(p["id"])
+                for ck in canon_keys(nk):
+                    if ck:
+                        canon_claims.setdefault(ck, set()).add(p["id"])
+
+        # Fallback index over folded names. A folded key that more than one parameter
+        # can reach is AMBIGUOUS and is left out, so the fallback refuses rather than
+        # guesses.
+        self.canon_index = {k: next(iter(v)) for k, v in canon_claims.items() if len(v) == 1}
+        self.canon_ambiguous = {k: sorted(v) for k, v in canon_claims.items() if len(v) > 1}
 
         # disease name -> cohort links, for reverse lookup during scoring
         self.links_by_disease = {}
@@ -301,6 +357,32 @@ class Config:
                         errors.append("%s: an evidence entry is missing its citation or note"
                                       % cid)
 
+        for nk, pids in sorted(self.alias_collisions.items()):
+            errors.append("alias '%s' is claimed by more than one parameter: %s - a report "
+                          "name must map to exactly one test" % (nk, ", ".join(sorted(pids))))
+        for p in self.parameters:
+            sub = p.get("stands_in_for")
+            if sub:
+                if sub.get("parameter") not in pids:
+                    errors.append("parameter %s: stands_in_for names unknown '%s'"
+                                  % (p["id"], sub.get("parameter")))
+                if not sub.get("basis"):
+                    errors.append("parameter %s: stands_in_for has no documented basis"
+                                  % p["id"])
+        for c in self.cohorts:
+            for link in c.get("diseases", []):
+                specs = link.get("direct_evidence") or []
+                if isinstance(specs, dict):
+                    specs = [specs]
+                for spec in specs:
+                    if spec.get("parameter") not in pids:
+                        errors.append("%s -> %s: direct_evidence names unknown parameter '%s'"
+                                      % (c.get("id"), link["name"], spec.get("parameter")))
+                    if not spec.get("source"):
+                        errors.append("%s -> %s: direct_evidence has no source - a single "
+                                      "measurement may only establish a finding where the "
+                                      "basis is recorded" % (c.get("id"), link["name"]))
+
         for p in self.parameters:
             if p["type"] == "numeric" and "ref" not in p and "bands_by_sex" not in p:
                 warnings.append("parameter %s: numeric with no reference interval" % p["id"])
@@ -343,7 +425,21 @@ class Config:
     # ---------- helpers ----------
 
     def resolve_alias(self, raw_name):
-        """Map a report/JSON test name onto a canonical parameter id, or None."""
+        """Map a report/JSON test name onto a canonical parameter id, or None.
+
+        Memoised: the row parser asks about the same candidate names many times while
+        choosing where a result's name ends, and the dictionary does not change once
+        loaded.
+        """
+        cache = self.__dict__.setdefault("_resolve_cache", {})
+        key = str(raw_name)
+        if key not in cache:
+            if len(cache) > 20000:
+                cache.clear()
+            cache[key] = self._resolve_alias(raw_name)
+        return cache[key]
+
+    def _resolve_alias(self, raw_name):
         nk = norm_key(raw_name)
         if not nk:
             return None
@@ -352,9 +448,24 @@ class Config:
         # try progressively trimmed variants: drop trailing qualifiers in brackets,
         # then drop trailing words, so 'HbA1c (HPLC method)' still resolves.
         stripped = re.sub(r"\s*[\(\[].*?[\)\]]\s*", " ", str(raw_name))
+        # An UNCLOSED bracket is a qualifier cut off by line wrapping or by a truncated
+        # field - "PSA (Prostate-Specific Antigen", "HbA1c (Glycosylated". It is dropped
+        # the same way a closed one is, which is what lets a short name like "PSA" resolve
+        # without the word-trimming fallback (which may not shorten below 4 characters).
+        stripped = re.sub(r"\s*[\(\[][^\)\]]*$", " ", stripped)
         nk2 = norm_key(stripped)
         if nk2 and nk2 in self.alias_index:
             return self.alias_index[nk2]
+
+        # Naming variants of a known test: "HsCRP", "HIGHLY SENSITIVE C-REACTIVE
+        # PROTEIN", "C-Reactive Protein, High Sensitivity". Tried on the whole name first
+        # and the bracket-stripped name second; both are whole-name matches, so a ratio
+        # can only land here on its own alias, never on one of its analytes.
+        for key in (nk, nk2):
+            compact, bag = canon_keys(key)
+            for ck in (compact, bag):
+                if ck and ck in self.canon_index:
+                    return self.canon_index[ck]
 
         # The text INSIDE the brackets is just as often the recognisable name, and
         # only the outside was ever tried. 'HsCRP (High Sensitivity CRP)' reduces to
@@ -372,13 +483,18 @@ class Config:
         # lost. 'Albumin/Globulin Ratio' landed on Albumin the same way. If a ratio has
         # no alias of its own, returning None is correct - it is reported as unmapped
         # rather than silently corrupting another parameter.
-        if re.search(r"\b(ratio|index)\b", str(raw_name), re.I):
+        # "Total Cholesterol:HDL" is a ratio written with a colon; trimming it back to
+        # "Total Cholesterol" filed a ratio of 3.0 as a cholesterol of 3.0 mg/dL.
+        if re.search(r"\b(ratio|index)\b|[A-Za-z)]\s*:\s*[A-Za-z(]", str(raw_name), re.I):
             return None
 
         # 'SGOT/AST' and 'SGPT (ALT)' style dual naming: try each side of the slash.
         for part in re.split(r"[/|]", str(raw_name)):
             pk = norm_key(part)
-            if pk and pk in self.alias_index:
+            # A one- or two-letter side is almost always a unit or a fragment ("K/uL",
+            # "mg/dL"), and "k" is potassium's alias: "K/uL Increased by 2.5" became a
+            # potassium of 2.5.
+            if pk and len(pk) >= 3 and pk in self.alias_index:
                 return self.alias_index[pk]
 
         # Trim trailing qualifier words: 'HbA1c HPLC method' -> 'HbA1c'.
@@ -386,7 +502,10 @@ class Config:
         while len(words) > 1:
             words = words[:-1]
             cand = " ".join(words)
-            if cand in self.alias_index:
+            # Trimming may not shorten a name down to a bare abbreviation: "Hb
+            # Electrophoresis" is not haemoglobin and "K increased by" is not potassium.
+            # A name that IS the abbreviation still resolves by the exact lookup above.
+            if len(cand) >= 4 and cand in self.alias_index:
                 return self.alias_index[cand]
 
         # Last resort: singular/plural. Labs write 'Total Leucocytes Count' where the

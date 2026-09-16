@@ -158,30 +158,35 @@ class RiskEngine:
             for link in cohort.get("diseases", []):
                 if link["name"] != disease["name"]:
                     continue
-                spec = link.get("direct_evidence")
-                if not spec:
+                specs = link.get("direct_evidence")
+                if not specs:
                     continue
-                p = patient.get(spec["parameter"])
-                if p is None:
-                    continue
-                ok, observed = evaluate_condition(p, spec["condition"])
-                if not ok:
-                    continue
-                return "direct", {
-                    "parameter": p.name,
-                    "parameter_id": p.parameter_id,
-                    "value": p.value if p.value is not None else p.status,
-                    "unit": p.unit,
-                    "reference_low": p.reference_low,
-                    "reference_high": p.reference_high,
-                    "reference_source": p.reference_source,
-                    "graded_by": p.graded_by,
-                    "derived": p.derived,
-                    "grade_label": p.grade_label,
-                    "observed": observed,
-                    "statement": spec.get("statement", ""),
-                    "threshold_source": spec.get("source", ""),
-                }
+                # One route or several: the Disease Master states some conditions with
+                # alternative single-marker criteria ("fasting glucose ... or HbA1c ...").
+                if isinstance(specs, dict):
+                    specs = [specs]
+                for spec in specs:
+                    p = patient.get(spec["parameter"])
+                    if p is None:
+                        continue
+                    ok, observed = evaluate_condition(p, spec["condition"])
+                    if not ok:
+                        continue
+                    return "direct", {
+                        "parameter": p.name,
+                        "parameter_id": p.parameter_id,
+                        "value": p.value if p.value is not None else p.status,
+                        "unit": p.unit,
+                        "reference_low": p.reference_low,
+                        "reference_high": p.reference_high,
+                        "reference_source": p.reference_source,
+                        "graded_by": p.graded_by,
+                        "derived": p.derived,
+                        "grade_label": p.grade_label,
+                        "observed": observed,
+                        "statement": spec.get("statement", ""),
+                        "threshold_source": spec.get("source", ""),
+                    }
         return "pattern", None
 
     @staticmethod
@@ -248,6 +253,8 @@ class RiskEngine:
         coverage, observed, missing = self._coverage(disease, contributions, by_cohort, patient)
 
         level = band(score)
+        finding_type, direct_evidence = self._classify_finding(
+            disease, contributions, patient, by_cohort)
         # `capped` means "this level is constrained by how little was measured", which is
         # true whether or not the band actually moved - a Limited finding built on 20% of
         # the relevant markers still needs that caveat shown.
@@ -255,15 +262,30 @@ class RiskEngine:
         # Coverage is already folded into the score itself, so collapsing a 0.79 straight
         # to "Limited" both double-counts it and prints a label that contradicts the
         # number beside it.
-        capped = coverage < COVERAGE_CAP_THRESHOLD
-        if coverage < COVERAGE_CAP_THRESHOLD:
-            level = _step_down(level)
+        #
+        # A DIRECT finding is exempt. Its defining measurement is present by definition,
+        # and thin coverage has already lowered the cohort confidence the score is built
+        # from (the 0.72-1.0 coverage factor). Stepping the band down again charged the
+        # same missing tests twice: an HbA1c of 6.2% - squarely in the Disease Master's
+        # prediabetes range - scored 0.60 (Moderate) and was then printed as a weak
+        # signal because fasting glucose, insulin and HOMA-IR had not been ordered.
+        # Those tests would add support; their absence does not weaken the measurement.
+        capped = coverage < COVERAGE_CAP_THRESHOLD and finding_type != "direct"
+        cap_reason = None
+        if finding_type == "direct":
+            pass
+        elif coverage < COVERAGE_CAP_THRESHOLD:
+            level, cap_reason = _step_down(level), "coverage below %.0f%%" % (
+                COVERAGE_CAP_THRESHOLD * 100)
         elif coverage < COVERAGE_SOFT_THRESHOLD and _rank(level) > _rank(COVERAGE_SOFT_CAP):
             level, capped = COVERAGE_SOFT_CAP, True
+            cap_reason = "coverage below %.0f%% caps at %s" % (
+                COVERAGE_SOFT_THRESHOLD * 100, COVERAGE_SOFT_CAP)
 
         # A differential-only case is a "consider and exclude", not a positive finding.
         if all(c.role == "differential" for c in contributions) and _rank(level) > _rank("Low"):
             level, capped = "Low", True
+            cap_reason = "differential-only evidence caps at Low"
 
         urgency = disease.get("urgency", {})
         tier = urgency.get("tier", "unknown")
@@ -292,8 +314,23 @@ class RiskEngine:
             confirmatory_tests=disease["fields"].get("Confirmatory/Diagnostic Tests"),
             dm_fields=disease["fields"], review_status=disease.get("review_status"),
             icd10=disease.get("icd10"))
-        risk.finding_type, risk.direct_evidence = self._classify_finding(
-            disease, contributions, patient, by_cohort)
+        risk.finding_type, risk.direct_evidence = finding_type, direct_evidence
+        risk.score_breakdown = {
+            "combination": "noisy-OR: 1 - product(1 - contribution)",
+            # each contribution's link weight, cohort confidence, role and support
+            # damping are on risk.contributions; the cohort's own confidence build-up
+            # is on cohorts[].confidence_breakdown
+            "contribution_values": [round(c.contribution, 4) for c in contributions],
+            "score": score,
+            "band_from_score": band(score),
+            "coverage": round(coverage, 4),
+            "final_level": level,
+            "cap_applied": cap_reason,
+            "direct_exempt_from_coverage_cap": finding_type == "direct",
+            "note": ("Weights, role factors and damping floors are rule-design values. The "
+                     "score measures how strongly the configured evidence is present; it is "
+                     "not a probability of having the condition."),
+        }
         risk.contradicting = contradicting
         risk.context_values = self._context_values(risk, patient, contradicting)
         risk.presentation_tier = self._tier(risk, patient)

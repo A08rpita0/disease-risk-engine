@@ -72,8 +72,8 @@ def _is_explicit_negative(param, negative_when):
     # --- numeric cut-off (signal-to-cutoff index, e.g. COI) ---
     below = negative_when.get("numeric_below")
     if below is not None:
-        value = param.value
-        if value is None:
+        value = param.value if getattr(param, "interpretable", True) else None
+        if value is None and getattr(param, "interpretable", True):
             value = getattr(param, "numeric_raw", None)
         if value is not None and value < below:
             return True, "%s below the %s cut-off" % (_fmt(value), _fmt(below))

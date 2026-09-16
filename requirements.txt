@@ -14,5 +14,6 @@ starlette==1.6.0
 pillow==12.3.0
 pdfminer.six==20260107
 
-# Optional — only to regenerate the sample PDF lab report in samples/
-# reportlab>=4.0
+# Optional, development only - not needed to run the site or the tests:
+#   reportlab>=4.0   regenerate samples/ and tests/fixtures/pdf/ (tools/make_pdf_fixtures.py)
+#   pypdf>=4.0       only for the multi-part fixture tests/fixtures/pdf/mixed.pdf

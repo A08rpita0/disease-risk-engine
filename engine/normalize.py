@@ -214,12 +214,27 @@ class Normalizer:
                 factor = f
                 break
         if factor is None:
-            return value, ("unit '%s' is not recognised for %s; value used as reported "
-                           "against the %s reference range" % (raw_unit, pdef["name"], canonical))
+            return value, ("unit '%s' is not recognised for %s, so the result is not "
+                           "compared with thresholds written in %s" % (
+                               raw_unit, pdef["name"], canonical))
+        # An affine conversion - {"scale", "offset"} - for the few units that are not a
+        # simple multiple, such as HbA1c in IFCC mmol/mol.
+        if isinstance(factor, dict):
+            converted = value * factor["scale"] + factor.get("offset", 0.0)
+            return converted, "converted %s %s to %.4g %s (%s)" % (
+                _fmt(value), raw_unit, converted, canonical,
+                factor.get("source", "configured conversion"))
         if factor == 1:
             return value, None
         return value * factor, "converted %s %s to %.4g %s" % (
             _fmt(value), raw_unit, value * factor, canonical)
+
+    def _unit_known(self, pdef, raw_unit):
+        """True if the reported unit is absent, canonical, or convertible."""
+        u = norm_unit(raw_unit)
+        if u is None or u == norm_unit(pdef.get("unit")):
+            return True
+        return any(norm_unit(k) == u for k in (pdef.get("units") or {}))
 
     # ---------- reference range ----------
 
@@ -364,6 +379,9 @@ class Normalizer:
 
     def build(self, observations, context, warnings=None):
         patient = StandardizedPatient(context=context)
+        patient.substitutes = {
+            p["stands_in_for"]["parameter"]: p["id"]
+            for p in self.cfg.parameters if p.get("stands_in_for")}
         patient.extraction_warnings = list(warnings or [])
         self._data_errors = []          # values rejected as impossible, surfaced below
         sex = context.sex
@@ -453,6 +471,7 @@ class Normalizer:
             np_.notes.append("numeric parameter reported without a number")
             return np_
 
+        unit_known = self._unit_known(pdef, obs.raw_unit)
         value, conv_note = self._convert(pdef, value, obs.raw_unit)
 
         # Reject results that are impossible rather than merely extreme. A haemoglobin
@@ -460,24 +479,35 @@ class Normalizer:
         # "critical low" turns a data fault into a clinical alarm. Both checks below are
         # derived from existing configuration - a reference interval that starts at or
         # above zero, and the parameter's own unit - so neither invents a threshold.
-        impossible = self._implausible(pdef, value, sex)
+        impossible = self._implausible(pdef, value, sex) if unit_known else (
+            "a negative value is not possible for this measurement" if value < 0 else None)
         if impossible:
             self._data_errors.append({
                 "parameter": pdef["name"], "reported": obs.raw_value,
                 "unit": obs.raw_unit, "reason": impossible})
             return None
 
-        mag = self._magnitude_warning(pdef, value, sex, obs.raw_unit)
+        mag = self._magnitude_warning(pdef, value, sex, obs.raw_unit) if unit_known else None
         if mag:
             np_.notes.append(mag)
 
         np_.value = round(value, 6)
-        np_.unit = pdef.get("unit")
+        np_.unit = pdef.get("unit") if unit_known else obs.raw_unit
+        np_.interpretable = unit_known
         np_.conversion_note = conv_note
         if conv_note and "not recognised" in conv_note:
             np_.notes.append(conv_note)
 
         low, high, src = self._reference(pdef, sex, obs.raw_range)
+        if not unit_known and src != "report":
+            # The only interval that shares this unit is one the report itself printed.
+            # Without it there is nothing honest to grade against.
+            np_.reference_low = np_.reference_high = None
+            np_.reference_source = "none"
+            np_.abnormal, np_.grade = False, "unknown"
+            np_.grade_label = "Not interpreted - unit not recognised"
+            np_.graded_by = "none"
+            return np_
 
         # A range printed on the report is quoted in the REPORT's unit, so it needs the
         # same conversion the value just had. Without this a platelet count of 233
@@ -496,8 +526,12 @@ class Normalizer:
             np_.notes.append("sex was not supplied, so the widest reference interval was used; "
                              "a sex-specific range may change this result")
 
+        # Guideline bands are written in the canonical unit; with an unconvertible unit
+        # only the report's own interval (same unit) may grade the value.
+        grade_def = pdef if unit_known else {k: v for k, v in pdef.items()
+                                             if k not in ("bands", "bands_by_sex")}
         abnormal, direction, grade, label, gnote, gbasis = self._grade(
-            pdef, value, low, high, sex, src)
+            grade_def, value, low, high, sex, src)
         np_.abnormal, np_.direction, np_.grade, np_.grade_label = abnormal, direction, grade, label
         np_.graded_by = gbasis
         np_.severity_score = GRADE_SEVERITY.get(grade, 0.0)
@@ -586,7 +620,7 @@ class Normalizer:
             ok = True
             for src in inputs:
                 p = patient.parameters.get(src)
-                if p is None or p.value is None or p.derived:
+                if p is None or p.value is None or p.derived or not p.interpretable:
                     ok = False
                     break
                 vals[src] = p.value
