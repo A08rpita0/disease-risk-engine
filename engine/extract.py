@@ -109,8 +109,21 @@ def parse_reference_range(text):
     return None, None
 
 
+def _camel_to_snake(k):
+    """'MinValue' -> 'min_value', 'RefRange' -> 'ref_range'."""
+    return re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", k)
+
+
 def _first(d, keys):
-    lower = {str(k).lower().replace(" ", "_"): v for k, v in d.items()}
+    # Index each key under both its plain lowercase form and its de-camelised form.
+    # Without the second, a CamelCase field such as 'MinValue' lowercased to 'minvalue'
+    # and never matched 'min_value', so the laboratory's own reference ranges were
+    # silently discarded for every report using that style - Metropolis among them.
+    lower = {}
+    for k, v in d.items():
+        ks = str(k)
+        lower.setdefault(ks.lower().replace(" ", "_"), v)
+        lower.setdefault(_camel_to_snake(ks).lower().replace(" ", "_"), v)
     for k in keys:
         if k in lower and lower[k] not in (None, "", []):
             return lower[k]

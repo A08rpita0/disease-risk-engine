@@ -197,6 +197,10 @@
     {
       "id": "blood_group_abo",
       "reason": "Carries no risk meaning on its own. Recorded and shown alongside Rh factor, which is the component with a Disease Master mapping."
+    },
+    {
+      "id": "urine_bilirubin",
+      "reason": "Added so the urine dipstick 'Bilirubin' resolves to its own parameter instead of colliding with SERUM Total Bilirubin, which it was overwriting. No Disease Master row names urine bilirubin as a marker, so it is extracted and shown but drives no cluster."
     }
   ],
   "reported_only_note": "These parameters are deliberately extracted, unit-converted, graded against their reference range and displayed, but do not feed any cluster. Listing them here keeps the distinction between 'not covered' and 'covered as a reported value' explicit."

@@ -378,7 +378,9 @@
         "cholesterol hdl ratio",
         "tc hdl ratio",
         "total cholesterol hdl ratio",
-        "chol/hdl ratio"
+        "chol/hdl ratio",
+        "cholesterol/hdl ratio",
+        "total cholesterol/hdl ratio"
       ],
       "ref": {
         "default": [
@@ -408,7 +410,9 @@
       "aliases": [
         "tg hdl ratio",
         "triglyceride hdl ratio",
-        "tg/hdl"
+        "tg/hdl",
+        "triglyceride/hdl ratio",
+        "tg/hdl ratio"
       ],
       "ref": {
         "default": [
@@ -443,7 +447,9 @@
         "apoa1",
         "apolipoprotein a",
         "apolipoprotein a1",
-        "apo-a1"
+        "apo-a1",
+        "apolipoproteins a1",
+        "apolipoproteins a"
       ],
       "ref": {
         "male": [
@@ -477,7 +483,8 @@
         "apob",
         "apolipoprotein b",
         "apo-b",
-        "apo b100"
+        "apo b100",
+        "apolipoproteins b"
       ],
       "ref": {
         "default": [
@@ -522,7 +529,11 @@
       "aliases": [
         "apo b apo a1 ratio",
         "apob apoa1 ratio",
-        "apo b/a1"
+        "apo b/a1",
+        "apolipoprotein b/a1 ratio",
+        "apolipoproteins b/a1 ratio",
+        "apo b/a1 ratio",
+        "apolipoprotein b a1 ratio"
       ],
       "ref": {
         "male": [
@@ -1786,7 +1797,8 @@
         "a g ratio",
         "a/g ratio",
         "albumin globulin ratio",
-        "ag ratio"
+        "ag ratio",
+        "albumin/globulin ratio"
       ],
       "ref": {
         "default": [
@@ -6625,6 +6637,21 @@
       ],
       "source": "ACC/AHA 2017 blood pressure categories",
       "bands_are_decision_thresholds": true
+    },
+    {
+      "id": "urine_bilirubin",
+      "name": "Urine Bilirubin",
+      "profile": "Urinalysis",
+      "type": "qualitative",
+      "aliases": [
+        "urine bilirubin",
+        "bilirubin urine",
+        "bile pigment",
+        "bile pigments"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "urine_bilirubin",
+      "note": "Separate from serum Total Bilirubin. Without its own entry the urine dipstick result resolved onto the serum analyte and collided with it."
     }
   ]
 }

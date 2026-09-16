@@ -333,6 +333,16 @@ class Config:
         nk2 = norm_key(stripped)
         if nk2 and nk2 in self.alias_index:
             return self.alias_index[nk2]
+        # A ratio or index is its OWN quantity, never one of the analytes in its name.
+        # Both fallbacks below would otherwise mis-file it: splitting
+        # 'Apolipoprotein B/A1 Ratio' on the slash matched 'Apolipoprotein B', so the
+        # ratio 1.23 was stored as an ApoB of 1.23 mg/dL and the real ApoB of 142 was
+        # lost. 'Albumin/Globulin Ratio' landed on Albumin the same way. If a ratio has
+        # no alias of its own, returning None is correct - it is reported as unmapped
+        # rather than silently corrupting another parameter.
+        if re.search(r"\b(ratio|index)\b", str(raw_name), re.I):
+            return None
+
         # 'SGOT/AST' and 'SGPT (ALT)' style dual naming: try each side of the slash.
         for part in re.split(r"[/|]", str(raw_name)):
             pk = norm_key(part)

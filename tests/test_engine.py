@@ -832,6 +832,111 @@ def test_conflicting_duplicates_do_not_silently_pick_the_worse_value():
           any("14" in n and "9" in n for n in p["notes"]), "notes=%s" % p["notes"])
 
 
+# ========== audit round 2: found on a real Metropolis report ==========
+
+def test_negated_status_beats_the_word_it_negates():
+    """'Non Reactive, 0.26' was read as POSITIVE: 'reactive' matched the positive
+    vocabulary and positives were scanned first. Longest match now wins, because the
+    phrase that negates a word is always longer than the word it negates."""
+    from engine.normalize import Normalizer
+    from engine.config import get_config
+    n = Normalizer(get_config())
+    for raw, expected in [("Non Reactive, 0.26", "negative"), ("Non Reactive", "negative"),
+                          ("Non-Reactive", "negative"), ("Not Detected", "negative"),
+                          ("No Growth", "negative"), ("Reactive", "positive"),
+                          ("Reactive, 5.2", "positive"), ("positive for IgM", "positive")]:
+        check("%r reads as %s" % (raw, expected), n._qual_status(raw) == expected,
+              "got %s" % n._qual_status(raw))
+
+
+def test_hepatitis_b_vetoed_on_combined_status_and_value():
+    """The real-world format: a status and a COI value in one field."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "HBsAg Screening", "value": "Non Reactive, 0.26", "unit": "COI"},
+        {"test_name": "SGPT (ALT)", "value": 49, "unit": "U/L"},
+        {"test_name": "Lymphocytes", "value": 48.3, "unit": "%"}]})
+    check("HBsAg 'Non Reactive, 0.26' is negative",
+          param(r, "hbsag") and param(r, "hbsag")["status"] == "negative")
+    check("Hepatitis B is not reported",
+          "Hepatitis B" not in [x["name"] for x in r["disease_risks"]],
+          "got %s" % [x["name"] for x in r["disease_risks"]])
+    check("and the suppression is recorded",
+          any(s.get("disease") == "Hepatitis B" for s in r["suppressed_findings"]))
+
+
+def test_camelcase_reference_range_keys_are_read():
+    """MinValue/MaxValue lowercased to 'minvalue' and never matched 'min_value', so the
+    laboratory's own ranges were discarded for every CamelCase report format."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "TSH", "value": 5.05, "unit": "uIU/mL",
+         "MinValue": "0.54", "MaxValue": "5.3"}]})
+    p = param(r, "tsh")
+    check("the report's own range is used", p and p["reference_source"] == "report",
+          "source=%s" % (p["reference_source"] if p else None))
+    check("TSH 5.05 inside the lab's 0.54-5.3 is not flagged abnormal",
+          p and not p["abnormal"], "abnormal=%s" % (p["abnormal"] if p else None))
+
+
+def test_report_reference_range_is_unit_converted():
+    """A platelet count of 233 10^3/uL became 233,000 /uL and was then compared against
+    the report's own '140 - 440', flagging a normal count as high."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Platelet count", "value": 233, "unit": "10^3/ul",
+         "MinValue": "140", "MaxValue": "440"}]})
+    p = param(r, "platelet_count")
+    check("the value is converted", p and p["value"] == 233000)
+    check("and so is the report's range", p and p["reference_high"] == 440000,
+          "ref %s-%s" % (p["reference_low"], p["reference_high"]))
+    check("a normal platelet count is not flagged", p and not p["abnormal"])
+
+
+def test_a_ratio_never_resolves_to_one_of_its_own_analytes():
+    """'Apolipoprotein B/A1 Ratio' split on the slash and matched 'Apolipoprotein B', so
+    the ratio 1.23 was stored as an ApoB of 1.23 and the real ApoB of 142 was lost."""
+    cfg = get_config()
+    for name, expected in [("Apolipoprotein B/A1 Ratio", "apo_b_apo_a1_ratio"),
+                           ("Albumin/Globulin Ratio", "ag_ratio"),
+                           ("Apolipoproteins B", "apo_b"),
+                           ("Apolipoproteins A1", "apo_a1")]:
+        check("%r -> %s" % (name, expected), cfg.resolve_alias(name) == expected,
+              "got %s" % cfg.resolve_alias(name))
+
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Apolipoproteins A1", "value": 115, "unit": "mg/dL"},
+        {"test_name": "Apolipoproteins B", "value": 142, "unit": "mg/dL"},
+        {"test_name": "Apolipoprotein B/A1 Ratio", "value": 1.23}]})
+    check("ApoB keeps its real value, not the ratio",
+          param(r, "apo_b") and param(r, "apo_b")["value"] == 142,
+          "apo_b=%s" % (param(r, "apo_b") or {}).get("value"))
+    check("the ratio lands on its own parameter",
+          param(r, "apo_b_apo_a1_ratio") is not None)
+
+
+def test_real_report_matches_the_laboratorys_own_flags():
+    """End to end on the shape of a real Metropolis report: every parameter the lab
+    flagged, and nothing it called normal."""
+    tests = [
+        {"test_name": "HBsAg Screening", "value": "Non Reactive, 0.26", "unit": "COI"},
+        {"test_name": "TSH", "value": 5.05, "unit": "uIU/mL", "MinValue": "0.54", "MaxValue": "5.3"},
+        {"test_name": "SGPT (ALT)", "value": 49, "unit": "U/L", "MinValue": "0", "MaxValue": "41"},
+        {"test_name": "SGOT (AST)", "value": 29, "unit": "U/L", "MinValue": "0", "MaxValue": "40"},
+        {"test_name": "Platelet count", "value": 233, "unit": "10^3/ul",
+         "MinValue": "140", "MaxValue": "440"},
+        {"test_name": "Calcium, Serum", "value": 10.0, "unit": "mg/dL",
+         "MinValue": "8.6", "MaxValue": "10.0"},
+        {"test_name": "Prolactin", "value": 21.3, "unit": "ng/mL",
+         "MinValue": "4.04", "MaxValue": "15.2"},
+    ]
+    r = analyse({"Gender": "male", "tests": tests})
+    flagged = {p["parameter_id"] for p in r["abnormal_parameters"]}
+    for pid in ("tsh", "sgot_ast", "platelet_count", "calcium"):
+        check("%s is NOT flagged (the lab called it normal)" % pid, pid not in flagged)
+    for pid in ("sgpt_alt", "prolactin"):
+        check("%s IS flagged (the lab called it high)" % pid, pid in flagged)
+    check("Hepatitis B is not reported on a non-reactive HBsAg",
+          "Hepatitis B" not in [x["name"] for x in r["disease_risks"]])
+
+
 def test_empty_and_garbage_input():
     r = analyse({"nothing": "here"})
     check("an empty payload is refused rather than analysed",

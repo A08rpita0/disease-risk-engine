@@ -83,13 +83,25 @@ class Normalizer:
                 return "negative"
             if k in self.cfg.qual_indeterminate:
                 return "indeterminate"
-            # 'reactive (1:8)', 'positive for IgM', 'growth of E. coli'
-            for word in self.cfg.qual_positive:
-                if word and re.search(r"\b%s\b" % re.escape(word), k):
-                    return "positive"
-            for word in self.cfg.qual_negative:
-                if word and re.search(r"\b%s\b" % re.escape(word), k):
-                    return "negative"
+            # 'reactive (1:8)', 'positive for IgM', 'growth of E. coli', and crucially
+            # 'Non Reactive, 0.26'.
+            #
+            # LONGEST MATCH WINS, across both vocabularies together. Scanning positives
+            # first meant 'reactive' matched inside 'non reactive' and a negative HBsAg
+            # was read as POSITIVE - the phrase that negates a word is always longer and
+            # more specific than the word it negates, so length is the right tiebreak
+            # and it keeps working as vocabulary is added.
+            best, best_status = None, None
+            for status, vocab in (("positive", self.cfg.qual_positive),
+                                  ("negative", self.cfg.qual_negative),
+                                  ("indeterminate", self.cfg.qual_indeterminate)):
+                for word in vocab:
+                    if not word or len(word) <= len(best or ""):
+                        continue
+                    if re.search(r"\b%s\b" % re.escape(word), k):
+                        best, best_status = word, status
+            if best_status:
+                return best_status
             # A numeric result on a qualitative test.
             num, qualifier = parse_numeric(candidate)
             if num is not None:
@@ -459,6 +471,17 @@ class Normalizer:
             np_.notes.append(conv_note)
 
         low, high, src = self._reference(pdef, sex, obs.raw_range)
+
+        # A range printed on the report is quoted in the REPORT's unit, so it needs the
+        # same conversion the value just had. Without this a platelet count of 233
+        # 10^3/uL became 233,000 /uL and was then compared against the report's own
+        # "140 - 440", flagging a perfectly normal count as high.
+        if src == "report" and obs.raw_unit:
+            if low is not None:
+                low = self._convert(pdef, low, obs.raw_unit)[0]
+            if high is not None:
+                high = self._convert(pdef, high, obs.raw_unit)[0]
+
         np_.reference_low, np_.reference_high, np_.reference_source = low, high, src
         if src == "none":
             np_.notes.append("no reference interval available for this parameter")
