@@ -160,11 +160,164 @@ def hard(path):
     c.save()
 
 
+def summary_then_lab(path):
+    """A designed summary page followed by laboratory pages. See
+    tests/fixtures/summary_lab_report.py for the traits this reproduces."""
+    import summary_lab_report as S
+
+    style = getSampleStyleSheet()["Normal"]
+    style.fontSize, style.leading = 8, 9.5
+    c = canvas.Canvas(str(path), pagesize=A4)
+    widths = [220, 80, 80, 150]
+    x0 = 40
+
+    # ---------------- page 1: designed summary, no patient labels ----------------
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(x0, H - 50, "SMART HEALTH SUMMARY")
+    c.setFont("Helvetica", 8)
+    c.drawString(x0, H - 72, "Patient ID")
+    c.drawString(200, H - 72, "Age")
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(x0, H - 84, S.PATIENT["id"])
+    c.drawString(200, H - 84, str(S.PATIENT["age"]))
+    grid = [["Profile", "Abnormal / Total", "Key Results"]]
+    for name, value, unit, normal in S.SUMMARY_TILES[:2]:
+        grid.append(["Vitamin Profile" if "Vitamin" in name else "Liver Profile", "1 / 2",
+                     Paragraph("%s: %s %s (Normal: %s)" % (name, value, unit, normal), style)])
+    grid.append(["Mineral Profile", "0 / 1", "All Normal"])
+    t = Table(grid, colWidths=[120, 80, 310])
+    t.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                           ("FONTSIZE", (0, 0), (-1, -1), 8)]))
+    _w, h = t.wrapOn(c, W, H)
+    t.drawOn(c, x0, H - 120 - h)
+    y = H - 160 - h
+    name, value, unit, _n = S.SUMMARY_TILES[2]
+    c.setFont("Helvetica", 9)
+    c.drawString(x0, y, "%s: %s %s" % (name, value, unit))
+    c.drawString(320, y, "HIGHLY SENSITIVE C-REACTIVE PROTEIN (hs-")
+    c.drawString(320, y - 14, "CRP): 24.60")
+    c.drawString(520, y - 14, "HIGH")
+    c.drawString(x0, y - 22, "NORMAL")
+    c.drawString(160, y - 22, "HIGH")
+    c.drawString(x0, y - 34, "< 100")
+    c.showPage()
+
+    # ---------------- laboratory pages ----------------
+    def patient_box(top):
+        rows = [["Patient NAME : %s" % S.PATIENT["name"], "", "", ""],
+                ["DOB/Age/Gender : %d Y/%s" % (S.PATIENT["age"], S.PATIENT["sex"]), "", "", ""],
+                ["Patient ID / UHID : %s" % S.PATIENT["id"], "", "", ""],
+                ["Test Description", "Value(s)", "Unit(s)", "Reference Range"]]
+        tb = Table(rows, colWidths=widths)
+        tb.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 0.8, colors.black),
+                                ("GRID", (0, 3), (-1, 3), 0.8, colors.black),
+                                ("FONTSIZE", (0, 0), (-1, -1), 8)]))
+        _w, hh = tb.wrapOn(c, W, H)
+        tb.drawOn(c, x0, top - hh)
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(x0, H - 40, "LABORATORY REPORT")
+        return top - hh - 14
+
+    def results_grid(top, rows):
+        data = []
+        for kind, item in rows:
+            if kind == "heading":
+                data.append([Paragraph("<b>%s</b>" % item, style), "", "", ""])
+                continue
+            section, name, method, value, unit, rng = item
+            label = name.replace("(hs-CRP)", "(hs-<br/>CRP)") if "hs-CRP" in name else name
+            if method:
+                label += "<br/><i>%s</i>" % method
+            data.append([Paragraph(label, style), value, unit,
+                         Paragraph(rng.replace("\n", "<br/>"), style)])
+        tb = Table(data, colWidths=widths)
+        tb.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                                ("FONTSIZE", (0, 0), (-1, -1), 8),
+                                ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+        _w, hh = tb.wrapOn(c, W, H)
+        tb.drawOn(c, x0, top - hh)
+        return top - hh
+
+    def rows_for(prefix, skip=()):
+        out, last = [], None
+        for item in S.TESTS:
+            sec = item[0]
+            if not sec.startswith(prefix) or item[1] in skip:
+                continue
+            for part in sec.split(" > "):
+                if part != last and (not out or part not in [r[1] for r in out if r[0] == "heading"]):
+                    out.append(("heading", part))
+            last = sec.split(" > ")[-1]
+            out.append(("test", item))
+        return out
+
+    # page 2: CBC, with the absolute basophils row falling across the page break
+    top = patient_box(H - 60)
+    cbc = [r for r in rows_for("Complete Blood Count")] + rows_for("Differential") + \
+        rows_for("Absolute", skip=(S.PAGE_BREAK_ROW,))
+    bottom = results_grid(top, cbc)
+    split = [t for t in S.TESTS if t[1] == S.PAGE_BREAK_ROW][0]
+    c.setFont("Helvetica", 8)
+    c.drawString(x0 + 3, bottom - 12, split[1])
+    c.drawString(x0 + widths[0] + 3, bottom - 12, split[3])
+    c.drawString(x0 + widths[0] + widths[1] + 3, bottom - 12, split[4])
+    c.drawString(x0 + sum(widths[:3]) + 3, bottom - 12, split[5])
+    c.showPage()
+
+    # page 3: continuation - the method line of the split row, then platelets
+    top = patient_box(H - 60)
+    cont = Table([[Paragraph("<i>%s</i>" % split[2], style), "", "", ""]], colWidths=widths)
+    cont.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.grey)]))
+    _w, hh = cont.wrapOn(c, W, H)
+    cont.drawOn(c, x0, top - hh)
+    results_grid(top - hh - 4, rows_for("Platelet"))
+    c.showPage()
+
+    # page 4: HbA1c, liver, kidney
+    top = patient_box(H - 60)
+    results_grid(top, rows_for("HbA1C") + rows_for("Liver") + rows_for("Kidney"))
+    c.showPage()
+
+    # page 5: hs-CRP and vitamin D, then an interpretation table with 4 columns
+    top = patient_box(H - 60)
+    bottom = results_grid(top, rows_for("High Sensitivity") + rows_for("Vitamin D"))
+    interp = Table([["TSH", "T4", "T3", "Interpretation"],
+                    ["High", "Normal", "Normal", "Mild (subclinical) hypothyroidism"],
+                    ["Low", "High", "High", "Hyperthyroidism"]], colWidths=widths)
+    interp.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                                ("FONTSIZE", (0, 0), (-1, -1), 8)]))
+    _w, hh = interp.wrapOn(c, W, H)
+    interp.drawOn(c, x0, bottom - 60 - hh)
+    c.showPage()
+
+    # page 6: urine routine with sub-headings
+    top = patient_box(H - 60)
+    results_grid(top, rows_for("Urine Routine"))
+    c.showPage()
+
+    # page 7: HPLC peak table
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(x0, H - 60, "HbA1c HPLC chromatogram")
+    peaks = Table([["Peak Name", "NGSP %", "Area %", "Retention Time (min)", "Peak Area"],
+                   ["A1b", "---", "1.7", "0.222", "42556"],
+                   ["A1c", "6.3", "---", "0.495", "115559"]],
+                  colWidths=[90, 70, 70, 120, 90])
+    peaks.setStyle(TableStyle([("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                               ("FONTSIZE", (0, 0), (-1, -1), 8)]))
+    _w, hh = peaks.wrapOn(c, W, H)
+    peaks.drawOn(c, x0, H - 80 - hh)
+    c.showPage()
+    c.save()
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     text_columns(OUT / "text_columns.pdf")
     ruled_table(OUT / "ruled_table.pdf")
     hard(OUT / "hard.pdf")
+    # kept apart: it is a different panel from lab_panel.py, compared against its own JSON
+    (ROOT / "tests" / "fixtures" / "pdf_summary").mkdir(parents=True, exist_ok=True)
+    summary_then_lab(ROOT / "tests" / "fixtures" / "pdf_summary" / "summary_then_lab.pdf")
     try:
         mixed(OUT / "mixed.pdf")
     except ImportError:

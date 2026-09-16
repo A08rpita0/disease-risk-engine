@@ -19,6 +19,7 @@ import json
 import re
 
 from .models import RawObservation, PatientContext
+from .config import norm_unit
 from .layout import rows_from_words, rows_from_text, drop_repeated, parse_rows, parse_row, Row
 
 # --- keys a JSON payload might use for each field, in priority order ---
@@ -80,13 +81,36 @@ RANGE_PATTERNS = [
 ]
 
 
+# The band a laboratory calls normal, when it prints several: "Deficient <20 /
+# Insufficient 21 - 29 / Sufficient 30 - 100", "Normal Or High: >= 90 / Mild ...".
+_NORMAL_BAND = re.compile(
+    r"^\s*(?:normal(?:\s+or\s+high)?|sufficient|optimal|desirable|reference|"
+    r"non[-\s]?diabetic(?:\s+adults?)?|healthy|adequate)\b\s*:?\s*(?P<rng>.+)$", re.I)
+
+
 def parse_reference_range(text):
-    """'70 - 99', '< 150', '>= 40', '0.4-4.0 uIU/mL' -> (low, high) floats or Nones."""
+    """'70 - 99', '< 150', '>= 40', '0.4-4.0 uIU/mL' -> (low, high) floats or Nones.
+
+    A reference printed as several labelled bands yields the band labelled normal /
+    sufficient / optimal. Taking none of them discarded the laboratory's own interval
+    for vitamin D and eGFR and fell back to the dictionary's.
+    """
     if text is None:
         return None, None
     s = str(text).strip()
     if not s:
         return None, None
+
+    lines = [ln for ln in re.split(r"[\n;|]+", s) if ln.strip()]
+    if len(lines) > 1 or _NORMAL_BAND.match(s):
+        for ln in lines:
+            m = _NORMAL_BAND.match(ln)
+            if m:
+                low, high = parse_reference_range(m.group("rng"))
+                if low is not None or high is not None:
+                    return low, high
+        if len(lines) > 1:
+            return None, None
 
     # A titre ('1:8', '1:160') is a dilution, not an interval. Reading it as the range
     # 1 to 8 would silently replace the real reference interval with nonsense.
@@ -208,7 +232,7 @@ def extract_json(payload, source_name="input.json"):
             if val is not None and _scalar(val):
                 ctx_found["name"] = val
 
-    def emit(name, value, unit, rng, flag, path, shape="result"):
+    def emit(name, value, unit, rng, flag, path, shape="result", section=None, method=None):
         # A loose scalar that nevertheless carries a unit or a reference range is a
         # result however it was nested, so the shape is upgraded on that evidence
         # rather than on where it happened to sit.
@@ -219,7 +243,9 @@ def extract_json(payload, source_name="input.json"):
             raw_unit=str(unit).strip() if unit is not None else None,
             raw_range=str(rng).strip() if rng is not None else None,
             raw_flag=str(flag).strip() if flag is not None else None,
-            source_path=path, source_kind="json", shape=shape))
+            source_path=path, source_kind="json", shape=shape, origin="json",
+            section=str(section).strip() if section else None,
+            method=str(method).strip() if method else None))
 
     def from_test_object(d, path):
         idx = _key_index(d)
@@ -243,7 +269,10 @@ def extract_json(payload, source_name="input.json"):
         if not _scalar(value):
             warnings.append("non-scalar value for '%s' at %s - skipped" % (name, path))
             return
-        emit(name, value, unit, rng, flag, path)
+        emit(name, value, unit, rng, flag, path,
+             section=_first(d, ["section", "panel", "panel_name", "category", "group",
+                                "department", "profile", "test_group"], idx),
+             method=_first(d, ["method", "methodology"], idx))
 
     context_key_names = {x for ks in CONTEXT_KEYS.values() for x in ks}
     # Keys that name a FIELD rather than a test. They appear as loose scalars when a
@@ -366,10 +395,54 @@ def _match_header(cells):
     return idx if "name" in idx and "value" in idx else None
 
 
-# A table cell that holds only a number (optionally with a comparator), or a clean
-# qualitative word, needs no re-parsing.
+# A table cell that holds only a number (optionally with a comparator), a count range
+# such as "1-2" cells per field, or a clean qualitative word, needs no re-parsing.
 _CLEAN_VALUE = re.compile(
-    r"^\s*(?:[<>\u2264\u2265]=?\s*)?[-+]?[\d.,]+\s*$|^\s*[A-Za-z][A-Za-z \-]{1,24}\s*$")
+    r"^\s*(?:[<>\u2264\u2265]=?\s*)?[-+]?[\d.,]+\s*$"
+    r"|^\s*\d+(?:\.\d+)?\s*[-\u2013]\s*\d+(?:\.\d+)?\s*$"
+    r"|^\s*[A-Za-z][A-Za-z \-]{1,24}\s*$")
+
+
+def _join_wrapped(parts):
+    """Join wrapped name lines; a line ending in a hyphen continues without a space."""
+    out = ""
+    for part in parts:
+        out = (out + part) if out.endswith("-") else (out + " " + part).strip()
+    return out
+
+
+def _split_name_cell(text, resolver):
+    """A results-table name cell often holds the test name and, on following lines, the
+    method ("HbA1c" / "HPLC") - and a long name can itself wrap ("... (hs-" / "CRP)").
+
+    The longest run of leading lines that names a known test is the name; the rest is
+    the method. Without a resolver, or if no prefix resolves, the first line is the name.
+    """
+    lines = [ln.strip() for ln in str(text).splitlines() if ln.strip()]
+    if len(lines) <= 1:
+        return (lines[0] if lines else str(text).strip()), None
+    # The name continues onto the next line only while it is visibly cut - an unclosed
+    # bracket or a trailing hyphen. Otherwise the next line is the method. Taking the
+    # longest resolvable run instead read "Reaction (pH)" + "Double Indicator" as one
+    # name, and the bracket then matched BLOOD pH.
+    k = 1
+    while k < len(lines):
+        joined = _join_wrapped(lines[:k])
+        if not (joined.count("(") > joined.count(")") or joined.rstrip().endswith("-")):
+            break
+        k += 1
+    name = _join_wrapped(lines[:k])
+    # A name can also wrap at a plain word boundary with no visible cut ("HIGHLY
+    # SENSITIVE C-REACTIVE" / "PROTEIN (hs-CRP)"). If what we have does not name a test,
+    # take the SHORTEST run of lines that does - never a longer one, which is how a
+    # method line gets absorbed.
+    if resolver and not resolver(name):
+        for j in range(1, len(lines) + 1):
+            cand = _join_wrapped(lines[:j])
+            if resolver(cand):
+                name, k = cand, j
+                break
+    return name, (" ".join(lines[k:]) or None)
 
 
 def extract_table_rows(rows, source_kind="csv", source_name="input", header=None,
@@ -377,12 +450,20 @@ def extract_table_rows(rows, source_kind="csv", source_name="input", header=None
     """Consume a list of cell-lists. Re-detects a header whenever one appears,
     which is what multi-section lab reports actually look like.
 
-    `header` carries the column map in from a previous page: a results table that runs
-    over a page break has no header row on its second page, and every row there was
-    being dropped.
+    `header` is a column map from the table IMMEDIATELY before this one on the same page,
+    passed only when that table ENDED with its header row and this table has the same
+    number of columns - the layout where a patient-details box carries the column titles
+    and the results sit in the next grid. Any looser carry-over applied a results layout
+    to summary grids, interpretation tables and an HPLC chromatogram, producing readings
+    such as "TSH = T4" and an HbA1c range that was really a retention time.
+
+    Returns (observations, warnings, trailing_header): the column map if this table's
+    last non-empty row was a header with no results after it, else None.
     """
     obs, warnings = [], []
     cols = header
+    section = None
+    trailing_header = None
     for n, cells in enumerate(rows):
         cells = [("" if c is None else str(c).strip()) for c in cells]
         if not any(cells):
@@ -390,8 +471,19 @@ def extract_table_rows(rows, source_kind="csv", source_name="input", header=None
         header = _match_header(cells)
         if header:
             cols = header
+            trailing_header = header
             continue
+        trailing_header = None
         if cols is None:
+            continue
+        filled = [c for c in cells if c]
+        name_cell = cells[cols["name"]] if cols["name"] < len(cells) else ""
+        if len(filled) == 1 and name_cell and not re.search(r"\d", name_cell):
+            # A heading row inside the table: "Urine Routine ..." then "Physical
+            # Examination". Headings accumulate, so a sub-heading does not erase the
+            # panel it belongs to.
+            heading = name_cell.replace("\n", " ")
+            section = (section + " > " + heading) if section else heading
             continue
         def cell(field):
             i = cols.get(field)
@@ -399,6 +491,9 @@ def extract_table_rows(rows, source_kind="csv", source_name="input", header=None
                 return None
             return cells[i] or None
         name, value = cell("name"), cell("value")
+        method = None
+        if name and "\n" in name:
+            name, method = _split_name_cell(name, resolver)
         if name and _match_header([name]):          # a repeated header inside the body
             continue
         # A merged cell ("18.40 H", "7.9 %") or a shifted column leaves the value cell
@@ -410,6 +505,7 @@ def extract_table_rows(rows, source_kind="csv", source_name="input", header=None
             if parsed is not None:
                 o = _obs_from_parsed(parsed, source_kind)
                 o.raw_flag = o.raw_flag or cell("flag")
+                o.origin, o.section = "table", section
                 obs.append(o)
                 continue
         if not name or value is None:
@@ -417,10 +513,11 @@ def extract_table_rows(rows, source_kind="csv", source_name="input", header=None
         obs.append(RawObservation(
             raw_name=name, raw_value=value, raw_unit=cell("unit"),
             raw_range=cell("range"), raw_flag=cell("flag"),
-            source_path="row %d" % (n + 1), source_kind=source_kind))
+            source_path="row %d" % (n + 1), source_kind=source_kind,
+            origin="table", section=section, method=method))
     if cols is None and source_kind != "pdf":
         warnings.append("no recognisable result table header was found")
-    return obs, warnings, cols
+    return obs, warnings, trailing_header
 
 
 def extract_csv(text, source_name="input.csv", resolver=None):
@@ -443,7 +540,8 @@ def _obs_from_parsed(parsed, source_kind):
     return RawObservation(
         raw_name=parsed.name, raw_value=parsed.value, raw_unit=parsed.unit,
         raw_range=parsed.range, raw_flag=parsed.flag,
-        source_path=parsed.source, source_kind=source_kind)
+        source_path=parsed.source, source_kind=source_kind, origin="text",
+        section=getattr(parsed, "section", None))
 
 
 def extract_free_text(text, source_name="input.txt", resolver=None):
@@ -500,10 +598,34 @@ def _trim_trailing_label(text, match, group=1):
     return value
 
 
+# Labelled header lines as laboratory result pages print them. Tried first and over the
+# WHOLE text: a report may open with a designed summary whose stacked "Name / Mr X"
+# layout the looser patterns cannot read, while the laboratory pages that state the
+# details plainly sit ten thousand characters in.
+CTX_LABELLED = [
+    ("name", re.compile(r"patient\s*name\s*:\s*"
+                        r"([A-Za-z][A-Za-z .]{1,60}?)\s*(?:\n|\s{2,}|$)", re.I)),
+    ("age", re.compile(r"(?:dob\s*/\s*)?age\s*(?:/\s*(?:sex|gender))?\s*:\s*(\d{1,3})\s*"
+                       r"(?:y|yr|yrs|years)\b", re.I)),
+    ("sex", re.compile(r"(?:sex|gender)\s*:\s*(?:\d{1,3}\s*(?:y|yr|yrs|years)?\s*/\s*)?"
+                       r"(male|female|m|f)\b", re.I)),
+    ("sex", re.compile(r"\b\d{1,3}\s*(?:y|yr|yrs|years)\s*/\s*(male|female|m|f)\b", re.I)),
+    ("patient_id", re.compile(r"(?:patient\s*id|uhid)(?:\s*/\s*uhid)?\s*:\s*([A-Za-z0-9\-]{2,24})", re.I)),
+]
+
+
 def _context_from_text(text, source_name):
     head = text[:4000]
     found = {}
+    for field, pat in CTX_LABELLED:
+        if field in found:
+            continue
+        m = pat.search(text)
+        if m:
+            found[field] = m.group(1).strip()
     for field, pat in CTX_TEXT:
+        if field in found:
+            continue
         m = pat.search(head)
         if m:
             found[field] = (_trim_trailing_label(head, m) if field == "name"
@@ -544,14 +666,22 @@ def _merge_table_and_text(table_obs, text_obs, resolver):
     def key(o):
         pid = resolver(o.raw_name) if resolver else None
         page = (o.source_path or "").split(",")[0]
-        return (pid or re.sub(r"\W+", " ", o.raw_name.lower()).strip(), page)
+        # The unit is part of what a reading IS: "Basophils 0.4 %" and "Basophils. 0.03
+        # 10^3/uL" on the same page are two tests, and matching on name and page alone
+        # discarded the absolute count as a duplicate of the percentage.
+        unit = norm_unit(o.raw_unit) or ""
+        return (pid or re.sub(r"\W+", " ", o.raw_name.lower()).strip(), page, unit)
 
     merged = list(table_obs)
     index = {}
     printed = set()
     for n, o in enumerate(merged):
         index.setdefault(key(o), []).append(n)
-        if o.raw_range and re.search(r"\d", str(o.raw_value or "")):
+        # Only a table reading whose own name is recognised may stand in for the text
+        # reading of the same printed row; otherwise a badly split name cell would
+        # discard a text reading that named the test correctly.
+        if o.raw_range and re.search(r"\d", str(o.raw_value or "")) and \
+                (not resolver or resolver(o.raw_name)):
             printed.add(((o.source_path or "").split(",")[0], _value_key(o.raw_value),
                          (o.raw_unit or "").lower(), _value_key(o.raw_range)))
     for o in text_obs:
@@ -612,9 +742,13 @@ def extract_pdf(data, source_name="input.pdf", resolver=None):
                     pass
             page_text = page.extract_text() or ""
             text_parts.append(page_text)
+            carried = None
             for table in (page.extract_tables() or []):
-                rows_obs, _w, header = extract_table_rows(
-                    table, "pdf", source_name, header=header, resolver=resolver)
+                width = max((len(r) for r in table), default=0)
+                header_in = carried[0] if (carried and carried[1] == width) else None
+                rows_obs, _w, trailing = extract_table_rows(
+                    table, "pdf", source_name, header=header_in, resolver=resolver)
+                carried = (trailing, width) if trailing else None
                 for o in rows_obs:
                     o.source_path = "page %d, %s" % (pageno, o.source_path)
                 table_obs += rows_obs

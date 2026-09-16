@@ -31,6 +31,7 @@ GRADE_SEVERITY = {
     "critical_low": 1.0, "critical_high": 1.0,
 }
 
+_COUNT_RANGE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*[-\u2013]\s*(\d+(?:\.\d+)?)\s*$")
 VALUE_NUM = re.compile(r"[-+]?\d[\d,]*\.?\d*(?:[eE][-+]?\d+)?")
 
 
@@ -388,7 +389,7 @@ class Normalizer:
 
         candidates = {}
         for obs in observations:
-            pid = self.cfg.resolve_alias(obs.raw_name)
+            pid = self._resolve(obs)
             if pid is None:
                 patient.unmapped.append(obs)
                 continue
@@ -416,6 +417,90 @@ class Normalizer:
                    (" " + err["unit"]) if err["unit"] else "", err["reason"]))
         patient.rejected_values = list(self._data_errors)
         return patient
+
+    # ---------- name resolution ----------
+
+    _URINE_SECTION = re.compile(r"\burin|\burinalysis\b|\bR/?M\b", re.I)
+
+    def _unit_accepts(self, pdef, raw_unit):
+        u = norm_unit(raw_unit)
+        if u is None or u == norm_unit(pdef.get("unit")):
+            return True
+        return any(norm_unit(k) == u for k in (pdef.get("units") or {}))
+
+    def _resolve(self, obs):
+        """Name -> parameter, using what else the report says about the result.
+
+        The name alone is not always enough, and the wrong answer is worse than none:
+          - "Blood", "Colour", "Epithelial Cells" under a urine heading are urine tests
+          - "Neutrophils." reported in 10^3/uL is the ABSOLUTE count, not the percentage
+          - "PCT" in % is plateletcrit, not procalcitonin - whose sepsis rules fire at 0.5
+          - "ESR - Erythrocyte Sedimentation Rate" names one test twice
+        """
+        resolve = self.cfg.resolve_alias
+        name = obs.raw_name
+        pid = None
+
+        section = obs.section or ""
+        if self._URINE_SECTION.search(section) and not re.search(r"\burine\b", name, re.I):
+            cand = resolve("urine " + name)
+            if cand and self.cfg.param_by_id[cand].get("profile") == "Urinalysis":
+                pid = cand
+
+        if pid is None:
+            pid = resolve(name)
+
+        if pid is None and re.search(r"\s[-\u2013]\s", name):
+            sides = [resolve(s) for s in re.split(r"\s[-\u2013]\s", name, maxsplit=1)]
+            if sides[0] and sides[0] == sides[1]:
+                pid = sides[0]
+
+        if pid is None:
+            return None
+
+        pdef = self.cfg.param_by_id[pid]
+        if obs.raw_unit and not self._unit_accepts(pdef, obs.raw_unit):
+            alt = self._unit_alternative(pdef, obs)
+            if alt:
+                pid = alt
+        elif not obs.raw_unit:
+            alt = self._section_alternative(pdef, obs)
+            if alt:
+                pid = alt
+        return pid
+
+    def _alternatives(self, pdef, obs):
+        """Parameters that may stand for this name instead: the same biological group
+        (percentage vs absolute count), or a declared alternate reading of the name."""
+        key = norm_key(obs.raw_name.split("(")[0])
+        full = norm_key(obs.raw_name)
+        out = []
+        group = pdef.get("redundancy_group")
+        for p in self.cfg.parameters:
+            if p["id"] == pdef["id"]:
+                continue
+            alts = {norm_key(a) for a in p.get("alternate_aliases", [])}
+            if (group and p.get("redundancy_group") == group) or key in alts or full in alts:
+                out.append(p)
+        return out
+
+    def _unit_alternative(self, pdef, obs):
+        fits = [p for p in self._alternatives(pdef, obs) if self._unit_accepts(p, obs.raw_unit)
+                and norm_unit(obs.raw_unit) is not None
+                and (norm_unit(obs.raw_unit) == norm_unit(p.get("unit"))
+                     or any(norm_unit(k) == norm_unit(obs.raw_unit) for k in (p.get("units") or {})))]
+        return fits[0]["id"] if len(fits) == 1 else None
+
+    def _section_alternative(self, pdef, obs):
+        """With no unit to go on, a declared alternate whose profile matches the heading."""
+        section = (obs.section or "").lower()
+        if not section:
+            return None
+        fits = [p for p in self._alternatives(pdef, obs)
+                if norm_key(obs.raw_name) in {norm_key(a) for a in p.get("alternate_aliases", [])}
+                and any(w in section for w in norm_key(p.get("profile") or "").split()
+                        + [w for w in norm_key(p["name"]).split() if len(w) > 4])]
+        return fits[0]["id"] if len(fits) == 1 else None
 
     def _build_one(self, pdef, obs, sex):
         kind = pdef["type"]
@@ -455,7 +540,16 @@ class Normalizer:
             np_.severity_score = 1.0 if np_.abnormal else 0.0
             return np_
 
-        value, qualifier = parse_numeric(obs.raw_value)
+        count_range = _COUNT_RANGE.match(str(obs.raw_value or ""))
+        if count_range and float(count_range.group(1)) <= float(count_range.group(2)):
+            # "1-2 /hpf": a microscopy count given as a range. The UPPER bound is what is
+            # compared with the reference - using the lower one would call "5-10 /hpf"
+            # normal against "0 - 5".
+            value, qualifier = float(count_range.group(2)), None
+            np_.notes.append("reported as a range (%s); the upper value is compared with the "
+                             "reference interval" % str(obs.raw_value).strip())
+        else:
+            value, qualifier = parse_numeric(obs.raw_value)
         if value is None:
             # a numeric parameter reported qualitatively, e.g. Urine Protein 'Trace'
             status = self._qual_status(obs.raw_value, obs.raw_flag,
@@ -568,10 +662,18 @@ class Normalizer:
             # more alarming reading while the audit line claimed it simply kept the
             # first. Ties fall back to the order the values appeared in the report,
             # which sorted() preserves, and the conflict is reported.
+            # A reading from an explicit results table (header found in that table) or a
+            # structured JSON field outranks one rebuilt from free text. A report that
+            # restates its values on a designed summary page must not have the summary's
+            # reading chosen over the laboratory page's just because it came first.
             return (
                 1 if b.reference_source == "report" else 0,
                 1 if b.value is not None or b.status is not None else 0,
+                1 if b.raw and b.raw.origin in ("table", "json") else 0,
                 1 if b.raw and b.raw.raw_unit else 0,
+                # a two-sided interval says more than a one-sided one ("0.02-0.1" vs
+                # "< 0.1" restating the same result on a summary page)
+                (b.reference_low is not None) + (b.reference_high is not None),
             )
 
         ordered = sorted(built, key=rank, reverse=True)
@@ -589,7 +691,9 @@ class Normalizer:
             "kept": _describe(chosen),
             "dropped": [_describe(b) for b in dropped],
             "conflicting_values": conflict,
-            "reason": ("kept the record with a report-supplied reference range and units"
+            "reason": ("kept the record with a report-supplied reference range"
+                       + (", read from a results table" if chosen.raw and chosen.raw.origin == "table"
+                          else "")
                        if chosen.reference_source == "report"
                        else "kept the first fully-parsed record, in the order they appeared"),
         })

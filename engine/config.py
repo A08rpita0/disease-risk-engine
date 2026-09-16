@@ -36,8 +36,15 @@ def norm_key(text):
         text = text.replace(a, b)
     # Drop honorific/specimen prefixes and filler words that labs add freely.
     # 'S. Creatinine', 'Serum Creatinine' and 'Creatinine' must all land on one key.
+    unstripped = re.sub(r"\s+", " ", text).strip()
     text = re.sub(r"\b(serum|plasma|blood|test|level|levels|value|result|estimation)\b",
                   " ", text)
+    # ...unless that leaves only a specimen word. "Urine Blood" is the urine blood test;
+    # stripping "blood" stored its alias as bare "urine", so every unrecognised
+    # "Urine ..." name - "Urine Routine", "Urine Culture" - fell back onto it.
+    if re.sub(r"\s+", " ", text).strip() in ("urine", "stool", "semen", "csf", "sputum",
+                                             "saliva", "swab", ""):
+        text = unstripped
     # "S." and "B." are specimen PREFIXES ("S. Creatinine", "B. Glucose") and only ever
     # stripped at the start. Stripping the letter anywhere turned "Apo B" into "apo" -
     # so a bare "Apolipoprotein" resolved to ApoB - and "Influenza B" into "influenza".
@@ -89,6 +96,10 @@ def norm_unit(unit):
     u = u.replace(" ", "")
     u = u.replace("percent", "%")
     u = re.sub(r"^\(|\)$", "", u)
+    # "-", "---", "NA": a unit column with nothing in it. Treated as no unit rather than
+    # an unrecognised one, which would stop pH and specific gravity being interpreted.
+    if u in ("-", "--", "---", "\u2014", "\u2013", "na", "n/a", "nil", ".", "_"):
+        return None
     return u or None
 
 

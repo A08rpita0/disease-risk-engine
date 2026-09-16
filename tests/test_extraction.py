@@ -533,6 +533,233 @@ def test_api_when_a_server_is_running():
           {f["parameter_id"] for f in p["abnormal_findings"]})
 
 
+# ================================================================ two-part reports
+# Every test below reproduces a defect found by running a real two-part laboratory
+# report (designed summary pages, then the laboratory pages) through the engine and
+# comparing it field by field with the same report transcribed to JSON. The report
+# itself is personal health data and is not in the repository; tests/fixtures/
+# summary_lab_report.py rebuilds its structure with invented values.
+
+def _diff(pdf_bytes, truth, fname="report.pdf"):
+    sys.path.insert(0, str(ROOT / "tools"))
+    import tempfile
+    from report_diff import diff
+    with tempfile.TemporaryDirectory() as d:
+        pdf = Path(d) / fname
+        pdf.write_bytes(pdf_bytes)
+        tj = Path(d) / "truth.json"
+        tj.write_text(json.dumps(truth), encoding="utf-8")
+        return diff(pdf, tj)[0]
+
+
+def _count(res):
+    return (len(res["context"]) + len(res["missing"]) + len(res["spurious"]) + len(res["field"])
+            + len(res["abnormal_findings"]["only_json"]) + len(res["abnormal_findings"]["only_pdf"])
+            + len(res["conditions"]["only_json"]) + len(res["conditions"]["only_pdf"]))
+
+
+def test_two_part_report_pdf_equals_json_field_by_field():
+    import summary_lab_report as S
+    pdf = (ROOT / "tests" / "fixtures" / "pdf_summary" / "summary_then_lab.pdf").read_bytes()
+    res = _diff(pdf, S.as_json())
+    check("two-part report: PDF and JSON agree on every field", _count(res) == 0,
+          json.dumps({k: res[k] for k in ("context", "missing", "spurious", "field")}, default=str)[:600])
+    check("  no reading conflicts between summary and laboratory pages",
+          not res["pdf_duplicate_conflicts"], str(res["pdf_duplicate_conflicts"])[:200])
+    check("  nothing is left unrecognised on either side",
+          res["summary"]["parameters_unmapped"] == {"json": 0, "pdf": 0}, str(res["summary"]))
+
+    # Table detection is not guaranteed on every PDF. The text layer alone must still
+    # read the same report without a single wrong value.
+    import pdfplumber
+    orig = pdfplumber.page.Page.extract_tables
+    pdfplumber.page.Page.extract_tables = lambda self, *a, **k: []
+    try:
+        res_t = _diff(pdf, S.as_json())
+    finally:
+        pdfplumber.page.Page.extract_tables = orig
+    check("two-part report, text layer only: PDF and JSON still agree", _count(res_t) == 0,
+          json.dumps({k: res_t[k] for k in ("missing", "spurious", "field")}, default=str)[:600])
+
+
+def test_patient_details_on_later_pages_are_found():
+    from engine.extract import _context_from_text
+    text = ("SMART HEALTH SUMMARY\nPatient ID Age\nTST0001 47\n" + "filler text line\n" * 600 +
+            "Patient NAME : Mr Test Kumar\nDOB/Age/Gender : 47 Y/Male Report STATUS: Final\n"
+            "Patient ID / UHID : TST0001/RCL99 Barcode NO : 1\n")
+    ctx = _context_from_text(text, "r.pdf")
+    check("name from a labelled line far into the document, title kept",
+          ctx.name == "Mr Test Kumar", repr(ctx.name))
+    check("age from 'DOB/Age/Gender : 47 Y/Male'", ctx.age == 47.0, repr(ctx.age))
+    check("sex from the same line", ctx.sex == "male", repr(ctx.sex))
+    check("the summary's stacked 'Patient ID / Age' is not read as an age of 142...",
+          ctx.age != 142.0)
+
+
+def test_multi_band_reference_text_yields_the_normal_band():
+    from engine.extract import parse_reference_range
+    for text, want in [("Deficient <20\nInsufficient 21 - 29\nSufficient 30 - 100", (30.0, 100.0)),
+                       ("Normal Or High: >= 90\nMild Or Decrease: 60-89", (90.0, None)),
+                       ("Desirable: < 200\nBorderline: 200-239\nHigh: >= 240", (None, 200.0)),
+                       ("Low <1\nAverage 1-3\nHigh 3-10", (None, None)),
+                       ("13.0 - 17.0", (13.0, 17.0))]:
+        check("range %r -> %s" % (text.replace("\n", " / ")[:40], want),
+              parse_reference_range(text) == want, str(parse_reference_range(text)))
+
+
+def test_a_header_applies_only_to_the_table_right_after_it():
+    from engine.extract import extract_table_rows
+    header = {"name": 0, "value": 1, "unit": 2, "range": 3}
+    results = [["Glycosylated Hemoglobin (HbA1c)\nHPLC", "6.3", "%", "<5.7"]]
+    obs, _w, trailing = extract_table_rows(results, "pdf", header=header, resolver=RESOLVE)
+    check("a header-less results grid is read with the header before it",
+          obs and RESOLVE(obs[0].raw_name) == "hba1c" and obs[0].raw_value == "6.3")
+    check("  the method line is split off the name",
+          obs and obs[0].method == "HPLC" and obs[0].raw_name == "Glycosylated Hemoglobin (HbA1c)",
+          str(obs and (obs[0].raw_name, obs[0].method)))
+
+    box = [["Patient NAME : X", "", "", ""],
+           ["Test Description", "Value(s)", "Unit(s)", "Reference Range"]]
+    _o, _w, trailing = extract_table_rows(box, "pdf", resolver=RESOLVE)
+    check("a table ending in its header hands that header on", trailing is not None)
+    box_then_rows = box + [["TSH", "2.1", "uIU/mL", "0.35 - 4.94"]]
+    _o, _w, trailing = extract_table_rows(box_then_rows, "pdf", resolver=RESOLVE)
+    check("a table with results after its header does not", trailing is None)
+
+    # Without a carried header, an interpretation grid is not read as results.
+    interp = [["TSH", "T4", "T3", "Interpretation"], ["High", "Normal", "Normal", "Mild"]]
+    obs, _w, _t = extract_table_rows(interp, "pdf", resolver=RESOLVE)
+    check("an interpretation grid with no header of its own yields nothing", not obs,
+          str([(o.raw_name, o.raw_value) for o in obs]))
+
+
+def test_name_cells_wrapped_or_with_a_method_line():
+    from engine.extract import _split_name_cell
+    for cell, name, method in [
+            ("HIGHLY SENSITIVE C-REACTIVE PROTEIN (hs-\nCRP)\nImmunoturbidimetric",
+             "HIGHLY SENSITIVE C-REACTIVE PROTEIN (hs-CRP)", "Immunoturbidimetric"),
+            ("Reaction (pH)\nDouble Indicator", "Reaction (pH)", "Double Indicator"),
+            ("HIGHLY SENSITIVE C-REACTIVE\nPROTEIN (hs-CRP)", "HIGHLY SENSITIVE C-REACTIVE PROTEIN (hs-CRP)", None),
+            ("Neutrophils.\nCalculated", "Neutrophils.", "Calculated")]:
+        got = _split_name_cell(cell, RESOLVE)
+        check("name cell %r" % cell.replace("\n", " / ")[:40], got == (name, method), str(got))
+    check("'Reaction (pH)' is urine pH, never blood pH", RESOLVE("Reaction (pH)") == "urine_ph")
+
+
+def test_values_with_a_number_in_the_name_or_a_value_column_swallowed():
+    for text, value, pid in [
+            ("Vitamin D 25 - Hydroxy: 9.9 ng/mL (Normal: 30–100 ng/mL)", "9.9", "vitamin_d"),
+            ("Vitamin D 25 Hydroxy 9.9 ng/mL 30 - 100", "9.9", "vitamin_d"),
+            ("SGOT/AST: 39 U/L (Normal: 11–34 U/L)", "39", "sgot_ast")]:
+        o = line(text)
+        check("%s -> %s" % (text[:36], value), o and o.raw_value == value and RESOLVE(o.raw_name) == pid,
+              str(o and (o.raw_name, o.raw_value)))
+    rows = [Row(cells=[(29.0, "eGFR (CKD-EPI)"), (283.0, "111.85"), (353.0, "ml/min/1.73 sq m"),
+                       (441.0, "Normal Or High: >= 90")], top=273.0, page=19)]
+    out = parse_rows(rows, RESOLVE)
+    check("a band label column does not become the result",
+          out and out[0].value == "111.85" and out[0].unit == "ml/min/1.73 sq m",
+          str([(o.name, o.value, o.unit) for o in out]))
+
+
+def test_a_name_cut_in_one_column_continues_below_in_that_column():
+    rows = [Row(cells=[(33.0, "LDL Cholesterol: 108.2 mg/dL"), (261.0, "HIGH"),
+                       (312.0, "HIGHLY SENSITIVE C-REACTIVE PROTEIN (hs-")], top=427.0, page=12),
+            Row(cells=[(312.0, "CRP): 31.98"), (540.0, "HIGH")], top=442.0, page=12)]
+    out = parse_rows(rows, RESOLVE)
+    got = {RESOLVE(o.name): o.value for o in out}
+    check("the continuation names hs-CRP, not a separate CRP", got.get("hs_crp") == "31.98"
+          and "crp" not in got, str(got))
+
+
+def test_microscopy_count_ranges_use_the_upper_bound():
+    r = analyse({"gender": "male", "tests": [
+        {"test_name": "Pus Cells (WBCs)", "value": "8-10", "unit": "/hpf", "reference_range": "0 - 5",
+         "section": "Urine Routine"}]})
+    p = param(r, "urine_pus_cells")
+    check("'8-10 /hpf' against 0-5 is flagged", p and p["value"] == 10.0 and p["abnormal"],
+          str(p and (p["value"], p["abnormal"])))
+    o = line("Pus Cells (WBCs) 8-10 /hpf 0 - 5")
+    check("  and read as a value from a text row, not as the range", o and o.raw_value == "8-10",
+          str(o and (o.raw_name, o.raw_value, o.raw_range)))
+
+
+def test_units_that_decide_which_test_a_name_is():
+    r = analyse({"gender": "male", "tests": [
+        {"test_name": "PCT", "value": "0.61", "unit": "%", "reference_range": "0.17 - 0.32"},
+        {"test_name": "Neutrophils", "value": "61", "unit": "%", "reference_range": "40 - 80"},
+        {"test_name": "Neutrophils.", "value": "4.53", "unit": "10^3/µl", "reference_range": "2 - 7"}]})
+    check("PCT in % is plateletcrit", param(r, "plateletcrit") is not None)
+    check("  never procalcitonin, whose sepsis rules fire at 0.5", param(r, "procalcitonin") is None)
+    check("  so no infection pattern is raised from it",
+          not any("Infective" in c["name"] or "Sepsis" in c["name"] for c in r["cohorts"]))
+    check("'Neutrophils.' in 10^3/ul is the absolute count",
+          (param(r, "absolute_neutrophil_count") or {}).get("value") == 4530.0)
+    check("  and the percentage is kept separately, with no false conflict",
+          (param(r, "neutrophil_pct") or {}).get("value") == 61.0 and not r["duplicates_resolved"])
+    r2 = analyse({"gender": "male", "tests": [{"test_name": "PCT", "value": "0.8", "unit": "ng/mL"}]})
+    check("PCT in ng/mL is still procalcitonin", param(r2, "procalcitonin") is not None)
+
+
+def test_headings_give_bare_names_their_panel():
+    r = analyse({"gender": "male", "tests": [
+        {"section": "Urine Routine and Microscopic Examination", "test_name": "Blood", "value": "Negative"},
+        {"section": "Urine Routine > Physical Examination", "test_name": "Colour", "value": "Pale yellow"},
+        {"section": "Urine Routine > Microscopic Examination", "test_name": "Epithelial Cells",
+         "value": "1-2", "unit": "/hpf", "reference_range": "0 - 4"},
+        {"test_name": "ESR - Erythrocyte Sedimentation Rate", "value": "34", "unit": "mm/hr",
+         "reference_range": "0 - 10"}]})
+    check("'Blood' under a urine heading is urine blood", param(r, "urine_blood") is not None)
+    check("'Colour' under a urine heading is urine colour", param(r, "urine_colour") is not None)
+    check("a sub-heading does not erase the panel", param(r, "urine_epithelial_cells") is not None)
+    check("a name stated twice either side of ' - ' resolves", param(r, "esr") is not None)
+    r2 = analyse({"gender": "male", "tests": [{"test_name": "Blood", "value": "Negative"}]})
+    check("'Blood' with no heading is not guessed", not r2.get("parameters"),
+          str([p["parameter_id"] for p in r2.get("parameters", [])]))
+
+
+def test_specimen_words_never_collapse_a_name():
+    for name, wrong in [("Urine Routine and Microscopic Examination", "urine_blood"),
+                        ("Urine Osmolality", "urine_blood"), ("Urine Culture", "urine_blood")]:
+        check("%r is not %s" % (name, wrong), RESOLVE(name) != wrong, str(RESOLVE(name)))
+    check("'Urine Blood' still resolves", RESOLVE("Urine Blood") == "urine_blood")
+    check("'Blood Urea' still drops its specimen word", RESOLVE("Blood Urea") == "blood_urea")
+
+
+def test_band_tables_and_panel_tiles_are_not_unrecognised_tests():
+    for text in ["Very High Risk <50 <80", "Non diabetic adults >=18 years <5.7",
+                 "Above Optimal 100-129 130 - 159", "Mineral Profile  1 / 1  mg/dL",
+                 "Blood Counts  0  All", "LA1c --- 1.7 0.392 42029"]:
+        o = line(text)
+        check("not an unrecognised test: %r" % text[:30], o is None, str(o and (o.raw_name, o.raw_value)))
+
+
+def test_no_control_characters_in_source():
+    """A shell once rewrote the regex escape \\b as a literal backspace, silently disabling
+    a rule. This fails loudly if it happens again."""
+    bad = []
+    for f in list((ROOT / "engine").glob("*.py")) + list((ROOT / "tools").glob("*.py")) + \
+            list((ROOT / "tests").rglob("*.py")) + list((ROOT / "config").rglob("*.json")):
+        for n, ln in enumerate(f.read_text(encoding="utf-8").split("\n"), 1):
+            if any(ord(ch) < 32 and ch not in "\t\r" for ch in ln):
+                bad.append("%s:%d" % (f.name, n))
+    check("no control characters in engine, tools, tests or config", not bad, str(bad))
+
+
+def test_private_real_reports_when_present():
+    """Real reports live in the git-ignored private/ folder beside a *_truth.json
+    transcription. When present they must diff to zero; elsewhere this is skipped."""
+    pairs = [(p, p.with_name(p.stem + "_truth.json")) for p in sorted((ROOT / "private").glob("*.pdf"))]
+    pairs = [(p, t) for p, t in pairs if t.exists()]
+    if not pairs:
+        check("private real-report check skipped - none present", True)
+        return
+    for pdf, truth in pairs:
+        res = _diff(pdf.read_bytes(), json.loads(truth.read_text(encoding="utf-8")), pdf.name)
+        check("real report %s: PDF and JSON agree on every field" % pdf.stem, _count(res) == 0,
+              json.dumps({k: res[k] for k in ("context", "missing", "spurious", "field")}, default=str)[:400])
+
+
 # ---------------------------------------------------------------- run
 
 def main():

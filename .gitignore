@@ -9,3 +9,6 @@ Thumbs.db
 *.log
 .pytest_cache/
 .claude/
+
+# Real patient reports and their ground truth. Personal health data - never committed.
+private/

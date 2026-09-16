@@ -1169,7 +1169,9 @@
         "urine ketone",
         "urine ketones",
         "ketone bodies",
-        "acetone"
+        "acetone",
+        "urine ketones acetone",
+        "urine acetone"
       ],
       "abnormal_when": "positive",
       "redundancy_group": "ketosis"
@@ -1267,7 +1269,11 @@
       "units": {
         "ml/min/1.73m2": 1,
         "ml/min": 1,
-        "ml/min/1.73 m2": 1
+        "ml/min/1.73 m2": 1,
+        "ml/min/1.73 sq m": 1,
+        "ml/min/1.73sqm": 1,
+        "ml/min/1.73 sq.m": 1,
+        "ml/min/1.73": 1
       },
       "aliases": [
         "egfr",
@@ -5257,7 +5263,10 @@
       "aliases": [
         "urine ph",
         "ph urine",
-        "reaction urine"
+        "reaction urine",
+        "reaction ph",
+        "urine reaction ph",
+        "urine reaction"
       ],
       "ref": {
         "default": [
@@ -5336,7 +5345,10 @@
         "hematuria",
         "urine rbc",
         "rbc urine",
-        "occult blood urine"
+        "occult blood urine",
+        "urine red blood cells",
+        "urine rbcs",
+        "urine red blood cell"
       ],
       "abnormal_when": "positive",
       "redundancy_group": "haematuria"
@@ -6771,6 +6783,443 @@
       ],
       "redundancy_group": "basophil",
       "no_default_reference_note": "Graded only against the reference interval the report supplies. No default interval is configured because none is available from the Disease Master or any other source in this project."
+    },
+    {
+      "id": "plateletcrit",
+      "name": "Plateletcrit (PCT)",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "plateletcrit",
+        "thrombocrit"
+      ],
+      "redundancy_group": "platelet_index",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Printed as 'PCT' on CBC reports, where it resolved to procalcitonin - a sepsis marker whose rules fire at 0.5. 'pct' is therefore an alternate reading chosen by unit (%) or by a platelet heading, not a plain alias.",
+      "alternate_aliases": [
+        "pct"
+      ]
+    },
+    {
+      "id": "platelet_large_cell_ratio",
+      "name": "Platelet Large Cell Ratio (P-LCR)",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "%",
+      "units": {
+        "%": 1,
+        "percent": 1
+      },
+      "aliases": [
+        "p lcr",
+        "p-lcr",
+        "platelet large cell ratio"
+      ],
+      "redundancy_group": "platelet_index",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "CBC analyser index."
+    },
+    {
+      "id": "platelet_large_cell_count",
+      "name": "Platelet Large Cell Count (P-LCC)",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "10^9/L",
+      "units": {
+        "10^9/l": 1,
+        "10^3/ul": 1
+      },
+      "aliases": [
+        "p lcc",
+        "p-lcc",
+        "platelet large cell count"
+      ],
+      "redundancy_group": "platelet_index",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "CBC analyser index."
+    },
+    {
+      "id": "mentzer_index",
+      "name": "Mentzer Index",
+      "profile": "Blood Counts",
+      "type": "numeric",
+      "unit": "",
+      "units": {
+        "": 1,
+        "%": 1,
+        "ratio": 1
+      },
+      "aliases": [
+        "mentzer index",
+        "mentzer"
+      ],
+      "redundancy_group": "mentzer_index",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "MCV divided by RBC count, printed by the laboratory. Reported as given; its interpretation band is whatever the report prints."
+    },
+    {
+      "id": "estimated_average_glucose",
+      "name": "Estimated Average Glucose (eAG)",
+      "profile": "Diabetes Monitoring",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1
+      },
+      "aliases": [
+        "estimated average glucose",
+        "eag",
+        "mean plasma glucose"
+      ],
+      "redundancy_group": "glycaemic_estimate",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Calculated by the laboratory from HbA1c. Shown as reported; HbA1c itself carries the interpretation."
+    },
+    {
+      "id": "ast_alt_ratio",
+      "name": "SGOT/SGPT Ratio (De Ritis)",
+      "profile": "Liver Profile",
+      "type": "numeric",
+      "unit": "",
+      "units": {
+        "": 1,
+        "%": 1,
+        "ratio": 1
+      },
+      "aliases": [
+        "sgot sgpt ratio",
+        "ast alt ratio",
+        "de ritis ratio",
+        "sgot/sgpt ratio",
+        "ast/alt ratio"
+      ],
+      "redundancy_group": "ast_alt_ratio",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Calculated by the laboratory."
+    },
+    {
+      "id": "bun_creatinine_ratio",
+      "name": "BUN / Creatinine Ratio",
+      "profile": "Kidney Profile",
+      "type": "numeric",
+      "unit": "",
+      "units": {
+        "": 1,
+        "ratio": 1
+      },
+      "aliases": [
+        "bun creatinine ratio",
+        "bun/creatinine ratio",
+        "bun cr ratio"
+      ],
+      "redundancy_group": "bun_creatinine_ratio",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Calculated by the laboratory."
+    },
+    {
+      "id": "urea_creatinine_ratio",
+      "name": "Urea / Creatinine Ratio",
+      "profile": "Kidney Profile",
+      "type": "numeric",
+      "unit": "",
+      "units": {
+        "": 1,
+        "ratio": 1
+      },
+      "aliases": [
+        "urea creatinine ratio",
+        "urea/creatinine ratio"
+      ],
+      "redundancy_group": "urea_creatinine_ratio",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Calculated by the laboratory."
+    },
+    {
+      "id": "ldl_hdl_ratio",
+      "name": "LDL / HDL Ratio",
+      "profile": "Lipid Profile",
+      "type": "numeric",
+      "unit": "ratio",
+      "units": {
+        "ratio": 1,
+        "": 1
+      },
+      "aliases": [
+        "ldl hdl ratio",
+        "ldl/hdl ratio"
+      ],
+      "redundancy_group": "ldl_hdl_ratio",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Calculated by the laboratory."
+    },
+    {
+      "id": "hdl_ldl_ratio",
+      "name": "HDL / LDL Ratio",
+      "profile": "Lipid Profile",
+      "type": "numeric",
+      "unit": "ratio",
+      "units": {
+        "ratio": 1,
+        "": 1
+      },
+      "aliases": [
+        "hdl ldl ratio",
+        "hdl/ldl ratio"
+      ],
+      "redundancy_group": "hdl_ldl_ratio",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Calculated by the laboratory. The reciprocal of LDL/HDL - kept separate because a ratio's direction is its meaning."
+    },
+    {
+      "id": "urine_volume",
+      "name": "Urine Volume",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "mL",
+      "units": {
+        "ml": 1
+      },
+      "aliases": [
+        "urine volume",
+        "volume urine"
+      ],
+      "redundancy_group": "urine_volume",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Physical examination."
+    },
+    {
+      "id": "urine_epithelial_cells",
+      "name": "Urine Epithelial Cells",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1,
+        "/lpf": 1
+      },
+      "aliases": [
+        "urine epithelial cells",
+        "urine epithelial cell",
+        "epithelial cells urine"
+      ],
+      "redundancy_group": "urine_epithelial",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_casts",
+      "name": "Urine Casts",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1,
+        "/lpf": 1
+      },
+      "aliases": [
+        "urine casts",
+        "urine cast"
+      ],
+      "redundancy_group": "urine_casts",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_crystals",
+      "name": "Urine Crystals",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1,
+        "/lpf": 1
+      },
+      "aliases": [
+        "urine crystals",
+        "urine crystal"
+      ],
+      "redundancy_group": "urine_crystals",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_bacteria",
+      "name": "Urine Bacteria",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1,
+        "/lpf": 1
+      },
+      "aliases": [
+        "urine bacteria"
+      ],
+      "redundancy_group": "urine_bacteria",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_yeast_cells",
+      "name": "Urine Yeast Cells",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1,
+        "/lpf": 1
+      },
+      "aliases": [
+        "urine yeast cells",
+        "urine yeast"
+      ],
+      "redundancy_group": "urine_yeast",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_amorphous_deposits",
+      "name": "Urine Amorphous Deposits",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1,
+        "/lpf": 1
+      },
+      "aliases": [
+        "urine amorphous deposits",
+        "urine amorphous deposit"
+      ],
+      "redundancy_group": "urine_amorphous",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_protozoa",
+      "name": "Urine Protozoa",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1,
+        "/lpf": 1
+      },
+      "aliases": [
+        "urine protozoa"
+      ],
+      "redundancy_group": "urine_protozoa",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_urobilinogen",
+      "name": "Urine Urobilinogen",
+      "profile": "Urinalysis",
+      "type": "qualitative",
+      "aliases": [
+        "urobilinogen",
+        "urine urobilinogen"
+      ],
+      "abnormal_when": "positive",
+      "redundancy_group": "urine_urobilinogen",
+      "note": "Dipstick. 'Normal' reads as not raised."
+    },
+    {
+      "id": "urine_colour",
+      "name": "Urine Colour",
+      "profile": "Urinalysis",
+      "type": "categorical",
+      "aliases": [
+        "urine colour",
+        "urine color",
+        "colour urine"
+      ],
+      "redundancy_group": "urine_colour",
+      "note": "Physical examination; recorded as reported, not graded."
+    },
+    {
+      "id": "urine_transparency",
+      "name": "Urine Transparency",
+      "profile": "Urinalysis",
+      "type": "categorical",
+      "aliases": [
+        "urine transparency",
+        "urine appearance",
+        "urine clarity"
+      ],
+      "redundancy_group": "urine_transparency",
+      "note": "Physical examination; recorded as reported, not graded."
+    },
+    {
+      "id": "urine_deposit",
+      "name": "Urine Deposit",
+      "profile": "Urinalysis",
+      "type": "categorical",
+      "aliases": [
+        "urine deposit",
+        "urine deposits"
+      ],
+      "redundancy_group": "urine_deposit",
+      "note": "Physical examination; recorded as reported, not graded."
+    },
+    {
+      "id": "serum_osmolality",
+      "name": "Serum Osmolality",
+      "profile": "Electrolyte Profile",
+      "type": "numeric",
+      "unit": "mOsm/kg",
+      "units": {
+        "mosm/kg": 1,
+        "mosmol/kg": 1,
+        "mosm/kg h2o": 1
+      },
+      "aliases": [
+        "serum osmolality",
+        "plasma osmolality",
+        "osmolality"
+      ],
+      "redundancy_group": "serum_osmolality",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured.",
+      "note": "Named by the Disease Master's SIADH row ('Serum and urine osmolality')."
+    },
+    {
+      "id": "urine_osmolality",
+      "name": "Urine Osmolality",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "mOsm/kg",
+      "units": {
+        "mosm/kg": 1,
+        "mosmol/kg": 1,
+        "mosm/kg h2o": 1
+      },
+      "aliases": [
+        "urine osmolality",
+        "osmolality urine"
+      ],
+      "redundancy_group": "urine_osmolality",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured.",
+      "note": "Named by the Disease Master's SIADH row. Until this entry existed the marker resolved only because 'Urine Blood' had been stored under the bare key 'urine', so 'urine osmolality' was silently read as the urine blood test."
     }
   ]
 }

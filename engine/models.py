@@ -30,6 +30,28 @@ class RawObservation:
     #            "ignored parameter" told the user 241 results were dropped when the
     #            real number was 28.
     shape: str = "result"
+    # Where on the page it came from - "table" (a row of a results table whose header
+    # was found in that same table), "text" (a row rebuilt from the text layer) or
+    # "json". Used to prefer the structurally reliable reading when a report states the
+    # same test twice, e.g. a summary page and the laboratory page.
+    origin: str = ""
+    # The panel / section heading it was printed under ("Urine Routine ..."). Lets a
+    # bare "Blood" or "Colour" under a urine heading be read as the urine test.
+    section: Optional[str] = None
+    # Method line printed under the test name ("HPLC", "Immunoturbidimetric"); kept
+    # out of the name so it cannot distort name matching.
+    method: Optional[str] = None
+    # Where on the page it came from - "table" (a row of a results table whose header
+    # was found in that same table), "text" (a row rebuilt from the text layer) or
+    # "json". Used to prefer the structurally reliable reading when a report states the
+    # same test twice, e.g. a summary page and the laboratory page.
+    origin: str = ""
+    # The panel / section heading it was printed under ("Urine Routine ..."). Lets a
+    # bare "Blood" or "Colour" under a urine heading be read as the urine test.
+    section: Optional[str] = None
+    # Method line printed under the test name ("HPLC", "Immunoturbidimetric"); kept
+    # out of the name so it cannot distort name matching.
+    method: Optional[str] = None
 
     def to_dict(self):
         return asdict(self)
