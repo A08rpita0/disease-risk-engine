@@ -14,6 +14,7 @@ import datetime
 from .cohorts import CohortEngine
 from .config import get_config
 from .doccheck import assess
+from .gatekeeper import Gatekeeper
 from .extract import extract_with_text
 from .models import PatientContext
 from .normalize import Normalizer
@@ -33,6 +34,7 @@ class Pipeline:
         self.cfg = config or get_config()
         self.normalizer = Normalizer(self.cfg)
         self.cohort_engine = CohortEngine(self.cfg)
+        self.gatekeeper = Gatekeeper(self.cfg)
         self.risk_engine = RiskEngine(self.cfg)
         self.rec_engine = RecommendationEngine(self.cfg)
 
@@ -58,12 +60,18 @@ class Pipeline:
         if not document["is_report"]:
             return self._rejected(patient, observations, document, filename)
 
-        cohort_hits, cohorts_skipped = self.cohort_engine.detect(patient)
-        risks = self.risk_engine.score(patient, cohort_hits)
+        # Stage 3.5: hard exclusions. Resolved once, then honoured by every later
+        # stage, so a vetoed finding reaches neither scoring nor recommendations.
+        vetoes = self.gatekeeper.evaluate(patient)
+
+        cohort_hits, cohorts_skipped, cohorts_suppressed = self.cohort_engine.detect(
+            patient, vetoes)
+        risks, risks_suppressed = self.risk_engine.score(patient, cohort_hits, vetoes)
         recommendations = self.rec_engine.build(patient, cohort_hits, risks)
 
         return self._assemble(patient, observations, cohort_hits, cohorts_skipped,
-                              risks, recommendations, filename, document)
+                              risks, recommendations, filename, document,
+                              cohorts_suppressed + risks_suppressed)
 
     # ------------------------------------------------------------------
 
@@ -89,7 +97,7 @@ class Pipeline:
         }
 
     def _assemble(self, patient, observations, cohort_hits, cohorts_skipped,
-                  risks, recommendations, filename, document=None):
+                  risks, recommendations, filename, document=None, suppressed=None):
         params = list(patient.parameters.values())
         abnormal = [p for p in params if p.abnormal]
 
@@ -129,6 +137,9 @@ class Pipeline:
                 "profiles_touched": sorted(by_profile),
                 "cohorts_detected": len(cohort_hits),
                 "conditions_flagged": len(risks),
+                "direct_findings": sum(1 for r in risks if r.finding_type == "direct"),
+                "pattern_findings": sum(1 for r in risks if r.finding_type != "direct"),
+                "suppressed_by_exclusion": len(suppressed or []),
                 "high_evidence": sum(1 for r in risks if r.evidence_level == "High"),
                 "moderate_evidence": sum(1 for r in risks if r.evidence_level == "Moderate"),
                 "limited_evidence": sum(1 for r in risks if r.evidence_level in ("Low", "Limited")),
@@ -146,6 +157,12 @@ class Pipeline:
             "cohorts": [c.to_dict() for c in cohort_hits],
             "cohorts_not_assessable": cohorts_skipped,
             "disease_risks": [r.to_dict() for r in risks],
+            # Two presentation tiers. A direct finding is established by one measured
+            # value against a configured threshold; a pattern is a multi-marker
+            # hypothesis. Mixing them lets a hypothesis read like a measured fact.
+            "direct_findings": [r.to_dict() for r in risks if r.finding_type == "direct"],
+            "pattern_findings": [r.to_dict() for r in risks if r.finding_type != "direct"],
+            "suppressed_findings": suppressed or [],
             "urgent_findings": [r.to_dict() for r in urgent],
             "recommendations": [r.to_dict() for r in recommendations],
             "coverage": coverage,

@@ -99,6 +99,7 @@ class Config:
                 self.cohorts.append(c)
 
         self.unmappable = self._read("unmappable.json")
+        self.exclusions = self._read("exclusions.json")
         try:
             self.recommendations = self._read("recommendations.json")
         except ConfigError:

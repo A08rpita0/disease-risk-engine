@@ -5429,7 +5429,21 @@
         "hepatitis b s antigen"
       ],
       "abnormal_when": "positive",
-      "redundancy_group": "hepatitis_b"
+      "redundancy_group": "hepatitis_b",
+      "numeric_interpretation": {
+        "kind": "index",
+        "unit_hint": "COI (signal/cut-off index)",
+        "negative_below": 0.9,
+        "positive_at_or_above": 1.0,
+        "note": "A COI result is a ratio against the assay cut-off, so 0.80 is NEGATIVE. Without this block a bare number falls through to the titre fallback and is read as positive, which reported Hepatitis B on a negative sample.",
+        "source": "The 0.90 cut-off was supplied by the project owner. It is NOT derived from the Disease Master, which carries no numeric thresholds. Assay cut-offs vary by manufacturer - verify against your laboratory's."
+      },
+      "units": {
+        "coi": 1,
+        "s/co": 1,
+        "index": 1,
+        "ratio": 1
+      }
     },
     {
       "id": "anti_hcv",

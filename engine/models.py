@@ -153,6 +153,8 @@ class RiskContribution:
     cohort_confidence: float
     contribution: float                     # link_weight * confidence * role_factor
     dm_basis: str
+    support_penalty: float = 1.0            # 1.0 = untouched; <1 = expected support measured and normal
+    support_note: str = ""
 
     def to_dict(self):
         return asdict(self)
@@ -182,6 +184,13 @@ class DiseaseRisk:
     dm_fields: dict = field(default_factory=dict)
     review_status: Optional[str] = None
     icd10: Optional[str] = None
+
+    # --- presentation tier -------------------------------------------------
+    # "direct"  a single measured parameter meets a configured threshold that
+    #           establishes this finding on its own
+    # "pattern" a multi-marker association; a hypothesis to explore, not a finding
+    finding_type: str = "pattern"
+    direct_evidence: Optional[dict] = None  # parameter, value, unit, reference, statement
 
     def to_dict(self):
         d = asdict(self)

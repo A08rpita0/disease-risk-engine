@@ -660,7 +660,15 @@
           "name": "Diabetes Mellitus",
           "role": "primary",
           "weight": 0.92,
-          "dm_basis": "High-Risk Indicators: 'Fasting Glucose + HbA1c both elevated; HbA1c alone above abnormal threshold; glucose in urine with high plasma glucose'"
+          "dm_basis": "High-Risk Indicators: 'Fasting Glucose + HbA1c both elevated; HbA1c alone above abnormal threshold; glucose in urine with high plasma glucose'",
+          "direct_evidence": {
+            "parameter": "hba1c",
+            "condition": {
+              "gte": 6.5
+            },
+            "statement": "HbA1c is at or above the diabetes threshold configured for this engine.",
+            "source": "Existing trigger in this cluster (hba1c >= 6.5%). The Disease Master explicitly grants this single-marker route: 'HbA1c alone above abnormal threshold'. A laboratory threshold being met is not a diagnosis - it still requires clinical confirmation, usually on a repeat sample."
+          }
         },
         {
           "name": "Metabolic Syndrome",

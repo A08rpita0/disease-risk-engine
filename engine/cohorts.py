@@ -21,6 +21,7 @@ redundancy group carries full weight; the rest are recorded but heavily discount
 """
 from __future__ import annotations
 
+from .gatekeeper import Gatekeeper
 from .models import CohortHit, TriggerHit
 
 # Weight retained by the 2nd, 3rd... signal from the same redundancy group.
@@ -118,16 +119,30 @@ class CohortEngine:
     def __init__(self, config):
         self.cfg = config
 
-    def detect(self, patient):
-        hits, skipped = [], []
+    def detect(self, patient, vetoes=None):
+        """Detect clusters. `vetoes` are hard exclusions already resolved for this
+        patient; a vetoed cluster is removed outright rather than scored down, so it
+        reaches neither the risk engine nor the recommendation engine."""
+        vetoes = vetoes or []
+        hits, skipped, suppressed = [], [], []
         for cohort in self.cfg.cohorts:
+            veto = Gatekeeper.cohort_vetoed(cohort["id"], vetoes)
+            if veto is not None:
+                # Evaluate anyway, purely so the audit records what WOULD have fired.
+                would, _ = self._evaluate(cohort, patient)
+                if would:
+                    suppressed.append({
+                        "cohort_id": cohort["id"], "name": cohort["name"],
+                        "would_have_confidence": round(would.confidence, 4),
+                        **veto.audit()})
+                continue
             hit, why = self._evaluate(cohort, patient)
             if hit:
                 hits.append(hit)
             elif why:
                 skipped.append({"cohort_id": cohort["id"], "name": cohort["name"], "reason": why})
         hits.sort(key=lambda h: h.confidence, reverse=True)
-        return hits, skipped
+        return hits, skipped, suppressed
 
     # ------------------------------------------------------------------
 

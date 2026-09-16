@@ -747,7 +747,15 @@
           "name": "Hyperprolactinemia",
           "role": "primary",
           "weight": 0.85,
-          "dm_basis": "High-Risk Indicators: 'Significantly elevated prolactin with compatible symptoms'; Related Markers/Tests: Prolactin"
+          "dm_basis": "High-Risk Indicators: 'Significantly elevated prolactin with compatible symptoms'; Related Markers/Tests: Prolactin",
+          "direct_evidence": {
+            "parameter": "prolactin",
+            "condition": {
+              "abnormal": "high"
+            },
+            "statement": "Prolactin is above its reference range.",
+            "source": "Existing trigger in this cluster. Marked direct because the condition IS the measured quantity - 'Vitamin D Deficiency' is by definition a vitamin D below the deficiency threshold. This is definitional, not a new clinical claim. The threshold below is the one already configured for this cluster; nothing was invented."
+          }
         },
         {
           "name": "Amenorrhea (General/Secondary)",
@@ -1098,13 +1106,32 @@
           "name": "Vitamin D Deficiency",
           "role": "primary",
           "weight": 0.9,
-          "dm_basis": "High-Risk Indicators: 'Vitamin D level in the deficient range, especially with elevated PTH or low calcium'; Related Markers/Tests: Vitamin D (25-Hydroxy)"
+          "dm_basis": "High-Risk Indicators: 'Vitamin D level in the deficient range, especially with elevated PTH or low calcium'; Related Markers/Tests: Vitamin D (25-Hydroxy)",
+          "direct_evidence": {
+            "parameter": "vitamin_d",
+            "condition": {
+              "lt": 20
+            },
+            "statement": "Vitamin D is below the deficiency threshold configured for this engine.",
+            "source": "Existing trigger in this cluster (vitamin_d < 20 ng/mL). Marked direct because the condition IS the measured quantity - 'Vitamin D Deficiency' is by definition a vitamin D below the deficiency threshold. This is definitional, not a new clinical claim. The threshold below is the one already configured for this cluster; nothing was invented."
+          }
         },
         {
           "name": "Osteomalacia/Rickets",
           "role": "primary",
           "weight": 0.58,
-          "dm_basis": "High-Risk Indicators: 'Low Vitamin D with low or low-normal Calcium/Phosphorus, especially with bone pain'; Related Markers/Tests: Vitamin D, Calcium, Phosphorus"
+          "dm_basis": "High-Risk Indicators: 'Low Vitamin D with low or low-normal Calcium/Phosphorus, especially with bone pain'; Related Markers/Tests: Vitamin D, Calcium, Phosphorus",
+          "requires_support": {
+            "parameters": [
+              "calcium",
+              "phosphorus",
+              "alkaline_phosphatase"
+            ],
+            "min_abnormal": 1,
+            "penalty_when_all_normal": 0.2,
+            "basis": "Disease Master High-Risk Indicators for Osteomalacia/Rickets: 'Low Vitamin D with low or low-normal Calcium/Phosphorus, especially with bone pain'. Low vitamin D alone is therefore NOT the stated criterion - the calcium / phosphate arm is part of it. When those markers plus ALP are measured and all normal, the stated pattern is absent and the signal is damped. When they are simply not measured, no penalty applies; coverage handles that.",
+            "weight_source": "The 0.2 damping floor is a rule-design value chosen so the pattern falls below the reporting threshold on fully-normal support. It is not a clinically validated coefficient."
+          }
         },
         {
           "name": "Osteoporosis",
@@ -1429,7 +1456,18 @@
           "name": "Sodium Imbalance (Hyponatremia/Hypernatremia)",
           "role": "primary",
           "weight": 0.88,
-          "dm_basis": "High-Risk Indicators: 'Sodium persistently outside 136-145 mmol/L, especially with associated symptoms or rapid change'; Related Markers/Tests: Sodium (Na+)"
+          "dm_basis": "High-Risk Indicators: 'Sodium persistently outside 136-145 mmol/L, especially with associated symptoms or rapid change'; Related Markers/Tests: Sodium (Na+)",
+          "direct_evidence": {
+            "parameter": "sodium",
+            "condition": {
+              "outside": [
+                136,
+                145
+              ]
+            },
+            "statement": "Sodium is outside the reference interval.",
+            "source": "Existing trigger in this cluster. This is the one numeric threshold the Disease Master itself states: 'Sodium persistently outside 136-145 mmol/L'."
+          }
         },
         {
           "name": "SIADH (Syndrome of Inappropriate Antidiuretic Hormone Secretion)",
@@ -1561,7 +1599,15 @@
           "name": "Potassium Imbalance (Hyperkalemia/Hypokalemia)",
           "role": "primary",
           "weight": 0.88,
-          "dm_basis": "High-Risk Indicators: 'Potassium significantly outside the reference range, particularly with ECG changes or use of potassium-affecting medications'; Related Markers/Tests: Potassium (K+)"
+          "dm_basis": "High-Risk Indicators: 'Potassium significantly outside the reference range, particularly with ECG changes or use of potassium-affecting medications'; Related Markers/Tests: Potassium (K+)",
+          "direct_evidence": {
+            "parameter": "potassium",
+            "condition": {
+              "abnormal": "any"
+            },
+            "statement": "Potassium is outside its reference range.",
+            "source": "Existing trigger in this cluster. Disease Master: 'Potassium significantly outside the reference range'. Marked direct because the condition IS the measured quantity - 'Vitamin D Deficiency' is by definition a vitamin D below the deficiency threshold. This is definitional, not a new clinical claim. The threshold below is the one already configured for this cluster; nothing was invented."
+          }
         },
         {
           "name": "Chronic Kidney Disease (CKD)",
@@ -1747,7 +1793,15 @@
           "name": "Zinc Deficiency",
           "role": "primary",
           "weight": 0.82,
-          "dm_basis": "High-Risk Indicators: 'Low zinc level with matching clinical signs, especially in malabsorption or poor dietary intake'; Related Markers/Tests: Zinc (urine)"
+          "dm_basis": "High-Risk Indicators: 'Low zinc level with matching clinical signs, especially in malabsorption or poor dietary intake'; Related Markers/Tests: Zinc (urine)",
+          "direct_evidence": {
+            "parameter": "zinc",
+            "condition": {
+              "abnormal": "low"
+            },
+            "statement": "Zinc is below its reference range.",
+            "source": "Existing trigger in this cluster. Marked direct because the condition IS the measured quantity - 'Vitamin D Deficiency' is by definition a vitamin D below the deficiency threshold. This is definitional, not a new clinical claim. The threshold below is the one already configured for this cluster; nothing was invented."
+          }
         },
         {
           "name": "Malabsorption Syndrome",

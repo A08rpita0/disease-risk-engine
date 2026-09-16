@@ -488,6 +488,186 @@ def test_evidence_level_never_contradicts_the_score():
                   "score %.2f labelled %s" % (x["score"], x["evidence_level"]))
 
 
+# ================= hard exclusion gates (veto logic) =================
+
+def _panel(sex="male", **tests):
+    return {"Gender": sex, "tests": [
+        {"test_name": k.replace("_", " "), "value": v[0],
+         **({"unit": v[1]} if len(v) > 1 and v[1] else {})}
+        for k, v in tests.items()]}
+
+
+def _names(r, key="disease_risks"):
+    return [x["name"] for x in r[key]]
+
+
+def test_A_hepatitis_b_vetoed_by_non_reactive_hbsag():
+    """A definitive negative outranks any number of non-specific secondary signals."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "HBsAg", "value": "Non-Reactive"},
+        {"test_name": "SGPT", "value": 96, "unit": "U/L"},
+        {"test_name": "SGOT", "value": 88, "unit": "U/L"},
+        {"test_name": "Lymphocytes", "value": 52, "unit": "%"}]})
+    check("A: Hepatitis B is not raised when HBsAg is non-reactive",
+          "Hepatitis B" not in _names(r), "got %s" % _names(r))
+    sup = [s for s in r["suppressed_findings"] if s.get("disease") == "Hepatitis B"]
+    check("A: the suppression is recorded with a reason", bool(sup))
+    if sup:
+        check("A: the reason names the hard exclusion",
+              "hard exclusion" in sup[0]["reason"].lower(), sup[0]["reason"])
+    leak = [x for x in r["recommendations"]
+            if "hepatitis b" in (x["text"] + x["because"] + " ".join(x["sources"])).lower()]
+    check("A: no recommendation is generated from the vetoed finding", not leak)
+
+
+def test_B_hepatitis_b_vetoed_by_numeric_coi_below_cutoff():
+    """0.80 COI is a NEGATIVE result. Before this fix it read as positive and raised
+    Hepatitis B - the titre fallback treated any number > 0 as reactive."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "HBsAg", "value": 0.80, "unit": "COI"},
+        {"test_name": "SGPT", "value": 96, "unit": "U/L"},
+        {"test_name": "SGOT", "value": 88, "unit": "U/L"}]})
+    p = param(r, "hbsag")
+    check("B: HBsAg 0.80 COI is read as negative, not positive",
+          p and p["status"] == "negative", "status=%s" % (p["status"] if p else None))
+    check("B: Hepatitis B is suppressed below the COI cut-off",
+          "Hepatitis B" not in _names(r), "got %s" % _names(r))
+
+
+def test_C_reactive_hbsag_is_not_vetoed():
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "HBsAg", "value": "Reactive"},
+        {"test_name": "SGPT", "value": 96, "unit": "U/L"},
+        {"test_name": "SGOT", "value": 88, "unit": "U/L"}]})
+    check("C: a reactive HBsAg is evaluated normally, not vetoed",
+          "Hepatitis B" in _names(r), "got %s" % _names(r))
+    check("C: nothing was suppressed", not r["suppressed_findings"])
+
+    # A value above the assay cut-off must behave the same way.
+    r2 = analyse({"Gender": "male", "tests": [
+        {"test_name": "HBsAg", "value": 5.2, "unit": "COI"},
+        {"test_name": "SGPT", "value": 96, "unit": "U/L"}]})
+    check("C: HBsAg 5.2 COI is read as positive",
+          "Hepatitis B" in _names(r2), "got %s" % _names(r2))
+
+
+def test_D_missing_hbsag_is_not_treated_as_negative():
+    """Missing must stay missing. Treating an absent test as negative would silently
+    suppress real findings in sparse reports."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "SGPT", "value": 96, "unit": "U/L"},
+        {"test_name": "SGOT", "value": 88, "unit": "U/L"},
+        {"test_name": "Lymphocytes", "value": 52, "unit": "%"}]})
+    check("D: a missing HBsAg triggers no veto", not r["suppressed_findings"],
+          "suppressed=%s" % [s.get("disease") for s in r["suppressed_findings"]])
+
+
+def test_veto_does_not_fire_on_equivocal_result():
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "HBsAg", "value": 0.95, "unit": "COI"},
+        {"test_name": "SGPT", "value": 96, "unit": "U/L"}]})
+    p = param(r, "hbsag")
+    check("an in-between COI is equivocal, not negative",
+          p and p["status"] == "indeterminate", "status=%s" % (p["status"] if p else None))
+    check("an equivocal result does not veto", not r["suppressed_findings"])
+
+
+def test_veto_needs_every_companion_marker_negative():
+    """dengue's gate lists NS1 AND IgM. A negative NS1 with IgM missing must NOT veto."""
+    r = analyse({"Gender": "male", "tests": [
+        {"test_name": "Dengue NS1 Antigen", "value": "Negative"},
+        {"test_name": "Platelet Count", "value": 46000, "unit": "/uL"}]})
+    check("a negative NS1 with IgM missing does not rule out dengue",
+          not [s for s in r["suppressed_findings"] if s.get("disease") == "Dengue Fever"])
+
+    r2 = analyse({"Gender": "male", "tests": [
+        {"test_name": "Dengue NS1 Antigen", "value": "Negative"},
+        {"test_name": "Dengue IgM", "value": "Negative"},
+        {"test_name": "Platelet Count", "value": 46000, "unit": "/uL"}]})
+    check("both serology arms negative does rule out dengue",
+          "Dengue Fever" not in _names(r2), "got %s" % _names(r2))
+
+
+# ================= direct findings vs pattern exploration =================
+
+def test_E_vitamin_d_is_a_direct_finding():
+    r = analyse(_panel(Vitamin_D=(14, "ng/mL")))
+    direct = _names(r, "direct_findings")
+    check("E: Vitamin D Deficiency is a DIRECT finding",
+          "Vitamin D Deficiency" in direct, "direct=%s" % direct)
+    check("E: it is not listed as a pattern",
+          "Vitamin D Deficiency" not in _names(r, "pattern_findings"))
+    hit = [x for x in r["direct_findings"] if x["name"] == "Vitamin D Deficiency"][0]
+    ev = hit["direct_evidence"]
+    check("E: the measured value is carried for display", ev and ev["value"] == 14,
+          "evidence=%s" % ev)
+    check("E: the reference range is carried for display",
+          ev.get("reference_high") is not None or ev.get("reference_low") is not None)
+
+
+def test_multi_marker_conditions_stay_patterns():
+    r = analyse(_panel(Triglycerides=(260, "mg/dL"), HDL_Cholesterol=(32, "mg/dL"),
+                       Fasting_Blood_Sugar=(118, "mg/dL"), HbA1c=(6.1, "%"),
+                       Systolic_BP=(146, "mmHg"), Diastolic_BP=(94, "mmHg")))
+    patterns = _names(r, "pattern_findings")
+    for name in ("Metabolic Syndrome", "Atherogenic Dyslipidemia"):
+        check("%s is a pattern, not a direct finding" % name,
+              name in patterns, "patterns=%s" % patterns[:6])
+
+
+# ================= confounder penalty =================
+
+def _osteo(r):
+    hit = [x for x in r["disease_risks"] if x["name"] == "Osteomalacia/Rickets"]
+    return hit[0]["score"] if hit else 0.0
+
+
+def test_F_osteomalacia_damped_when_support_measured_and_normal():
+    r = analyse(_panel(Vitamin_D=(14, "ng/mL"), Serum_Calcium=(9.4, "mg/dL"),
+                       Serum_Phosphorus=(3.5, "mg/dL"), Alkaline_Phosphatase=(80, "U/L")))
+    check("F: osteomalacia is damped when calcium, phosphate and ALP are all normal",
+          _osteo(r) < 0.2, "score %.2f" % _osteo(r))
+    check("F: vitamin D deficiency still appears as a direct finding",
+          "Vitamin D Deficiency" in _names(r, "direct_findings"))
+
+
+def test_G_osteomalacia_stronger_with_real_support():
+    r = analyse(_panel(Vitamin_D=(9, "ng/mL"), Serum_Calcium=(7.9, "mg/dL"),
+                       Serum_Phosphorus=(2.1, "mg/dL"), Alkaline_Phosphatase=(190, "U/L")))
+    supported = _osteo(r)
+    r_flat = analyse(_panel(Vitamin_D=(14, "ng/mL"), Serum_Calcium=(9.4, "mg/dL"),
+                            Serum_Phosphorus=(3.5, "mg/dL"), Alkaline_Phosphatase=(80, "U/L")))
+    check("G: supporting abnormalities give substantially stronger evidence",
+          supported > _osteo(r_flat) + 0.25,
+          "supported %.2f vs damped %.2f" % (supported, _osteo(r_flat)))
+
+
+def test_H_missing_support_is_not_treated_as_normal():
+    """The core distinction: absent evidence is not evidence of absence."""
+    r_missing = analyse(_panel(Vitamin_D=(14, "ng/mL")))
+    r_normal = analyse(_panel(Vitamin_D=(14, "ng/mL"), Serum_Calcium=(9.4, "mg/dL"),
+                              Serum_Phosphorus=(3.5, "mg/dL"),
+                              Alkaline_Phosphatase=(80, "U/L")))
+    check("H: missing support scores higher than support measured and normal",
+          _osteo(r_missing) > _osteo(r_normal),
+          "missing %.2f vs normal %.2f" % (_osteo(r_missing), _osteo(r_normal)))
+    check("H: with support missing the pattern is still reported, at low certainty",
+          _osteo(r_missing) > 0, "score %.2f" % _osteo(r_missing))
+
+
+def test_I_healthy_report_has_no_pattern_explosion():
+    r = analyse(_panel("female",
+                       Haemoglobin=(13.4, "g/dL"), TSH=(2.1, "uIU/mL"),
+                       Fasting_Blood_Sugar=(88, "mg/dL"), HbA1c=(5.2, "%"),
+                       Serum_Creatinine=(0.8, "mg/dL"), Triglycerides=(96, "mg/dL"),
+                       HDL_Cholesterol=(62, "mg/dL"), Serum_Calcium=(9.4, "mg/dL"),
+                       Vitamin_D=(42, "ng/mL"), Serum_Ferritin=(85, "ng/mL")))
+    check("I: a healthy panel raises nothing at all",
+          not r["disease_risks"], "got %s" % _names(r))
+    check("I: neither tier has entries",
+          not r["direct_findings"] and not r["pattern_findings"])
+
+
 def test_empty_and_garbage_input():
     r = analyse({"nothing": "here"})
     check("an empty payload is refused rather than analysed",

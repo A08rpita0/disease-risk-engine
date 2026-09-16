@@ -1,0 +1,120 @@
+{
+  "note": "Hard exclusion gates. A definitive negative result for a specific marker outranks any number of non-specific secondary signals, and suppresses the condition outright rather than merely lowering its score. Evaluated before cohort confidence and before disease scoring.",
+
+  "principles": [
+    "Only an EXPLICIT definitive negative activates a gate. A missing test never does - missing stays unknown and is handled by coverage, not by veto.",
+    "An equivocal or indeterminate result never activates a gate.",
+    "A positive result never activates a gate; the normal rules then evaluate as usual.",
+    "A gate suppresses the condition, any cohort listed, and any recommendation derived from them. The reason is recorded for audit."
+  ],
+
+  "rules": [
+    {
+      "id": "hepatitis_b_excluded_by_negative_hbsag",
+      "enabled": true,
+      "parameter": "hbsag",
+      "negative_when": {
+        "status_in": ["negative"],
+        "numeric_below": 0.90
+      },
+      "vetoes_diseases": ["Hepatitis B"],
+      "vetoes_cohorts": [],
+      "reason": "HBsAg explicitly non-reactive",
+      "user_message": "A negative HBsAg rules this out, so it is not reported even though other liver markers are abnormal.",
+      "basis": "HBsAg is the defining surface-antigen marker for Hepatitis B. The Disease Master row for Hepatitis B names 'Positive HBsAg with elevated liver enzymes' as its High-Risk Indicator, so an explicitly negative HBsAg removes the defining half of that criterion. Raised ALT/AST/lymphocytes are non-specific and must not substitute for it.",
+      "threshold_source": "The 0.90 COI cut-off was supplied by the project owner. It is NOT derived from the Disease Master, which contains no numeric thresholds."
+    },
+    {
+      "id": "hepatitis_c_excluded_by_negative_anti_hcv",
+      "enabled": true,
+      "parameter": "anti_hcv",
+      "negative_when": {
+        "status_in": ["negative"]
+      },
+      "vetoes_diseases": ["Hepatitis C"],
+      "vetoes_cohorts": [],
+      "reason": "Anti-HCV explicitly negative",
+      "user_message": "A negative Anti-HCV rules this out, so it is not reported even though other liver markers are abnormal.",
+      "basis": "Disease Master High-Risk Indicators for Hepatitis C: 'Positive Anti-HCV with elevated liver enzymes'. An explicit negative removes the defining half of that criterion.",
+      "threshold_source": "Status-only rule. No numeric cut-off is configured because none was supplied; add 'numeric_below' here if the assay's COI cut-off is known."
+    },
+    {
+      "id": "hepatitis_a_excluded_by_negative_igm",
+      "enabled": true,
+      "parameter": "anti_hav_igm",
+      "negative_when": {
+        "status_in": ["negative"]
+      },
+      "vetoes_diseases": ["Hepatitis A"],
+      "vetoes_cohorts": [],
+      "reason": "Anti-HAV IgM explicitly negative",
+      "user_message": "A negative Hepatitis A IgM rules out acute infection, so it is not reported even though other liver markers are abnormal.",
+      "basis": "Disease Master High-Risk Indicators for Hepatitis A: 'Markedly elevated SGOT/SGPT with jaundice and positive Anti-HAV IgM'. An explicit negative IgM removes the acute-infection criterion.",
+      "threshold_source": "Status-only rule; no numeric cut-off supplied."
+    },
+    {
+      "id": "hiv_excluded_by_negative_screen",
+      "enabled": true,
+      "parameter": "hiv_screen",
+      "negative_when": {
+        "status_in": ["negative"]
+      },
+      "vetoes_diseases": ["HIV", "HIV/AIDS - Immune Status Monitoring"],
+      "vetoes_cohorts": [],
+      "reason": "HIV screening test explicitly non-reactive",
+      "user_message": "A non-reactive HIV screen rules this out, so it is not reported even though immune markers are abnormal.",
+      "basis": "Disease Master High-Risk Indicators for HIV: 'Reactive HIV screening test confirmed by a second confirmatory method'. A non-reactive screen removes that criterion. The Immune Status Monitoring row applies only to 'a confirmed HIV-positive individual' by its own wording.",
+      "threshold_source": "Status-only rule; no numeric cut-off supplied."
+    },
+    {
+      "id": "syphilis_excluded_by_negative_vdrl",
+      "enabled": true,
+      "parameter": "vdrl_rpr",
+      "negative_when": {
+        "status_in": ["negative"]
+      },
+      "vetoes_diseases": ["Syphilis"],
+      "vetoes_cohorts": [],
+      "reason": "VDRL/RPR explicitly non-reactive",
+      "user_message": "A non-reactive VDRL/RPR rules this out, so it is not reported.",
+      "basis": "Disease Master High-Risk Indicators for Syphilis: 'Reactive VDRL/RPR confirmed by treponemal test'. A non-reactive screen removes that criterion.",
+      "threshold_source": "Status-only rule; no numeric cut-off supplied."
+    },
+    {
+      "id": "dengue_excluded_by_negative_ns1_and_igm",
+      "enabled": true,
+      "parameter": "dengue_ns1",
+      "also_negative": ["dengue_igm"],
+      "negative_when": {
+        "status_in": ["negative"]
+      },
+      "vetoes_diseases": ["Dengue Fever"],
+      "vetoes_cohorts": [],
+      "reason": "Dengue NS1 and IgM both explicitly negative",
+      "user_message": "Negative dengue NS1 and IgM rule this out, so it is not reported even though platelets are low.",
+      "basis": "Disease Master High-Risk Indicators for Dengue Fever: 'Positive NS1/IgM with falling platelet count and rising hematocrit'. With BOTH serological arms explicitly negative, a low platelet count alone must not raise dengue. 'also_negative' requires every listed marker to be explicitly negative before the gate activates, so a negative NS1 with IgM missing does NOT veto.",
+      "threshold_source": "Status-only rule; no numeric cut-off supplied."
+    },
+    {
+      "id": "malaria_excluded_by_negative_antigen",
+      "enabled": true,
+      "parameter": "malaria_antigen",
+      "negative_when": {
+        "status_in": ["negative"]
+      },
+      "vetoes_diseases": ["Malaria"],
+      "vetoes_cohorts": [],
+      "reason": "Malaria antigen/smear explicitly negative",
+      "user_message": "A negative malaria test rules this out, so it is not reported.",
+      "basis": "Disease Master High-Risk Indicators for Malaria: 'Positive blood smear/antigen test'. An explicit negative removes that criterion.",
+      "threshold_source": "Status-only rule; no numeric cut-off supplied."
+    }
+  ],
+
+  "not_implemented": [
+    {
+      "candidate": "Numeric COI cut-offs for Anti-HCV, Anti-HAV IgM, HIV, VDRL, dengue and malaria assays",
+      "why": "Only the HBsAg cut-off (0.90 COI) was supplied. Assay cut-offs vary by manufacturer and the Disease Master carries no numeric thresholds, so inventing them would be unsafe. Each rule above already accepts a 'numeric_below' key - add the value when the assay is known and it takes effect with no code change."
+    }
+  ]
+}

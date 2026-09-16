@@ -426,7 +426,15 @@
           "dm_basis": "High-Risk Indicators: 'Vitamin B12 level in the deficient range with macrocytic anemia on CBC'; Related Markers/Tests: Vitamin B12",
           "requires_any": [
             "vitamin_b12"
-          ]
+          ],
+          "direct_evidence": {
+            "parameter": "vitamin_b12",
+            "condition": {
+              "lt": 200
+            },
+            "statement": "Vitamin B12 is below the deficiency threshold configured for this engine.",
+            "source": "Existing trigger in this cluster (vitamin_b12 < 200 pg/mL). Marked direct because the condition IS the measured quantity - 'Vitamin D Deficiency' is by definition a vitamin D below the deficiency threshold. This is definitional, not a new clinical claim. The threshold below is the one already configured for this cluster; nothing was invented."
+          }
         },
         {
           "name": "Folate (B9) Deficiency",
@@ -435,7 +443,15 @@
           "dm_basis": "High-Risk Indicators: 'Low folate with macrocytic anemia on CBC'; Related Markers/Tests: Vitamin B9 (Folate)",
           "requires_any": [
             "folate"
-          ]
+          ],
+          "direct_evidence": {
+            "parameter": "folate",
+            "condition": {
+              "lt": 3.0
+            },
+            "statement": "Folate is below the deficiency threshold configured for this engine.",
+            "source": "Existing trigger in this cluster (folate < 3.0 ng/mL). Marked direct because the condition IS the measured quantity - 'Vitamin D Deficiency' is by definition a vitamin D below the deficiency threshold. This is definitional, not a new clinical claim. The threshold below is the one already configured for this cluster; nothing was invented."
+          }
         },
         {
           "name": "Peripheral Neuropathy",
@@ -1637,7 +1653,15 @@
           "name": "G6PD Deficiency",
           "role": "primary",
           "weight": 0.9,
-          "dm_basis": "High-Risk Indicators: 'Low quantitative G6PD enzyme level'; Related Markers/Tests: G6PD (Quantitative)"
+          "dm_basis": "High-Risk Indicators: 'Low quantitative G6PD enzyme level'; Related Markers/Tests: G6PD (Quantitative)",
+          "direct_evidence": {
+            "parameter": "g6pd",
+            "condition": {
+              "abnormal": "low"
+            },
+            "statement": "G6PD enzyme activity is below its reference range.",
+            "source": "Existing trigger in this cluster. The Disease Master states the whole criterion as 'Low quantitative G6PD enzyme level'. Marked direct because the condition IS the measured quantity - 'Vitamin D Deficiency' is by definition a vitamin D below the deficiency threshold. This is definitional, not a new clinical claim. The threshold below is the one already configured for this cluster; nothing was invented."
+          }
         }
       ]
     },

@@ -468,3 +468,57 @@ input:focus-visible, [tabindex]:focus-visible, .tab:focus-visible{
   table.tbl th, table.tbl td{border:1px solid #ccc;padding:3px 5px}
   table.tbl thead{display:table-header-group}
 }
+
+/* ============ direct findings vs pattern exploration ============ */
+.tier{margin-bottom:26px}
+.tier-h{
+  display:flex;align-items:center;gap:9px;margin:0 0 4px;
+  font-size:17px;font-weight:650;color:#16202b;
+}
+.tier-n{
+  font-size:11px;font-weight:700;color:#5b6672;background:#eef1f4;
+  border:1px solid #dde2e7;border-radius:10px;padding:1px 8px;
+}
+.tier-lead{margin:0 0 12px;font-size:12.5px;color:#5c6675;line-height:1.6;max-width:70ch}
+
+/* A direct finding is a measurement, so it is presented like one: value, unit,
+   reference. Deliberately visually distinct from a pattern hypothesis. */
+.direct{
+  background:#fff;border:1px solid #cfe0d4;border-left:4px solid #1a7f4b;
+  border-radius:6px;padding:12px 14px;margin-bottom:10px;
+}
+.direct-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.direct-head b{font-size:15px}
+.badge.b-direct{background:#eaf4ef;color:#1a6b47;border:1px solid #bcdac9}
+.direct-measure{
+  display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;
+  margin-top:9px;padding:9px 11px;background:#f7faf8;
+  border:1px solid #e3ede7;border-radius:5px;
+}
+.dm-param{font-size:12.5px;font-weight:600;color:#3f4a55}
+.dm-value{font-size:19px;font-weight:650;font-family:ui-monospace,Consolas,monospace;
+  font-variant-numeric:tabular-nums;color:#16202b}
+.dm-unit{font-size:11.5px;font-weight:500;color:#6b7683}
+.dm-ref{font-size:12px;color:#5c6675;margin-left:auto}
+.direct-read{margin-top:7px;font-size:13px;font-weight:600;color:#8c1d18}
+.direct-note{margin:7px 0 0;font-size:12px;line-height:1.6;color:#4a5560}
+.direct-note.muted{color:#6b7683;font-size:11.5px}
+
+/* Ruled out by a definitive negative */
+.ruled-out{
+  background:#fafbfc;border:1px solid #e2e6ea;border-left:3px solid #9fb0bf;
+  border-radius:5px;padding:9px 12px;margin-bottom:8px;
+}
+.ruled-out b{font-size:13.5px;color:#5c6675;text-decoration:line-through;
+  text-decoration-color:#c2ccd4}
+.ro-why{margin-top:4px;font-size:12.5px;color:#4a5560;line-height:1.55}
+.ro-tech{margin-top:5px;font-size:11px;color:#8a95a1;font-family:ui-monospace,Consolas,monospace}
+
+@media(max-width:520px){
+  .direct-measure{gap:8px}
+  .dm-ref{margin-left:0;flex-basis:100%}
+}
+@media print{
+  .direct, .ruled-out, .tier{break-inside:avoid}
+  .tier-h{page-break-after:avoid}
+}

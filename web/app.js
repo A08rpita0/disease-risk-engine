@@ -226,6 +226,11 @@
   function render() {
     var d = state.result;
     $("pillRisks").textContent = d.disease_risks.length;
+    var tabBtn = $("tabbtn-risks");
+    if (tabBtn && (d.direct_findings || []).length) {
+      tabBtn.title = (d.direct_findings.length) + " direct, " +
+        ((d.pattern_findings || []).length) + " pattern";
+    }
     $("pillCohorts").textContent = d.cohorts.length;
     $("pillParams").textContent = d.parameters.length;
     $("pillPlan").textContent = d.recommendations.length;
@@ -305,13 +310,19 @@
           : "All recognised parameters fall within their reference ranges.") +
         "</div>";
     } else {
+      var nd = (d.direct_findings || []).length, np = (d.pattern_findings || []).length;
       out += '<div class="card"><h2>What we found</h2>' +
-        '<p class="small muted" style="margin:-4px 0 12px">Strength of signal, not a ' +
-        "diagnosis. A strong signal means the pattern in your results closely matches a " +
-        "known one — it still has to be confirmed by a doctor.</p>";
+        '<p class="small muted" style="margin:-4px 0 12px">' +
+        (nd ? "<b>" + nd + "</b> direct finding" + (nd === 1 ? "" : "s") +
+              " (established by a single measurement) and " : "") +
+        "<b>" + np + "</b> pattern" + (np === 1 ? "" : "s") +
+        " (combinations worth exploring). Neither is a diagnosis — a strong signal means " +
+        "your results closely match a known pattern, not that you have the condition.</p>";
       d.disease_risks.slice(0, 5).forEach(function (r) {
-        out += '<div class="finding-row"><span class="badge b-' + r.evidence_level + '">' +
-          esc(LEVEL_WORD[r.evidence_level] || r.evidence_level) + "</span>" +
+        out += '<div class="finding-row"><span class="badge b-' +
+          (r.finding_type === "direct" ? "direct" : r.evidence_level) + '">' +
+          (r.finding_type === "direct" ? "Direct finding"
+            : esc(LEVEL_WORD[r.evidence_level] || r.evidence_level)) + "</span>" +
           "<b>" + esc(r.name) + "</b>" +
           '<div class="bar" role="img" aria-label="' +
             esc(LEVEL_WORD[r.evidence_level] || r.evidence_level) + ' signal">' +
@@ -336,18 +347,68 @@
       '</div><div class="l">' + label + "</div></div>";
   }
 
+  /* A direct finding is one measured value against a configured threshold. A pattern is
+     a multi-marker hypothesis. Rendering them in one list lets a hypothesis read like a
+     measured fact, so they get separate sections with different wording. */
+  function directCard(r) {
+    var e = r.direct_evidence || {};
+    var ref = "";
+    if (e.reference_low !== null && e.reference_low !== undefined &&
+        e.reference_high !== null && e.reference_high !== undefined) {
+      ref = num(e.reference_low) + " – " + num(e.reference_high);
+    } else if (e.reference_high !== null && e.reference_high !== undefined) {
+      ref = "up to " + num(e.reference_high);
+    } else if (e.reference_low !== null && e.reference_low !== undefined) {
+      ref = num(e.reference_low) + " or above";
+    }
+    return '<div class="direct">' +
+      '<div class="direct-head"><span class="badge b-direct">Direct finding</span>' +
+      "<b>" + esc(r.name) + "</b></div>" +
+      '<div class="direct-measure"><span class="dm-param">' + esc(e.parameter || "") + "</span>" +
+      '<span class="dm-value">' + num(e.value) +
+        (e.unit ? ' <span class="dm-unit">' + esc(e.unit) + "</span>" : "") + "</span>" +
+      (ref ? '<span class="dm-ref">Reference: ' + esc(ref) +
+             (e.unit ? " " + esc(e.unit) : "") + "</span>" : "") +
+      "</div>" +
+      (e.grade_label ? '<div class="direct-read">' + esc(e.grade_label) + "</div>" : "") +
+      (e.statement ? '<p class="direct-note">' + esc(e.statement) + "</p>" : "") +
+      '<p class="direct-note muted">This is what the measurement itself shows. It is not a ' +
+      "diagnosis — your doctor interprets it alongside your symptoms and history.</p>" +
+      "</div>";
+  }
+
   function renderRisks(d) {
-    if (!d.disease_risks.length) {
+    var direct = d.direct_findings || [];
+    var patterns = d.pattern_findings || d.disease_risks || [];
+
+    if (!direct.length && !patterns.length) {
       $("tab-risks").innerHTML = '<div class="empty"><div class="big">✓</div>' +
         "No conditions reached the reporting threshold.</div>";
       return;
     }
-    var out = '<p class="small muted" style="margin:0 0 14px">' +
-      "Click any condition to see the patterns that " +
-      "triggered it, the clinical reference behind it, the parameters " +
-      "involved, and what is missing.</p>";
 
-    d.disease_risks.forEach(function (r, i) {
+    var out = "";
+
+    if (direct.length) {
+      out += '<section class="tier"><h2 class="tier-h">Direct findings' +
+        '<span class="tier-n">' + direct.length + "</span></h2>" +
+        '<p class="tier-lead">Each of these is established by a single measurement ' +
+        "against its reference range — not inferred from a combination.</p>";
+      direct.forEach(function (r) { out += directCard(r); });
+      out += "</section>";
+    }
+
+    out += '<section class="tier"><h2 class="tier-h">Pattern exploration / risk signals' +
+      '<span class="tier-n">' + patterns.length + "</span></h2>" +
+      '<p class="tier-lead">These are <b>combinations</b> of results that resemble a known ' +
+      "pattern. They are possible associations to explore with your doctor, not findings " +
+      "in their own right. Click any one for the reasoning behind it.</p>";
+
+    if (!patterns.length) {
+      out += '<div class="empty small">No multi-marker patterns were detected.</div>';
+    }
+
+    patterns.forEach(function (r, i) {
       out += '<div class="risk lv-' + r.evidence_level + '" data-i="' + i + '">';
       out += '<div class="risk-head"><div><div class="risk-title">' + esc(r.name) + "</div>";
       out += '<div class="risk-meta">' +
@@ -416,6 +477,25 @@
 
       out += "</div></div>";
     });
+    out += "</section>";
+
+    // Anything a definitive negative ruled out. Shown plainly so the user can see the
+    // test was read and acted on, without the engine's internal wording.
+    var vetoed = (d.suppressed_findings || []).filter(function (s) { return s.disease; });
+    if (vetoed.length) {
+      out += '<section class="tier"><h2 class="tier-h">Ruled out by a specific test' +
+        '<span class="tier-n">' + vetoed.length + "</span></h2>" +
+        '<p class="tier-lead">A definitive test came back negative, so these were not ' +
+        "reported even though some related results are abnormal.</p>";
+      vetoed.forEach(function (s) {
+        out += '<div class="ruled-out"><b>' + esc(s.disease) + "</b>" +
+          '<div class="ro-why">' + esc(s.user_message || s.reason) + "</div>" +
+          '<div class="ro-tech tech-only">' + esc(s.reason) + " (" +
+            esc(s.parameter_name) + " " + esc(s.observed) + ")</div></div>";
+      });
+      out += "</section>";
+    }
+
     $("tab-risks").innerHTML = out;
 
     $("tab-risks").addEventListener("click", function (e) {

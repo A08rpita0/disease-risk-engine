@@ -22,6 +22,8 @@ as limited evidence with the missing parameters named, which is the honest answe
 """
 from __future__ import annotations
 
+from .cohorts import evaluate_condition
+from .gatekeeper import Gatekeeper
 from .models import DiseaseRisk, RiskContribution
 
 ROLE_FACTOR = {
@@ -67,7 +69,8 @@ class RiskEngine:
     def __init__(self, config):
         self.cfg = config
 
-    def score(self, patient, cohort_hits):
+    def score(self, patient, cohort_hits, vetoes=None):
+        vetoes = vetoes or []
         by_cohort = {h.cohort_id: h for h in cohort_hits}
         pooled = {}
 
@@ -76,16 +79,109 @@ class RiskEngine:
             for link in cohort.get("diseases", []):
                 pooled.setdefault(link["name"], []).append((hit, link))
 
-        risks = []
+        risks, suppressed = [], []
         for disease_name, entries in pooled.items():
+            # A hard exclusion outranks every accumulated signal. The condition is
+            # removed, not scored down, so it contributes nothing anywhere downstream.
+            veto = Gatekeeper.disease_vetoed(disease_name, vetoes)
+            if veto is not None:
+                suppressed.append({"disease": disease_name,
+                                   "would_have_fired_from": [h.name for h, _ in entries],
+                                   **veto.audit()})
+                continue
             risk = self._score_one(disease_name, entries, patient, by_cohort)
             if risk is not None:
                 risks.append(risk)
 
         risks.sort(key=lambda r: (-r.score, -URGENCY_ORDER.get(r.urgency_tier, 0), r.name))
-        return risks
+        return risks, suppressed
 
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _support_penalty(link, patient):
+        """Dampen a multi-factor condition when the support it expects was MEASURED and
+        came back NORMAL.
+
+        The distinction that matters:
+            supporting marker abnormal -> positive evidence (handled by the cohort)
+            supporting marker normal   -> evidence AGAINST; penalise here
+            supporting marker missing  -> unknown; NO penalty, coverage handles it
+
+        Low vitamin D with calcium, phosphate and ALP all normal is a different record
+        from low vitamin D with those three never ordered. The first argues against
+        osteomalacia; the second simply does not say.
+        """
+        spec = link.get("requires_support")
+        if not spec:
+            return 1.0, ""
+
+        params = spec.get("parameters", [])
+        measured_normal, measured_abnormal, absent = [], [], []
+        for pid in params:
+            p = patient.get(pid)
+            if p is None:
+                absent.append(pid)
+            elif p.abnormal:
+                measured_abnormal.append(pid)
+            else:
+                measured_normal.append(pid)
+
+        if len(measured_abnormal) >= spec.get("min_abnormal", 1):
+            return 1.0, ""                      # the support it wanted is present
+
+        if not measured_normal:
+            # Nothing was measured, so there is no evidence against - only absence of
+            # evidence. Coverage already lowers certainty; do not punish twice.
+            return 1.0, ""
+
+        # Scale with how much of the expected support was checked and came back clear.
+        floor = spec.get("penalty_when_all_normal", 0.25)
+        fraction_clear = len(measured_normal) / float(len(params) or 1)
+        penalty = 1.0 - (1.0 - floor) * fraction_clear
+        names = [patient.get(p).name for p in measured_normal]
+        note = ("expected supporting markers were measured and normal (%s), which argues "
+                "against this pattern" % ", ".join(names))
+        if absent:
+            note += "; %d other expected marker(s) were not measured" % len(absent)
+        return max(floor, penalty), note
+
+    def _classify_finding(self, disease, contributions, patient, by_cohort):
+        """Direct finding, or multi-marker pattern?
+
+        A finding is DIRECT only when configuration says a single named parameter, at a
+        named threshold, establishes it on its own - and that parameter actually meets
+        the threshold in this record. Everything else is a pattern: a hypothesis built
+        from a combination, which must not be presented like a measured fact.
+        """
+        for c in contributions:
+            cohort = self.cfg.cohort_by_id[c.cohort_id]
+            for link in cohort.get("diseases", []):
+                if link["name"] != disease["name"]:
+                    continue
+                spec = link.get("direct_evidence")
+                if not spec:
+                    continue
+                p = patient.get(spec["parameter"])
+                if p is None:
+                    continue
+                ok, observed = evaluate_condition(p, spec["condition"])
+                if not ok:
+                    continue
+                return "direct", {
+                    "parameter": p.name,
+                    "parameter_id": p.parameter_id,
+                    "value": p.value if p.value is not None else p.status,
+                    "unit": p.unit,
+                    "reference_low": p.reference_low,
+                    "reference_high": p.reference_high,
+                    "reference_source": p.reference_source,
+                    "grade_label": p.grade_label,
+                    "observed": observed,
+                    "statement": spec.get("statement", ""),
+                    "threshold_source": spec.get("source", ""),
+                }
+        return "pattern", None
 
     @staticmethod
     def _fired_parameters(hit):
@@ -125,10 +221,12 @@ class RiskEngine:
                 best_by_cohort[hit.cohort_id] = (value, hit, link, role)
 
         for value, hit, link, role in best_by_cohort.values():
+            penalty, note = self._support_penalty(link, patient)
             contributions.append(RiskContribution(
                 cohort_id=hit.cohort_id, cohort_name=hit.name, role=role,
                 link_weight=link["weight"], cohort_confidence=hit.confidence,
-                contribution=round(value, 4), dm_basis=link.get("dm_basis", "")))
+                contribution=round(value * penalty, 4), dm_basis=link.get("dm_basis", ""),
+                support_penalty=round(penalty, 4), support_note=note))
 
         contributions.sort(key=lambda c: c.contribution, reverse=True)
 
@@ -188,6 +286,8 @@ class RiskEngine:
             confirmatory_tests=disease["fields"].get("Confirmatory/Diagnostic Tests"),
             dm_fields=disease["fields"], review_status=disease.get("review_status"),
             icd10=disease.get("icd10"))
+        risk.finding_type, risk.direct_evidence = self._classify_finding(
+            disease, contributions, patient, by_cohort)
         risk.explanation = self._explain(risk, disease, coverage, observed)
         return risk
 

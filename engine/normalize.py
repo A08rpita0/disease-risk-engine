@@ -65,7 +65,7 @@ class Normalizer:
 
     # ---------- qualitative ----------
 
-    def _qual_status(self, raw_value, raw_flag=None):
+    def _qual_status(self, raw_value, raw_flag=None, interpretation=None):
         for candidate in (raw_value, raw_flag):
             if candidate is None:
                 continue
@@ -90,11 +90,32 @@ class Normalizer:
             for word in self.cfg.qual_negative:
                 if word and re.search(r"\b%s\b" % re.escape(word), k):
                     return "negative"
-            # A titre or numeric result on a qualitative test: treat >0 as positive
+            # A numeric result on a qualitative test.
             num, _ = parse_numeric(candidate)
             if num is not None:
+                if interpretation:
+                    return self._numeric_status(num, interpretation)
+                # Legacy fallback for titres ('1:64'), where any reactive dilution is
+                # positive. NOT safe for a signal-to-cutoff index such as COI, where
+                # 0.80 is negative - such parameters must declare
+                # `numeric_interpretation` in config/parameters.json.
                 return "positive" if num > 0 else "negative"
         return None
+
+    @staticmethod
+    def _numeric_status(num, spec):
+        """Read a numeric serology result using the parameter's declared convention."""
+        neg = spec.get("negative_below")
+        pos = spec.get("positive_at_or_above")
+        if neg is not None and num < neg:
+            return "negative"
+        if pos is not None and num >= pos:
+            return "positive"
+        if neg is not None and pos is not None and neg <= num < pos:
+            return "indeterminate"      # the assay's grey zone
+        if pos is not None:
+            return "negative"
+        return "positive" if num > 0 else "negative"
 
     # ---------- units ----------
 
@@ -253,7 +274,8 @@ class Normalizer:
             kind=kind, raw=obs)
 
         if kind == "qualitative":
-            status = self._qual_status(obs.raw_value, obs.raw_flag)
+            status = self._qual_status(obs.raw_value, obs.raw_flag,
+                                       pdef.get('numeric_interpretation'))
             if status is None:
                 return None
             np_.status = status
@@ -286,7 +308,8 @@ class Normalizer:
         value, qualifier = parse_numeric(obs.raw_value)
         if value is None:
             # a numeric parameter reported qualitatively, e.g. Urine Protein 'Trace'
-            status = self._qual_status(obs.raw_value, obs.raw_flag)
+            status = self._qual_status(obs.raw_value, obs.raw_flag,
+                                       pdef.get('numeric_interpretation'))
             if status is None:
                 return None
             np_.kind = "qualitative"
