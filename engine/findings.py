@@ -21,7 +21,11 @@ result with no link is still listed, with a neutral statement and no diagnosis.
 """
 from __future__ import annotations
 
+import re
+
 from .cohorts import _v
+from .extract import parse_reference_range
+from .normalize import parse_numeric
 
 
 BASIS_ORDER = {"lab_range": 0, "decision_threshold": 1, "derived": 2}
@@ -76,8 +80,12 @@ def _statement(p, in_range_bands):
         return "%s is %s the laboratory's reference interval (%s%s)." % (
             p.name, word, ref, unit)
     if p.graded_by == "decision_band":
-        return ("%s is in the \"%s\" band of the guideline thresholds configured here. The "
-                "interval printed on the report would not flag it." % (p.name, p.grade_label))
+        at_limit = p.value is not None and p.value in (p.reference_low, p.reference_high)
+        return ("%s is in the \"%s\" band of the guideline thresholds configured here. %s"
+                % (p.name, p.grade_label,
+                   "The value is exactly at a limit of the interval printed on the report (%s)."
+                   % ("; ".join((p.raw.raw_range or "").split("\n")).strip() if p.raw else ref)
+                   if at_limit else "The interval printed on the report would not flag it."))
     # Not taken from the report is not the same as not printed on it. hs-CRP printed as
     # "Low: < 1.0 / Average: 1.0-3.0 / High: > 3.0" gives risk bands rather than one normal
     # interval, so the guideline band decides - and saying the report "gave no reference
@@ -217,5 +225,82 @@ def build_lab_noted_findings(patient):
                 "severity_score": 0.0, "linked": [], "standalone": True, "in_lab_range": True,
                 "derived": False,
             })
+    for p in patient.parameters.values():
+        if p.kind == "qualitative" and p.status == "indeterminate" and not p.abnormal and p.raw:
+            out.append(_noted(p.parameter_id, p.name, p.profile, p.kind, p.raw.raw_value, None,
+                              (p.raw.raw_range or "").strip(), p.raw.raw_flag, p.grade_label,
+                              "equivocal",
+                              "%s was reported as \"%s\": neither positive nor negative, so it "
+                              "neither confirms nor rules anything out here."
+                              % (p.name, str(p.raw.raw_value).strip())))
+
+    # A reading outside its own range that lost to another record of the same parameter.
+    for c in getattr(patient, "conflicting_readings", []):
+        kept, other = c["kept"], c["other"]
+        out.append(_noted(
+            other.parameter_id, other.name, other.profile, other.kind, other.value, other.unit,
+            (other.raw.raw_range or "").strip() if other.raw else "", other.raw.raw_flag if other.raw else None,
+            other.grade_label, "conflicting_reading",
+            "%s appears more than once with different results. The table shows %s%s; another "
+            "reading on the report, %s%s (%s), is outside its range. Check which is correct "
+            "on the original report." % (
+                other.name, _fmt_num(kept.value if kept.value is not None else kept.status),
+                (" " + kept.unit) if kept.unit and kept.value is not None else "",
+                _fmt_num(other.value if other.value is not None else other.status),
+                (" " + other.unit) if other.unit and other.value is not None else "",
+                other.grade_label)))
+
+    # A test this dictionary does not know, which the report itself marks.
+    for o in getattr(patient, "unmapped", []):
+        if getattr(o, "shape", "result") != "result":
+            continue
+        why = _marked_unrecognised(o)
+        if why:
+            out.append(_noted(
+                None, str(o.raw_name).strip(), None, "unrecognised", o.raw_value, o.raw_unit,
+                (o.raw_range or "").strip(), o.raw_flag, None, "not_in_dictionary",
+                "\"%s\" is not a test this analysis recognises, so it is not interpreted here - "
+                "but %s. Show it to your doctor." % (str(o.raw_name).strip(), why)))
+
     out.sort(key=lambda f: (f["finding_basis"], f["name"]))
     return out
+
+
+# the noted kinds that stand for something a reader must not miss: each gets a plan step
+NOTED_NEEDS_STEP = ("equivocal", "conflicting_reading", "not_in_dictionary")
+
+_POSITIVE_TEXT = re.compile(r"\b(?:reactive|positive|detected|present|seen)\b", re.I)
+_NEGATED_TEXT = re.compile(r"\b(?:non|not|no|negative|absent|nil|none)\b", re.I)
+
+
+def _marked_unrecognised(o):
+    """Why an unrecognised result is marked by the report itself, or None."""
+    flag = _norm_text(o.raw_flag)
+    if flag in _LAB_FLAG_WORDS:
+        return "the laboratory flagged it \"%s\"" % str(o.raw_flag).strip()
+    text = str(o.raw_value or "")
+    if _POSITIVE_TEXT.search(text) and not _NEGATED_TEXT.search(text):
+        return "the report gives it as \"%s\"" % text.strip()
+    num, qualifier = parse_numeric(o.raw_value)
+    if num is not None and qualifier is None and o.raw_range:
+        low, high = parse_reference_range(o.raw_range)
+        if (high is not None and num > high) or (low is not None and num < low):
+            return "the value %s is outside the interval printed beside it (%s)" % (
+                str(o.raw_value).strip(), str(o.raw_range).strip())
+    return None
+
+
+def _fmt_num(v):
+    if isinstance(v, float):
+        return ("%.4f" % v).rstrip("0").rstrip(".")
+    return str(v)
+
+
+def _noted(pid, name, profile, kind, value, unit, printed, flag, grade_label, basis, statement):
+    return {
+        "parameter_id": pid, "name": name, "profile": profile, "kind": kind, "value": value,
+        "unit": unit, "reference_text": printed, "lab_flag": flag, "grade_label": grade_label,
+        "finding_basis": basis, "statement": statement, "abnormal": False,
+        "severity_score": 0.0, "linked": [], "standalone": True, "in_lab_range": True,
+        "derived": False,
+    }

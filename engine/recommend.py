@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 
+from .findings import NOTED_NEEDS_STEP, build_lab_noted_findings
 from .models import Recommendation
 
 PRIORITY_ORDER = {"urgent": 0, "high": 1, "medium": 2, "low": 3}
@@ -207,8 +208,25 @@ class RecommendationEngine:
                 trace="record_context", trace_detail="sex",
                 sources=["record completeness"]))
 
+        # ---- 6b. results the report marks that nothing above interprets ----
+        # An equivocal screen, an abnormal reading that lost to a duplicate, a test this
+        # dictionary does not know but the report flags: none is graded abnormal here, and
+        # without this step a report whose only notable result was one of them ended with
+        # "No abnormal patterns were detected".
+        marked = [f for f in build_lab_noted_findings(patient)
+                  if f["finding_basis"] in NOTED_NEEDS_STEP]
+        if marked:
+            add(Recommendation(
+                category="Consultation", priority="medium",
+                text="Some results on this report could not be assessed here but need a doctor's "
+                     "attention: %s. Take the original report to your doctor."
+                     % "; ".join('%s (%s)' % (f["name"], str(f["value"]).strip()) for f in marked[:8]),
+                because="the report marks results this analysis cannot grade",
+                trace="lab_noted", trace_detail=",".join(f["finding_basis"] for f in marked[:8]),
+                sources=[f["name"] for f in marked[:8]]))
+
         # ---- 7. baseline ----
-        if not any(p.abnormal for p in patient.parameters.values()):
+        if not any(p.abnormal for p in patient.parameters.values()) and not marked:
             for spec in self.lib.get("no_abnormality", []):
                 add(Recommendation(category=spec["category"], priority=spec["priority"],
                                    text=spec["text"], because="all your results were in range",

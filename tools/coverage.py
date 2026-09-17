@@ -32,6 +32,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from engine.config import get_config          # noqa: E402
 
 
+def resolve_marker(cfg, token):
+    """A Disease Master marker phrase -> parameter id. In marker text a slash lists
+    alternatives ("HbA1c/fasting glucose"), unlike a report row name where it can denote
+    a ratio, so each side is tried in turn when the whole phrase does not resolve."""
+    pid = cfg.resolve_alias(token)
+    if pid is None and "/" in token:
+        for part in token.split("/"):
+            part = part.strip()
+            pid = cfg.resolve_alias(part) if len(part) >= 3 else None
+            if pid:
+                break
+    return pid
+
+
 def load_marker_map(cfg):
     path = Path(cfg.dir) / "marker_map.json"
     if not path.exists():
@@ -83,7 +97,7 @@ def run(cfg=None):
                 fragments += 1
             elif key in no_assay:
                 declared_missing += 1
-            elif cfg.resolve_alias(token) is not None:
+            elif resolve_marker(cfg, token) is not None:
                 direct += 1
             elif key in umbrella:
                 via_umbrella += 1
@@ -106,7 +120,7 @@ def run(cfg=None):
         key = token.lower().strip()
         if key in not_markers or key in no_assay:
             return set()
-        pid = cfg.resolve_alias(token)
+        pid = resolve_marker(cfg, token)
         if pid:
             return {pid}
         return set(umbrella.get(key, []))

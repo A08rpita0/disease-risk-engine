@@ -40,6 +40,11 @@ _PENDING_VALUE = re.compile(
     r"^\s*(?:(?:test\s+)?results?\s+|reports?\s+)?"
     r"(?:pending|awaited|to\s+follow|will\s+follow|in\s+process|under\s+process|"
     r"not\s+(?:yet\s+)?reported)\s*\.?\s*$", re.I)
+_DATE_OR_TIME = re.compile(r"^\s*(?:\d{1,4}[/.\-]\d{1,2}[/.\-]\d{1,4}|\d{1,2}:\d{2}(?::\d{2})?)"
+                           r"(?:\s*(?:hrs?|am|pm|\d{1,2}:\d{2}(?::\d{2})?(?:\s*(?:hrs?|am|pm))?))?\s*$", re.I)
+_GARBLED_NUMBER = re.compile(r"^[-+]?\d[\d.,]*(?:(?![xX]\s*10)[A-Za-z]+\d|\.\.)")
+_FLOAT = re.compile(r"[-+]?\d+(?:\.\d+)?[eE][-+]?\d+")
+_DECIMAL_COMMA = re.compile(r"[-+]?\d+,\d{1,2}")
 VALUE_NUM = re.compile(r"[-+]?\d[\d,]*\.?\d*(?:[eE][-+]?\d+)?")
 
 
@@ -54,11 +59,24 @@ def parse_numeric(value):
     s = str(value).strip()
     if not s:
         return None, None
+    # A date or a clock time in a result cell is not a result: "20/08/2025" read as 20,
+    # "2025-08-20" as 2025, "12:30" as 12.
+    if _DATE_OR_TIME.match(s):
+        return None, None
     qual = None
     if s.startswith(("<", "≤")):
         qual = "less_than"
     elif s.startswith((">", "≥")):
         qual = "greater_than"
+    token = s.lstrip("<>≤≥=~ ").split()[0] if s.lstrip("<>≤≥=~ ") else ""
+    # A garbled number is not a smaller number: "1O5" (letter O) was read as 1 and graded
+    # severe hypoglycaemia, "14..5" as 14. Scientific notation ("1e9") is a number.
+    if _GARBLED_NUMBER.match(token) and not _FLOAT.fullmatch(token):
+        return None, qual
+    # "13,5": a comma followed by one or two final digits is a decimal comma - no
+    # thousands grouping (Western "13,500" or Indian "2,50,000") ends in fewer than three.
+    if _DECIMAL_COMMA.fullmatch(token):
+        s = s.replace(token, token.replace(",", "."), 1)
     m = VALUE_NUM.search(s.replace(",", ""))
     if not m:
         return None, qual
@@ -205,6 +223,45 @@ class Normalizer:
                 % (pdef["name"], self.IMPLAUSIBLE_MULTIPLE, raw_unit or "no unit given"))
 
     # ---------- units ----------
+
+    def _unit_suspect(self, pdef, sex, raw_number, converted, obs):
+        """A reason when the printed unit cannot be what the numbers are in, else None.
+
+        "TSH 2.10 mIU/mL, 0.40 - 4.00" is a misprint of mIU/L: converting it faithfully
+        made a TSH of 2100 uIU/mL, fired hypothyroid patterns and called the report's own
+        interval 400 - 4000. With no unit at all, a platelet count of 150 against a printed
+        "150 - 450" was taken as 150 /uL - thrombocytopenia. The test is scale, judged
+        from the laboratory's own numbers against the configured interval with the same
+        50x margin the magnitude warning uses; no clinical threshold is involved. The
+        result is then compared only with the interval printed beside it, in its own unit.
+        """
+        if pdef.get("type") != "numeric":
+            return None
+        _, dhigh, _ = self._reference(pdef, sex, None)
+        if not dhigh or dhigh <= 0:
+            return None
+        m = self.IMPLAUSIBLE_MULTIPLE
+
+        def off_scale(x):
+            return x is not None and x > 0 and (x > dhigh * m or x < dhigh / m)
+
+        _, rhigh = parse_reference_range(obs.raw_range) if obs.raw_range else (None, None)
+        if obs.raw_unit and converted != raw_number:
+            if rhigh:
+                converted_top = self._convert(pdef, rhigh, obs.raw_unit)[0]
+                suspect = off_scale(converted_top) and not off_scale(rhigh)
+            else:
+                suspect = converted > dhigh * m and not off_scale(raw_number)
+            if suspect:
+                return ("the unit printed ('%s') would make this %.4g %s, which does not fit "
+                        "the numbers on the report - the unit is probably misprinted, so the "
+                        "result is compared only with the report's own interval"
+                        % (obs.raw_unit, converted, pdef.get("unit")))
+        elif not obs.raw_unit and rhigh and off_scale(rhigh):
+            return ("no unit is printed and the report's interval is on a different scale "
+                    "from %s in %s, so the result is compared only with the report's own "
+                    "interval" % (pdef["name"], pdef.get("unit")))
+        return None
 
     def _convert(self, pdef, value, raw_unit):
         """Convert into the parameter's canonical unit. Returns (value, note)."""
@@ -369,8 +426,15 @@ class Normalizer:
                         note = ("this value sits outside the reference interval on the report "
                                 "but inside the clinical decision band used for grading")
                     elif abnormal and not range_abnormal and ref_source == "report":
-                        note = ("the reference interval on the report would call this normal; it is "
-                                "graded here against the standard clinical decision band")
+                        if value == high or value == low:
+                            # "<5.7: Non-diabetes" with a result of 5.7: a value AT the
+                            # printed limit is not one the report calls normal.
+                            note = ("this value is exactly at the limit of the interval printed "
+                                    "on the report; it is graded here against the standard "
+                                    "clinical decision band")
+                        else:
+                            note = ("the reference interval on the report would call this normal; "
+                                    "it is graded here against the standard clinical decision band")
                     basis = "decision_band" if (abnormal and not range_abnormal) else "range"
                     return abnormal, direction, grade, label, note, basis
 
@@ -416,6 +480,9 @@ class Normalizer:
 
         candidates = {}
         for obs in observations:
+            if obs.shape == "metadata":     # a date or identifier field: never a result
+                patient.unmapped.append(obs)
+                continue
             pid = self._resolve(obs)
             # "RESULT PENDING" is not a value. Unhandled, it vanished without trace when a
             # later page carried the final result, was listed as an unrecognised test when
@@ -432,8 +499,21 @@ class Normalizer:
 
         for pid, group in candidates.items():
             pdef = self.cfg.param_by_id[pid]
-            built = [self._build_one(pdef, o, sex) for o in group]
-            built = [b for b in built if b is not None]
+            built = []
+            for o in group:
+                errors_before = len(self._data_errors)
+                b = self._build_one(pdef, o, sex)
+                if b is not None:
+                    built.append(b)
+                elif len(self._data_errors) == errors_before and o.shape == "result":
+                    # A recognised test whose result cannot be read ("Sample hemolysed",
+                    # "1O5", "--") is said so. It used to vanish silently whenever another
+                    # record of the same parameter existed - an unreadable HIV-2 result
+                    # disappeared behind a readable HIV-1 one.
+                    self._data_errors.append({
+                        "parameter": pdef["name"], "reported": o.raw_value, "unit": o.raw_unit,
+                        "reason": "the reported result could not be read as a value for this "
+                                  "test; it was not used"})
             if not built:
                 for o in group:
                     patient.unmapped.append(o)
@@ -606,6 +686,11 @@ class Normalizer:
         else:
             value, qualifier = parse_numeric(obs.raw_value)
         if value is None:
+            # A bare dash is "nil" on a urine dipstick but only a placeholder anywhere
+            # else: a sodium of "--" was stored as a NEGATIVE sodium.
+            if (re.fullmatch(r"\s*[-–—]+\s*", str(obs.raw_value or ""))
+                    and pdef.get("profile") != "Urinalysis"):
+                return None
             # a numeric parameter reported qualitatively, e.g. Urine Protein 'Trace'
             status = self._qual_status(obs.raw_value, obs.raw_flag,
                                        pdef.get('numeric_interpretation'))
@@ -621,7 +706,11 @@ class Normalizer:
             return np_
 
         unit_known = self._unit_known(pdef, obs.raw_unit)
+        raw_number = value
         value, conv_note = self._convert(pdef, value, obs.raw_unit)
+        unit_suspect = self._unit_suspect(pdef, sex, raw_number, value, obs) if unit_known else None
+        if unit_suspect:
+            unit_known, value, conv_note = False, raw_number, unit_suspect
 
         # Reject results that are impossible rather than merely extreme. A haemoglobin
         # of -5 is a typo or a parse error, not a critical finding, and reporting it as
@@ -644,7 +733,7 @@ class Normalizer:
         np_.unit = pdef.get("unit") if unit_known else obs.raw_unit
         np_.interpretable = unit_known
         np_.conversion_note = conv_note
-        if conv_note and "not recognised" in conv_note:
+        if conv_note and ("not recognised" in conv_note or unit_suspect):
             np_.notes.append(conv_note)
 
         if self._not_interpreted_for_sex(pdef, sex, np_):
@@ -664,7 +753,7 @@ class Normalizer:
         # same conversion the value just had. Without this a platelet count of 233
         # 10^3/uL became 233,000 /uL and was then compared against the report's own
         # "140 - 440", flagging a perfectly normal count as high.
-        if src == "report" and obs.raw_unit:
+        if src == "report" and obs.raw_unit and not unit_suspect:
             if low is not None:
                 low = self._convert(pdef, low, obs.raw_unit)[0]
             if high is not None:
@@ -740,9 +829,13 @@ class Normalizer:
         # HIV-1. Repeats of the same test name keep the completeness order above.
         names = {re.sub(r"[^a-z0-9]", "", (b.raw.raw_name if b.raw else "").lower()) for b in built}
         if len(names) > 1 and all(b.value is None and b.status is not None for b in built):
-            positive = [b for b in ordered if b.abnormal]
-            if positive:
-                ordered = positive[:1] + [b for b in ordered if b is not positive[0]]
+            # an equivocal component also keeps the screen from reading negative - and so
+            # from vetoing the condition as excluded
+            for wanted in (lambda b: b.abnormal, lambda b: b.status == "indeterminate"):
+                hit = [b for b in ordered if wanted(b)]
+                if hit:
+                    ordered = hit[:1] + [b for b in ordered if b is not hit[0]]
+                    break
         chosen, dropped = ordered[0], ordered[1:]
 
         values = {b.value for b in built if b.value is not None}
@@ -757,15 +850,17 @@ class Normalizer:
             "kept": _describe(chosen),
             "dropped": [_describe(b) for b in dropped],
             "conflicting_values": conflict,
-            "reason": "kept the reactive/abnormal result: separate tests combine into one screen"
-                      if (conflict and chosen.abnormal and len(names) > 1 and chosen.value is None) else
+            "reason": "kept the reactive/equivocal result: separate tests combine into one screen"
+                      if (conflict and (chosen.abnormal or chosen.status == "indeterminate")
+                          and len(names) > 1 and chosen.value is None) else
                       ("kept the record with a report-supplied reference range"
                        + (", read from a results table" if chosen.raw and chosen.raw.origin == "table"
                           else "")
                        if chosen.reference_source == "report"
                        else "kept the first fully-parsed record, in the order they appeared"),
         })
-        combined = conflict and chosen.abnormal and len(names) > 1 and chosen.value is None
+        combined = (conflict and (chosen.abnormal or chosen.status == "indeterminate")
+                    and len(names) > 1 and chosen.value is None)
         if combined:
             chosen.notes.append(
                 "reported as separate tests (%s); at least one is %s, so the combined screen "
@@ -773,6 +868,13 @@ class Normalizer:
                 % ("; ".join("%s: %s" % (b.raw.raw_name if b.raw else "?", b.status) for b in built),
                    chosen.status, chosen.status))
         elif conflict:
+            # The completeness order above decides which reading is shown, deliberately
+            # not severity. But a reading outside its own range must not vanish because a
+            # normal one of the same parameter came first ("Haemoglobin 14" and
+            # "Haemoglobin 9"): it is kept for the laboratory-marked list.
+            for b in dropped:
+                if b.abnormal and not chosen.abnormal:
+                    patient.conflicting_readings.append({"kept": chosen, "other": b})
             chosen.notes.append(
                 "this parameter appeared %d times with DIFFERENT values (%s); the most "
                 "complete record was used, but which one is correct cannot be determined "

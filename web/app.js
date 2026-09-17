@@ -319,10 +319,13 @@
     if ((d.abnormal_findings || []).length) {
       var af = d.abnormal_findings;
       var nLab = af.filter(function (f) { return f.finding_basis === "lab_range"; }).length;
+      var nCalc = af.filter(function (f) { return f.finding_basis === "derived"; }).length;
+      var nThr = (d.threshold_findings || []).length;
       out += '<div class="card"><h2>Results needing attention (' + af.length + ")</h2>" +
         '<p class="small muted" style="margin:-4px 0 10px">' + nLab + " outside the laboratory's range, " +
-        (af.length - nLab) + " past a guideline threshold or calculated here. Every one is listed under " +
-        "<b>What we found</b>, whether or not any condition is linked to it.</p>" +
+        (af.length - nLab - nCalc) + " past a guideline threshold, " + nCalc + " calculated here" +
+        (nThr ? "; " + nThr + " more inside the laboratory's range but past a guideline threshold" : "") +
+        ". Every one is listed under <b>What we found</b>, whether or not any condition is linked to it.</p>" +
         af.slice(0, 6).map(function (f) {
           return '<div class="finding-row"><span class="badge b-' +
             (f.severity_score >= 0.75 ? "High" : f.severity_score >= 0.5 ? "Moderate" : "Low") + '">' +
@@ -596,8 +599,13 @@
     decision_threshold: "Guideline threshold",
     derived: "Calculated here",
     lab_flag: "Flagged by the laboratory",
-    lab_expected_text: "Differs from the report's expected result"
+    lab_expected_text: "Differs from the report's expected result",
+    equivocal: "Equivocal result",
+    conflicting_reading: "Reported more than once with different results",
+    not_in_dictionary: "Not recognised here, marked by the report"
   };
+
+  var NOTED_KINDS = { equivocal: 1, conflicting_reading: 1, not_in_dictionary: 1 };
 
   /* Every abnormal result, whether or not any rule interprets it. A result used to
      reach this page only by feeding a Disease Master condition, so an hs-CRP of 31.98
@@ -617,7 +625,8 @@
         '<span class="labf-val">' + num(f.value) +
           (f.unit ? ' <span class="meas-unit">' + esc(f.unit) + "</span>" : "") + "</span>" +
         (f.reference_text ? '<span class="labf-ref">ref ' + esc(f.reference_text) + "</span>" : "") +
-        '<span class="badge b-tag">' + esc(f.kind === "qualitative" || f.kind === "categorical"
+        '<span class="badge b-tag">' + esc((f.kind === "qualitative" || f.kind === "categorical") &&
+          !NOTED_KINDS[f.finding_basis]
           ? "Reported by the laboratory" : (BASIS_LABEL[f.finding_basis] || f.finding_basis)) + "</span>" +
         (f.grade_label ? '<span class="labf-grade">' + esc(f.grade_label) + "</span>" : "") +
         (f.lab_flag ? '<span class="labf-flag" title="Flag printed on the report">report flag: ' +
@@ -654,8 +663,9 @@
     if (noted.length) {
       out += '<h3 class="tier-sub">Marked by the laboratory, not graded abnormal here' +
         '<span class="tier-n">' + noted.length + "</span></h3>" +
-        '<p class="tier-lead">The report flags or highlights these, but the rules used here do ' +
-        "not call them abnormal. Both facts are shown so nothing the laboratory marked is lost.</p>";
+        '<p class="tier-lead">The report flags these, gives them as equivocal, prints them twice ' +
+        "with different results, or names a test not recognised here - so the rules used here do " +
+        "not grade them abnormal. Each is shown so nothing the laboratory reported is lost.</p>";
       noted.forEach(function (f) { out += labFindingRow(f); });
     }
     return out + "</section>";
@@ -922,7 +932,9 @@
       if (p.derived) refNote = "engine reference for a calculated value";
       else if (p.reference_source && p.reference_source.indexOf("report") === 0)
         refNote = "from this report";
-      else if (ref !== "—") refNote = "guideline band — no lab range supplied";
+      else if (ref !== "—") refNote = (p.raw && p.raw.raw_range)
+        ? "guideline band — the report printed bands, not one normal interval"
+        : "guideline band — no lab range supplied";
 
       var notes = (p.notes || []).slice();
       if (p.conversion_note) notes.push(p.conversion_note);

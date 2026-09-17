@@ -81,6 +81,13 @@ def _is_explicit_negative(param, negative_when):
     return False, None
 
 
+def _marker_in_doubt(patient, parameter_id, param):
+    if any(r.get("parameter") == param.name for r in getattr(patient, "rejected_values", []) or []):
+        return True
+    return any(d.get("parameter_id") == parameter_id and d.get("conflicting_values")
+               for d in getattr(patient, "duplicates_resolved", []) or [])
+
+
 def _fmt(x):
     if isinstance(x, float):
         return ("%g" % round(x, 4))
@@ -102,6 +109,12 @@ class Gatekeeper:
             param = patient.get(rule["parameter"])
             ok, observed = _is_explicit_negative(param, rule.get("negative_when") or {})
             if not ok:
+                continue
+            # A negative only excludes when the report is consistent about that marker. A
+            # second record of it that could not be read ("HIV-2: sample hemolysed") or
+            # that disagrees ("HBsAg Reactive" beside "HBsAg Non Reactive") makes the
+            # exclusion unsafe; the condition is then evaluated by the normal rules.
+            if _marker_in_doubt(patient, rule["parameter"], param):
                 continue
 
             # A rule may require several markers to be negative together. Every one of

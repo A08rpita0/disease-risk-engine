@@ -537,13 +537,32 @@ class Config:
             return None
 
         # 'SGOT/AST' and 'SGPT (ALT)' style dual naming: try each side of the slash.
-        for part in re.split(r"[/|]", str(raw_name)):
+        # Dual naming means both sides name the SAME test. When the sides name two
+        # different tests the row is their ratio - "Albumin/Globulin" 1.6 became an
+        # albumin of 1.6 g/dL, "LDL/HDL" 3.9 an LDL of 3.9 mg/dL and "Cholesterol/HDL"
+        # 6.2 a total cholesterol of 6.2 - so it resolves to nothing rather than to
+        # whichever analyte happened to be written first.
+        sides = set()
+        for part in (re.split(r"[/|]", str(raw_name)) if re.search(r"[/|]", str(raw_name)) else []):
             pk = norm_key(part)
             # A one- or two-letter side is almost always a unit or a fragment ("K/uL",
             # "mg/dL"), and "k" is potassium's alias: "K/uL Increased by 2.5" became a
             # potassium of 2.5.
-            if pk and len(pk) >= 3 and pk in self.alias_index:
-                return self.alias_index[pk]
+            if not pk or len(pk) < 3:
+                continue
+            # each side is resolved as a name in its own right (it holds no slash, so
+            # this block is not re-entered)
+            pid = self.resolve_alias(part.strip())
+            if pid is not None:
+                sides.add(pid)
+        # (Two or more slashes list tests - "Vitamin D/B12/Folate" - and the first
+        # recognised one names the row, as before; only a single slash can be a ratio.)
+        if len(sides) == 1 or (sides and str(raw_name).count("/") > 1):
+            for part in re.split(r"[/|]", str(raw_name)):
+                if len(norm_key(part)) >= 3 and self.resolve_alias(part.strip()) in sides:
+                    return self.resolve_alias(part.strip())
+        if len(sides) > 1:
+            return None
 
         # Trim trailing qualifier words: 'HbA1c HPLC method' -> 'HbA1c'.
         words = nk2.split() if nk2 else nk.split()

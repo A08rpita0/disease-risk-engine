@@ -79,6 +79,23 @@ SKIP_SUBTREES = {"meta", "_meta", "metadata", "header", "footer", "doctor", "phy
 DATE_KEY = re.compile(r"(?:^|_)(?:date|time|datetime|timestamp|dated|dob)(?:_|$)")
 DATE_VALUE = re.compile(r"^\d{1,4}[/.\-]\d{1,2}[/.\-]\d{1,4}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$")
 
+# A loose field whose key also names an identifier is metadata, whatever analyte word
+# it contains: "troponin_id": 20, "potassium_phone": 9.1 and "hba1c_barcode": 5.5 were
+# offered to the alias index, trimmed to "troponin" / "potassium" / "hba1c" and read as
+# an urgent troponin, severe hyperkalaemia and an HbA1c. Only LOOSE fields are screened;
+# a test object's own value key is untouched.
+IDENTIFIER_KEY = re.compile(
+    r"(?:^|_)(?:id|ids|no|nos|num|number|code|codes|barcode|accession|phone|mobile|tel|"
+    r"fax|uhid|mrn|serial|seq|sequence|batch|lot|invoice|bill|receipt|order|version|"
+    r"year|month|day|pincode|zip|page|email|url|sample|specimen|slip|ref|srno|sr)(?:_|$)")
+
+
+def _snake(key):
+    """'troponinId' / 'Troponin-ID' / 'troponin id' -> 'troponin_id'."""
+    k = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", str(key))
+    return re.sub(r"[^a-z0-9]+", "_", k.lower()).strip("_")
+
+
 # Scalar leaves under these keys describe the container, not a result.
 STRUCTURAL_KEYS = {"panel_name", "panel", "section", "section_name", "category", "group",
                    "group_name", "profile_name", "department", "type", "kind", "sort_order",
@@ -201,7 +218,9 @@ def _plain_range(s):
     # Thousands separators are routine on counts ('13,500 - 17,000'). Without this the
     # report's own range failed to parse and was silently discarded in favour of the
     # dictionary's, which is exactly the range the lab meant to override.
-    s = re.sub(r"(?<=\d),(?=\d{3}\b)", "", s)
+    # Indian grouping too ('1,50,000 - 4,10,000'), which the three-digit rule alone left
+    # half-parsed, so the report's platelet interval was replaced by the dictionary's.
+    s = re.sub(r"(?<=\d),(?=(?:\d{2},)*\d{3}\b)", "", s)
 
     # drop a trailing unit so '0.4 - 4.0 uIU/mL' still parses as a numeric interval
     s_clean = re.sub(r"\s*(mg|g|ng|pg|ug|µg|mmol|umol|µmol|mcg|iu|miu|uiu|u|meq|fl|pg|cells|million|lakhs?|thou)\s*/?\s*"
@@ -400,8 +419,12 @@ def extract_json(payload, source_name="input.json"):
                     # Whether it is a real parameter is decided later by the alias index;
                     # extraction only offers it.
                     if (kl in context_key_names or kl in STRUCTURAL_KEYS
-                            or kl in field_key_names or kl.startswith("_")
-                            or DATE_KEY.search(kl) or DATE_VALUE.match(str(v).strip())):
+                            or kl in field_key_names or kl.startswith("_")):
+                        continue
+                    if (DATE_KEY.search(_snake(k)) or IDENTIFIER_KEY.search(_snake(k))
+                            or DATE_VALUE.match(str(v).strip())):
+                        # listed as a document field, never offered as a result
+                        emit(k, v, None, None, None, child, shape="metadata")
                         continue
                     emit(k, v, None, None, None, child, shape="field")
         elif isinstance(node, list):
@@ -777,6 +800,7 @@ def _merge_table_and_text(table_obs, text_obs, resolver):
                 (not resolver or resolver(o.raw_name)):
             printed.add(((o.source_path or "").split(",")[0], _value_key(o.raw_value),
                          (o.raw_unit or "").lower(), _value_key(o.raw_range)))
+    n_table = len(merged)
     for o in text_obs:
         # The same printed row read twice - once from the table, once from the text layer
         # where a wrapped name may have been cut - is the table's reading.
@@ -786,16 +810,31 @@ def _merge_table_and_text(table_obs, text_obs, resolver):
             continue
         k = key(o)
         hits = index.get(k, [])
-        if not hits:
+        # Only a reading of the SAME printed row is merged away. Two rows on one page that
+        # resolve to one parameter are two results - "HIV 1 Antibody: Non Reactive" and
+        # "HIV 2 Antibody: Equivocal", or a test printed twice with different values - and
+        # both must reach duplicate resolution, which records the conflict. Matching on
+        # parameter and page alone dropped the equivocal HIV-2 result without trace.
+        same_row = [h for h in hits
+                    if _value_key(merged[h].raw_value) == _value_key(o.raw_value)
+                    or (h < n_table and _same_name(merged[h].raw_name, o.raw_name))]
+        if not same_row:
             index.setdefault(k, []).append(len(merged))
             merged.append(o)
             continue
-        if any(_value_key(merged[h].raw_value) == _value_key(o.raw_value) for h in hits):
+        if any(_value_key(merged[h].raw_value) == _value_key(o.raw_value) for h in same_row):
             continue
-        h = hits[0]
+        h = same_row[0]
         if _completeness(o, resolver) > _completeness(merged[h], resolver):
             merged[h] = o
     return merged
+
+
+def _same_name(a, b):
+    """Two readings of one printed name: equal once punctuation and spacing are gone, or
+    one a cut-off start of the other (a wrapped name cell)."""
+    na, nb = (re.sub(r"[^a-z0-9]", "", str(x).lower()) for x in (a, b))
+    return bool(na and nb) and (na == nb or na.startswith(nb) or nb.startswith(na))
 
 
 def _is_drawing_glyph(text):

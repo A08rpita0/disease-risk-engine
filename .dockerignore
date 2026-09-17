@@ -15,3 +15,6 @@ tests/
 .pytest_cache/
 
 # Keep tools/ — validate.py runs in the image build and is useful for debugging
+
+# Real patient reports and validation data. Never copied into an image.
+private/
