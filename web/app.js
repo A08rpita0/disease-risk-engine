@@ -318,9 +318,11 @@
 
     if ((d.abnormal_findings || []).length) {
       var af = d.abnormal_findings;
-      out += '<div class="card"><h2>Results outside their range (' + af.length + ")</h2>" +
-        '<p class="small muted" style="margin:-4px 0 10px">Every one is listed under <b>What we found</b>, ' +
-        "whether or not any condition is linked to it.</p>" +
+      var nLab = af.filter(function (f) { return f.finding_basis === "lab_range"; }).length;
+      out += '<div class="card"><h2>Results needing attention (' + af.length + ")</h2>" +
+        '<p class="small muted" style="margin:-4px 0 10px">' + nLab + " outside the laboratory's range, " +
+        (af.length - nLab) + " past a guideline threshold or calculated here. Every one is listed under " +
+        "<b>What we found</b>, whether or not any condition is linked to it.</p>" +
         af.slice(0, 6).map(function (f) {
           return '<div class="finding-row"><span class="badge b-' +
             (f.severity_score >= 0.75 ? "High" : f.severity_score >= 0.5 ? "Moderate" : "Low") + '">' +
@@ -592,7 +594,9 @@
   var BASIS_LABEL = {
     lab_range: "Outside the laboratory's range",
     decision_threshold: "Guideline threshold",
-    derived: "Calculated here"
+    derived: "Calculated here",
+    lab_flag: "Flagged by the laboratory",
+    lab_expected_text: "Differs from the report's expected result"
   };
 
   /* Every abnormal result, whether or not any rule interprets it. A result used to
@@ -629,10 +633,11 @@
   function labFindingsSection(d) {
     var abn = d.abnormal_findings || [];
     var thr = d.threshold_findings || [];
-    if (!abn.length && !thr.length) return "";
+    var noted = d.lab_noted_findings || [];
+    if (!abn.length && !thr.length && !noted.length) return "";
     var out = '<section class="tier"><h2 class="tier-h">Abnormal laboratory results' +
       '<span class="tier-n">' + abn.length + "</span></h2>" +
-      '<p class="tier-lead">Every result outside its range, most marked first, with what judged ' +
+      '<p class="tier-lead">Every result outside its range or past a guideline threshold, most marked first, with what judged ' +
       "it: the laboratory's own interval, a guideline threshold configured here, or a value " +
       "calculated here. These are measurements, not diagnoses.</p>";
     if (!abn.length) {
@@ -645,6 +650,13 @@
         '<p class="tier-lead">The laboratory would call these normal. They are listed because ' +
         "a configured guideline condition uses a narrower line.</p>";
       thr.forEach(function (f) { out += labFindingRow(f); });
+    }
+    if (noted.length) {
+      out += '<h3 class="tier-sub">Marked by the laboratory, not graded abnormal here' +
+        '<span class="tier-n">' + noted.length + "</span></h3>" +
+        '<p class="tier-lead">The report flags or highlights these, but the rules used here do ' +
+        "not call them abnormal. Both facts are shown so nothing the laboratory marked is lost.</p>";
+      noted.forEach(function (f) { out += labFindingRow(f); });
     }
     return out + "</section>";
   }

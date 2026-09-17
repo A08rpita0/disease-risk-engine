@@ -101,9 +101,9 @@
       {"category": "Lifestyle", "priority": "high", "text": "Stop alcohol entirely. Alcohol and gallstones are the two commonest causes of pancreatic inflammation."}
     ],
     "iron_deficiency": [
-      {"category": "Consultation", "priority": "high", "text": "Iron deficiency is a finding, not a diagnosis - the important question is where the iron is going. In adult men and post-menopausal women it warrants investigation of the gut."},
+      {"presumes_established": true, "category": "Consultation", "priority": "high", "text": "Iron deficiency is a finding, not a diagnosis - the important question is where the iron is going. In adult men and post-menopausal women it warrants investigation of the gut."},
       {"category": "Diet", "priority": "medium", "text": "Pair iron-rich foods with a source of vitamin C, and keep tea and coffee away from meals - both markedly reduce iron absorption."},
-      {"category": "Testing", "priority": "medium", "text": "Ask about coeliac screening if the deficiency is unexplained or does not correct with supplementation."}
+      {"presumes_established": true, "category": "Testing", "priority": "medium", "text": "Ask about coeliac screening if the deficiency is unexplained or does not correct with supplementation."}
     ],
     "microcytic_non_iron_deficient": [
       {"category": "Testing", "priority": "high", "text": "Ask for haemoglobin electrophoresis or HPLC if not already done. Small red cells with normal iron stores usually mean a haemoglobin variant rather than iron deficiency."},
@@ -151,10 +151,10 @@
     ],
     "g6pd_deficiency": [
       {"category": "Lifestyle", "priority": "high", "text": "Keep a written list of the drugs and foods that trigger haemolysis in G6PD deficiency - certain antimalarials, sulfa antibiotics, nitrofurantoin, and fava beans - and show it to every doctor, dentist and pharmacist who treats you."},
-      {"category": "Consultation", "priority": "medium", "text": "This is inherited. Discussing testing with close blood relatives is worthwhile."}
+      {"presumes_established": true, "category": "Consultation", "priority": "medium", "text": "This is inherited. Discussing testing with close blood relatives is worthwhile."}
     ],
     "haemoglobinopathy_screen": [
-      {"category": "Consultation", "priority": "high", "text": "Ask for a genetic counselling discussion, particularly before planning a pregnancy - partner testing changes the risk to a child substantially."}
+      {"presumes_established": true, "category": "Consultation", "priority": "high", "text": "Ask for a genetic counselling discussion, particularly before planning a pregnancy - partner testing changes the risk to a child substantially."}
     ],
     "crab_pattern": [
       {"category": "Consultation", "priority": "high", "text": "This combination of protein, calcium and blood count changes needs haematology assessment with serum protein electrophoresis and free light chains."}
@@ -168,7 +168,7 @@
       {"category": "Lifestyle", "priority": "low", "text": "Take any thyroid medication on an empty stomach and separate it by at least 4 hours from iron and calcium supplements, which block absorption."}
     ],
     "hyperthyroid_pattern": [
-      {"category": "Consultation", "priority": "high", "text": "Ask for endocrinology assessment to establish the cause. Untreated, this affects heart rhythm and bone density."},
+      {"presumes_established": true, "category": "Consultation", "priority": "high", "text": "Ask for endocrinology assessment to establish the cause. Untreated, this affects heart rhythm and bone density."},
       {"category": "Lifestyle", "priority": "medium", "text": "Reduce caffeine and report palpitations, tremor, unexplained weight loss or heat intolerance to your doctor."}
     ],
     "hyperandrogenic_pcos": [
@@ -203,8 +203,8 @@
     "bone_mineral_deficiency": [
       {"category": "Lifestyle", "priority": "high", "text": "Get 15-30 minutes of sunlight on arms and face several times a week where practical. Sunscreen, indoor work and covering clothing all reduce skin synthesis."},
       {"category": "Diet", "priority": "high", "text": "Include dairy or fortified alternatives, eggs, and oily fish. Diet alone rarely corrects a deficiency, but supports it once corrected."},
-      {"category": "Consultation", "priority": "high", "text": "Ask your doctor about a correction dose and how long to take it - the dose for deficiency is much higher than a maintenance dose, and should be followed by a recheck."},
-      {"category": "Testing", "priority": "medium", "text": "Recheck vitamin D, calcium and PTH after 8-12 weeks of supplementation to confirm the correction."}
+      {"presumes_established": true, "category": "Consultation", "priority": "high", "text": "Ask your doctor about a correction dose and how long to take it - the dose for deficiency is much higher than a maintenance dose, and should be followed by a recheck."},
+      {"presumes_established": true, "category": "Testing", "priority": "medium", "text": "Recheck vitamin D, calcium and PTH after 8-12 weeks of supplementation to confirm the correction."}
     ],
     "hypercalcemia_pattern": [
       {"category": "Testing", "priority": "high", "text": "Ask for PTH to be measured alongside calcium if not already done. PTH is what separates a parathyroid cause from every other cause."},
@@ -223,7 +223,7 @@
     ],
     "zinc_deficiency": [
       {"category": "Diet", "priority": "medium", "text": "Include zinc-rich foods - legumes, nuts, seeds, whole grains, dairy, and meat if you eat it. Soaking and sprouting pulses improves absorption."},
-      {"category": "Consultation", "priority": "medium", "text": "If dietary intake looks adequate, ask about absorption - persistent deficiency usually points to a gut cause."}
+      {"presumes_established": true, "category": "Consultation", "priority": "medium", "text": "If dietary intake looks adequate, ask about absorption - persistent deficiency usually points to a gut cause."}
     ],
     "malabsorption_pattern": [
       {"category": "Consultation", "priority": "high", "text": "Several unrelated nutrients being low at once points to absorption rather than diet. This needs gastroenterology assessment - correcting each deficiency separately misses the cause."},
@@ -267,16 +267,16 @@
       {"category": "Consultation", "priority": "high", "text": "A reactive screening test must be confirmed with a second, different test before it means anything. Arrange this promptly and confidentially with a doctor - modern treatment is highly effective and started early gives a normal life expectancy."}
     ],
     "sti_serology": [
-      {"category": "Consultation", "priority": "high", "text": "These infections are treatable. See a doctor for treatment, and ask about screening for the others - they frequently occur together."},
+      {"presumes_established": true, "category": "Consultation", "priority": "high", "text": "These infections are treatable. See a doctor for treatment, and ask about screening for the others - they frequently occur together."},
       {"category": "Lifestyle", "priority": "high", "text": "Recent partners should be told so they can be tested and treated, otherwise reinfection is likely. Sexual health services can help do this anonymously."}
     ],
     "viral_hepatitis_serology": [
-      {"category": "Consultation", "priority": "high", "text": "Ask for hepatology or infectious diseases referral. Both hepatitis B and C are now well managed, and hepatitis C is curable in most cases."},
+      {"presumes_established": true, "category": "Consultation", "priority": "high", "text": "Ask for hepatology or infectious diseases referral. Both hepatitis B and C are now well managed, and hepatitis C is curable in most cases."},
       {"category": "Lifestyle", "priority": "high", "text": "Avoid alcohol entirely, and check with your doctor before any new medicine or supplement."},
-      {"category": "Consultation", "priority": "medium", "text": "Ask about testing and vaccination for household members and partners where relevant."}
+      {"presumes_established": true, "category": "Consultation", "priority": "medium", "text": "Ask about testing and vaccination for household members and partners where relevant."}
     ],
     "acute_febrile_illness": [
-      {"category": "Consultation", "priority": "high", "text": "Start treatment under medical supervision. These infections can deteriorate quickly, and several need specific treatment rather than symptomatic care."},
+      {"presumes_established": true, "category": "Consultation", "priority": "high", "text": "Start treatment under medical supervision. These infections can deteriorate quickly, and several need specific treatment rather than symptomatic care."},
       {"category": "Monitoring", "priority": "high", "text": "Watch for warning signs - persistent vomiting, severe abdominal pain, bleeding from gums or nose, drowsiness, reduced urine output - and seek emergency care if any appear."},
       {"category": "Lifestyle", "priority": "medium", "text": "Maintain fluid intake and rest. Avoid aspirin and ibuprofen where dengue is suspected, as they increase bleeding risk."}
     ],
@@ -284,10 +284,10 @@
       {"category": "Lifestyle", "priority": "medium", "text": "Follow current local isolation guidance and rest. Seek assessment if you become breathless or your oxygen saturation falls."}
     ],
     "h_pylori_pattern": [
-      {"category": "Consultation", "priority": "high", "text": "This infection is treatable with a defined course prescribed by a doctor, and eradication should be confirmed afterwards with a repeat breath or stool test - not a blood antibody test, which stays positive."}
+      {"presumes_established": true, "category": "Consultation", "priority": "high", "text": "This infection is treatable with a defined course prescribed by a doctor, and eradication should be confirmed afterwards with a repeat breath or stool test - not a blood antibody test, which stays positive."}
     ],
     "uti_pattern": [
-      {"category": "Consultation", "priority": "high", "text": "See a doctor for treatment guided by the culture and sensitivity result rather than self-medicating, which drives resistance."},
+      {"presumes_established": true, "category": "Consultation", "priority": "high", "text": "See a doctor for treatment guided by the culture and sensitivity result rather than self-medicating, which drives resistance."},
       {"category": "Urgent", "priority": "high", "text": "If you develop fever, back or flank pain, or vomiting, seek assessment the same day - that suggests the infection has reached the kidney."}
     ],
     "gi_inflammatory_pattern": [
@@ -304,7 +304,7 @@
       {"category": "Consultation", "priority": "medium", "text": "Ask for a urology or andrology assessment including a physical examination - a varicocele is a common and treatable finding that no blood test detects."}
     ],
     "semen_infection": [
-      {"category": "Consultation", "priority": "high", "text": "See a doctor for treatment guided by the culture sensitivity, and ask about screening for sexually transmitted infections, which are a common cause."}
+      {"presumes_established": true, "category": "Consultation", "priority": "high", "text": "See a doctor for treatment guided by the culture sensitivity, and ask about screening for sexually transmitted infections, which are a common cause."}
     ],
     "neuro_autoimmune": [
       {"category": "Consultation", "priority": "high", "text": "These antibodies need neurology interpretation alongside your symptoms and examination. Do not act on the result alone."},

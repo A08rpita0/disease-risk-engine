@@ -200,6 +200,12 @@
       metric(s.limited_evidence, "Low / limited") +
       "</div>";
 
+    if ((d.lab_noted_findings || []).length) {
+      out += '<div class="callout warn" style="margin:0 0 14px"><b>Marked by the laboratory, not graded abnormal here.</b><ul style="margin:6px 0 0">' +
+        d.lab_noted_findings.map(function (f) { return "<li>" + esc(f.statement) + "</li>"; }).join("") +
+        "</ul></div>";
+    }
+
     if (d.urgent_findings.length) {
       out += '<div class="callout crit" style="margin:0 0 14px"><b>Time-critical.</b> ' +
         d.urgent_findings.map(function (r) { return esc(r.name); }).join(", ") +

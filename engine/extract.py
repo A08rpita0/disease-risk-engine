@@ -49,6 +49,14 @@ CONTEXT_KEYS = {
                     "collected_on", "test_date"],
 }
 
+# Context aliases that mean something else on a test record. "page" is here for a LIS
+# export's "PAge", but on a result object it is the page the test was printed on - read
+# as the patient's age, a JSON listing its results before the demographics block turned
+# a 38-year-old into a 1-year-old. "id" on a result object is the test's own id. Both are
+# read only from objects that are not tests; "age" and "patient_id" are read anywhere, so
+# flat one-row-per-result exports keep their demographics.
+AMBIGUOUS_ON_TEST = {"page", "id"}
+
 # A bare "name" key is the patient's name only when the object around it is clearly a
 # demographics block. Requiring a sex/age/DOB sibling keeps it from picking up a
 # laboratory's name, a doctor's name, or the "name" field of a test object.
@@ -64,6 +72,12 @@ SKIP_SUBTREES = {"meta", "_meta", "metadata", "header", "footer", "doctor", "phy
                  "address", "contact", "signature", "qr", "barcode", "pagination",
                  "audit", "created_by", "updated_by", "lab_info", "laboratory_info",
                  "clinic", "hospital", "branch"}
+
+# A loose field naming a date or time ("troponin_slip_date": "20/08/2025") is never a
+# result. Offered to the alias index it matched "troponin" and read the day, 20, as a
+# troponin I of 20 ng/mL - an urgent finding from a date.
+DATE_KEY = re.compile(r"(?:^|_)(?:date|time|datetime|timestamp|dated|dob)(?:_|$)")
+DATE_VALUE = re.compile(r"^\d{1,4}[/.\-]\d{1,2}[/.\-]\d{1,4}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$")
 
 # Scalar leaves under these keys describe the container, not a result.
 STRUCTURAL_KEYS = {"panel_name", "panel", "section", "section_name", "category", "group",
@@ -289,9 +303,12 @@ def extract_json(payload, source_name="input.json"):
     obs, ctx_found, warnings = [], {}, []
 
     def note_context(d):
+        on_test = _looks_like_test(d)
         for field, keys in CONTEXT_KEYS.items():
             if field in ctx_found:
                 continue
+            if on_test:
+                keys = [k for k in keys if k not in AMBIGUOUS_ON_TEST]
             val = _first(d, keys)
             if val is not None and _scalar(val):
                 ctx_found[field] = val
@@ -383,7 +400,8 @@ def extract_json(payload, source_name="input.json"):
                     # Whether it is a real parameter is decided later by the alias index;
                     # extraction only offers it.
                     if (kl in context_key_names or kl in STRUCTURAL_KEYS
-                            or kl in field_key_names or kl.startswith("_")):
+                            or kl in field_key_names or kl.startswith("_")
+                            or DATE_KEY.search(kl) or DATE_VALUE.match(str(v).strip())):
                         continue
                     emit(k, v, None, None, None, child, shape="field")
         elif isinstance(node, list):

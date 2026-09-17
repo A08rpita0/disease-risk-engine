@@ -999,6 +999,108 @@ def test_units_and_bands_of_a_scanned_style_json_report():
           any(x["priority"] == "urgent" and "Troponin I 0.17" in x["text"] for x in r["recommendations"]))
 
 
+def test_a_band_label_is_not_a_printed_flag():
+    from engine.layout import parse_row
+    for cells, want in ((["Cholesterol - HDL", "52", "mg/dL", "< 40", ": Low"], None),
+                        (["Cholesterol - HDL", "52", "mg/dL", "< 40 : Low"], None),
+                        (["RED BLOOD CELL (RBC) COUNT", "4.47 Low", "4.5 - 5.5", "mil/uL"], "Low"),
+                        (["HAEMOGLOBIN", "18.4", "H", "g/dL", "13.0 - 17.0"], "H"),
+                        (["HDL CHOLESTEROL", "61 High", "Low: <40", "mg/dL"], "High")):
+        p = parse_row(Row(cells=[(float(k * 90), c) for k, c in enumerate(cells)], source="t"), RESOLVE)
+        check("flag of %r is %r" % (" | ".join(cells), want), p is not None and p.flag == want,
+              str(p and p.flag))
+    r = analyse((FORMATS / "stacked_bands.pdf").read_bytes(), "stacked_bands.pdf")
+    check("  a PDF printing '< 40 : Low' bands shows no laboratory flag on HDL",
+          not any(f["parameter_id"] == "hdl_cholesterol" for f in r["lab_noted_findings"]),
+          str(r["lab_noted_findings"]))
+
+
+def test_what_the_laboratory_marked_is_shown_even_when_not_graded_abnormal():
+    tests = [
+        {"test_name": "HDL CHOLESTEROL", "value": "61", "unit": "mg/dL", "reference_range": "Low: <40\nHigh >/=60", "flag": "High"},
+        {"section": "Routine Examination - Urine", "test_name": "Colour", "value": "Yellow", "reference_range": "Pale Yellow"},
+        {"section": "Routine Examination - Urine", "test_name": "Transparency", "value": "Clear", "reference_range": "Clear"},
+        {"test_name": "Haemoglobin", "value": "14.0", "unit": "g/dL", "reference_range": "13 - 17", "flag": "N"},
+    ]
+    r = analyse({"patient": {"sex": "Male", "age": "54"}, "tests": tests})
+    noted = {f["parameter_id"]: f for f in r["lab_noted_findings"]}
+    check("a printed 'High' flag on a result graded protective here is listed, flag quoted",
+          "hdl_cholesterol" in noted and '"High"' in noted["hdl_cholesterol"]["statement"], str(noted))
+    check("  a description differing from the printed expected one is listed",
+          "urine_colour" in noted and "Pale Yellow" in noted["urine_colour"]["statement"], str(noted))
+    check("  a description matching its printed reference is not", "urine_transparency" not in noted)
+    check("  a normal flag ('N') is not", "hemoglobin" not in noted)
+    check("  none of them is counted as abnormal or given a plan step",
+          not any(f["parameter_id"] in noted for f in r["abnormal_findings"] + r["threshold_findings"])
+          and not any(v.get("parameter_id") in noted for x in r["recommendations"] for v in x.get("values", [])))
+    check("  the summary counts them separately", r["summary"]["lab_noted_findings"] == 2, str(r["summary"]))
+
+
+def test_a_date_field_is_never_read_as_a_result():
+    r = analyse({"patient": {"sex": "Male", "age": "54"},
+                 "report": {"troponin_slip_date": "20/08/2025", "hba1c_collection_time": "10:30",
+                            "creatinine_reported": "21-08-2025"},
+                 "tests": [{"test_name": "Hemoglobin", "value": "14", "unit": "g/dL", "reference_range": "13-17"}]})
+    ids = [p["parameter_id"] for p in r["parameters"]]
+    check("a '..._date' field naming troponin gives no troponin result", "troponin_i" not in ids, str(ids))
+    check("  a date-shaped value under a test-like key gives no result", "creatinine" not in ids, str(ids))
+    check("  so no urgent step comes from a date", not any(x["priority"] == "urgent" for x in r["recommendations"]))
+    r = analyse({"patient": {"sex": "Male", "age": "54"}, "report": {"troponin_slip_date": "20/08/2025"},
+                 "tests": [{"test_name": "TNI", "value": "0.17", "unit": "ng/mL", "reference_range": "0.00-0.02"}]})
+    check("  the real troponin row is still read, with no duplicate from the date",
+          [p["value"] for p in r["parameters"] if p["parameter_id"] == "troponin_i"] == [0.17]
+          and not any(d["parameter_id"] == "troponin_i" for d in r["duplicates_resolved"]), str(r["duplicates_resolved"]))
+
+
+def test_a_reactive_component_is_never_hidden_by_a_non_reactive_one():
+    for order in ((("HIV-1 ANTIBODIES", "NON REACTIVE"), ("HIV-2 ANTIBODIES", "REACTIVE")),
+                  (("HIV-1 ANTIBODIES", "REACTIVE"), ("HIV-2 ANTIBODIES", "NON REACTIVE"))):
+        tests = [{"test_name": n, "value": v, "reference_range": "NON REACTIVE"} for n, v in order]
+        r = analyse({"patient": {"sex": "Male", "age": "54"}, "tests": tests})
+        hiv = [p for p in r["parameters"] if p["parameter_id"] == "hiv_screen"]
+        check("HIV screen with %s reactive is positive" % [n for n, v in order if v == "REACTIVE"][0],
+              hiv and hiv[0]["status"] == "positive" and hiv[0]["abnormal"], str(hiv))
+    tests = [{"test_name": n, "value": "NON REACTIVE", "reference_range": "NON REACTIVE"}
+             for n in ("HIV-1 ANTIBODIES", "HIV-2 ANTIBODIES")]
+    r = analyse({"patient": {"sex": "Male", "age": "54"}, "tests": tests})
+    check("  both non-reactive stays negative",
+          [p["status"] for p in r["parameters"] if p["parameter_id"] == "hiv_screen"] == ["negative"])
+    tests = [{"test_name": "HBsAg", "value": "Reactive"}, {"test_name": "HBsAg", "value": "Non Reactive"}]
+    r = analyse({"patient": {"sex": "Male", "age": "54"}, "tests": tests})
+    d = [x for x in r["duplicates_resolved"] if x["parameter_id"] == "hbsag"]
+    check("  the same test printed twice with conflicting answers is still reported as a conflict",
+          d and d[0]["conflicting_values"], str(d))
+
+
+def test_guideline_and_calculated_findings_are_never_called_outside_the_laboratory_range():
+    from engine.recommend import _basis_clause
+    check("a guideline finding inside the printed interval says so",
+          "past a guideline threshold" in _basis_clause({"finding_basis": "decision_threshold", "in_lab_range": True}))
+    check("  a guideline finding with only printed risk bands is not called outside the lab interval",
+          "not the laboratory's printed interval" in _basis_clause({"finding_basis": "decision_threshold"}))
+    check("  a calculated value is marked as calculated", "calculated" in _basis_clause({"finding_basis": "derived"}))
+    check("  a laboratory-range finding needs no qualifier", _basis_clause({"finding_basis": "lab_range"}) == "")
+    tests = [
+        {"test_name": "hs-CRP", "value": "1.28", "unit": "mg/L",
+         "reference_range": "Low: < 1.0\nAverage: 1.0-3.0\nHigh: > 3.0"},
+        {"test_name": "SGPT (ALT)", "value": "49", "unit": "U/L", "reference_range": "0 - 41"},
+        {"test_name": "HbA1c", "value": "5.7", "unit": "%",
+         "reference_range": "Non-diabetic <5.7\nPrediabetes 5.7-6.4\nDiabetes >=6.5"},
+    ]
+    r = analyse({"patient": {"sex": "Male", "age": "45"}, "tests": tests})
+    by = {f["parameter_id"]: f for f in r["abnormal_findings"] + r["threshold_findings"]}
+    check("  hs-CRP 1.28 against printed risk bands is a guideline finding, not a lab-range one",
+          by.get("hs_crp", {}).get("finding_basis") == "decision_threshold", str(by.get("hs_crp")))
+    check("  ALT 49 over a printed 0-41 is a lab-range finding",
+          by.get("sgpt_alt", {}).get("finding_basis") == "lab_range", str(by.get("sgpt_alt")))
+    for x in r["recommendations"]:
+        for f in by.values():
+            label = "%s %s%s" % (f["name"], f["value"], (" " + f["unit"]) if f["unit"] else "")
+            if f["finding_basis"] != "lab_range" and "outside their range" in x["text"] and label in x["text"]:
+                check("  %s in a grouped step carries its basis" % f["name"],
+                      (label + _basis_clause(f)) in x["text"], x["text"])
+
+
 def test_urgent_wording_is_the_specific_action_and_nothing_routine_inherits_it():
     tests = [
         {"test_name": "TNI", "value": "0.17", "unit": "ng/mL", "reference_range": "0.00-0.02"},
@@ -1058,6 +1160,152 @@ def test_advice_is_never_given_for_the_opposite_direction():
     lf = analyse({"patient": {"sex": "female"}, "tests": [T("LH", "9.0", "mIU/mL", "1.7-8.6"),
                                                          T("FSH", "3.0", "mIU/mL", "1.4-15.4")]})
     check("the LH/FSH ratio is still graded for a woman", _p(lf, "lh_fsh_ratio").get("grade") not in (None, "unknown"))
+
+
+def test_a_generic_row_label_takes_the_test_name_of_its_heading():
+    # A JSON export of a "RBC Morphology" heading with its result on a "Remark" row: the
+    # PDF path already read this as RBC morphology; the JSON path left it unrecognised.
+    r = analyse({"patient": {"sex": "Male"}, "tests": [
+        {"section": "CBC > Erythrocytes > RBC Morphology", "test_name": "Remark",
+         "value": "Normocytic Normochromic"}]})
+    check("'Remark' under an RBC Morphology heading is RBC morphology",
+          _p(r, "rbc_morphology").get("category") == "normocytic normochromic",
+          str([(o["raw_name"], o["raw_value"]) for o in r["unmapped_observations"]]))
+    r = analyse({"patient": {"sex": "Male"}, "tests": [
+        {"test_name": "AST", "value": "30", "unit": "U/L", "reference_range": "0-40"},
+        {"section": "Liver Panel > ALT", "test_name": "Findings", "value": "54", "unit": "U/L"}]})
+    check("  a NUMBER under a 'Findings' label is not assigned to the heading's test",
+          r.get("analysed") and not _p(r, "sgpt_alt"), str([p["parameter_id"] for p in r.get("parameters", [])]))
+
+
+def test_a_guideline_band_inside_the_printed_interval_is_not_outside_its_range():
+    bands = "< 100 : Normal\n100 - 129 : Desirable\n130 – 159 : Borderline-High\n160 – 189 : High"
+    inside = analyse({"patient": {"sex": "Male", "age": "40"}, "tests": [
+        {"test_name": "Cholesterol - LDL", "value": "118", "unit": "mg/dL", "reference_range": bands}]})
+    thr = [f for f in inside["threshold_findings"] if f["parameter_id"] == "ldl_cholesterol"]
+    abn = [f for f in inside["abnormal_findings"] if f["parameter_id"] == "ldl_cholesterol"]
+    check("LDL inside the printed healthy bands but past a guideline band: listed as a threshold finding",
+          thr and not abn and thr[0]["in_lab_range"],
+          str([(f["parameter_id"], f["in_lab_range"]) for f in inside["abnormal_findings"] + inside["threshold_findings"]]))
+    check("  it is still shown, with the guideline band named",
+          thr and "guideline" in thr[0]["statement"], str(thr))
+    check("  and the summary does not count it as outside its range",
+          inside["summary"]["abnormal_findings"] == 0, str(inside["summary"]["abnormal_findings"]))
+    outside = analyse({"patient": {"sex": "Male", "age": "40"}, "tests": [
+        {"test_name": "Cholesterol - LDL", "value": "171", "unit": "mg/dL", "reference_range": bands}]})
+    check("  an LDL beyond the printed healthy bands is still outside its range",
+          any(f["parameter_id"] == "ldl_cholesterol" and not f["in_lab_range"] for f in outside["abnormal_findings"]))
+    edge = analyse({"patient": {"sex": "Male", "age": "35"}, "tests": [
+        {"test_name": "Glycated Haemoglobin (A1c)", "value": "5.7", "unit": "%",
+         "reference_range": "<5.7: Non-diabetes\n5.7 – 6.4: Prediabetes\n= 6.5- Diabetes"}]})
+    check("  a value ON the printed boundary ('<5.7' normal, '5.7 - 6.4' prediabetes) is never "
+          "described as one the laboratory would call normal",
+          any(f["parameter_id"] == "hba1c" for f in edge["abnormal_findings"])
+          and not any(f["parameter_id"] == "hba1c" for f in edge["threshold_findings"]),
+          str([(f["parameter_id"], f["in_lab_range"]) for f in edge["abnormal_findings"] + edge["threshold_findings"]]))
+    derived = analyse({"patient": {"sex": "Female"}, "tests": [
+        {"test_name": "Iron", "value": "40", "unit": "ug/dL", "reference_range": "37-145"},
+        {"test_name": "TIBC", "value": "300", "unit": "ug/dL", "reference_range": "250-450"}]})
+    check("  a value calculated here is never placed inside a laboratory range",
+          all(not f["in_lab_range"] for f in derived["abnormal_findings"] + derived["threshold_findings"]
+              if f["derived"]))
+
+
+def test_a_pending_result_is_said_to_be_pending_not_dropped_or_normal():
+    alone = analyse({"patient": {"sex": "Male", "age": "50"}, "tests": [
+        {"test_name": "TSH 3RD GENERATION ULTRASENSITIVE, SERUM", "value": "RESULT PENDING"},
+        {"test_name": "Hemoglobin", "value": "14", "unit": "g/dL", "reference_range": "13-17"}]})
+    check("a pending test is recorded as pending", alone["summary"]["results_pending"] == 1,
+          str(alone.get("pending_results")))
+    check("  and the reader is told no result was analysed",
+          any("RESULT PENDING" in w and "not treated as normal" in w for w in alone["warnings"]), str(alone["warnings"]))
+    check("  it is not listed as an unrecognised test",
+          not any("TSH" in o["raw_name"] for o in alone["unmapped_observations"]))
+    check("  and no TSH value is invented", not _p(alone, "tsh"))
+    final = analyse({"patient": {"sex": "Male", "age": "50"}, "tests": [
+        {"test_name": "TSH 3RD GENERATION ULTRASENSITIVE, SERUM", "value": "RESULT PENDING"},
+        {"test_name": "TSH (ULTRASENSITIVE)", "value": "2.1", "unit": "uIU/mL", "reference_range": "0.3-4.5"}]})
+    check("  a pending row with a final result elsewhere: the final result is used",
+          _p(final, "tsh").get("value") == 2.1)
+    check("  and the pending row is not silently discarded",
+          any("RESULT PENDING" in w and "was used" in w for w in final["warnings"]), str(final["warnings"]))
+    cat = analyse({"patient": {"sex": "Male"}, "tests": [{"test_name": "Blood Group", "value": "Pending"}]})
+    check("  a categorical test is never given 'pending' as its answer",
+          not _p(cat, "blood_group"), str(_p(cat, "blood_group")))
+    note = analyse({"patient": {"sex": "Male"}, "tests": [
+        {"test_name": "RBC Morphology", "value": "Normocytic; smear review pending confirmation"}]})
+    check("  a result that merely mentions 'pending' is still the result",
+          note["summary"]["results_pending"] == 0 and _p(note, "rbc_morphology"))
+
+
+def test_a_finding_never_says_the_report_gave_no_interval_when_it_printed_one():
+    banded = analyse({"patient": {"sex": "Male", "age": "36"}, "tests": [
+        {"test_name": "HsCRP (High Sensitivity CRP)", "value": "1.4", "unit": "mg/L",
+         "reference_range": "Low: < 1.0\nAverage: 1.0-3.0\nHigh: > 3.0"}]})
+    f = [x for x in banded["abnormal_findings"] + banded["threshold_findings"] if x["parameter_id"] == "hs_crp"]
+    check("hs-CRP with printed risk bands: still listed as a finding", bool(f))
+    check("  and its statement does not claim the report gave no interval",
+          f and "gave no reference interval" not in f[0]["statement"], str(f and f[0]["statement"]))
+    check("  it quotes what the report printed", f and "Average: 1.0-3.0" in f[0]["statement"],
+          str(f and f[0]["statement"]))
+    bare = analyse({"patient": {"sex": "Male", "age": "36"}, "tests": [
+        {"test_name": "HsCRP (High Sensitivity CRP)", "value": "1.4", "unit": "mg/L"}]})
+    g = [x for x in bare["abnormal_findings"] + bare["threshold_findings"] if x["parameter_id"] == "hs_crp"]
+    check("  with truly no interval printed, it still says so",
+          g and "gave no reference interval" in g[0]["statement"], str(g and g[0]["statement"]))
+
+
+def test_an_unsupported_pattern_gets_no_advice_that_presumes_it():
+    T = lambda n, v, u, rg: {"test_name": n, "value": v, "unit": u, "reference_range": rg}
+    GUT = "where the iron is going"
+    measured = analyse({"patient": {"sex": "Male", "age": "40"}, "tests": [
+        T("Transferrin saturation", "18.2", "%", "20-50"), T("Iron", "61", "ug/dL", "33-193"),
+        T("TIBC", "330", "ug/dL", "240-450")]})
+    check("low TSAT with iron and TIBC normal: no 'where the iron is going' gut-investigation advice",
+          not any(GUT in x["text"] for x in measured["recommendations"]),
+          str([x["text"][:60] for x in measured["recommendations"]]))
+    check("  and no coeliac screening 'if the deficiency is unexplained'",
+          not any("coeliac" in x["text"] for x in measured["recommendations"]))
+    check("  the low TSAT is still in the plan",
+          any(v.get("parameter_id") == "transferrin_saturation" for x in measured["recommendations"]
+              for v in x["values"]))
+    calculated = analyse({"patient": {"sex": "Female", "age": "40"}, "tests": [
+        T("Iron", "47", "ug/dL", "43.6-180"), T("TIBC", "262", "ug/dL", "250-450")]})
+    check("  a TSAT this engine calculated, iron and TIBC normal: no gut-investigation advice",
+          not any(GUT in x["text"] for x in calculated["recommendations"]),
+          str([x["text"][:60] for x in calculated["recommendations"]]))
+    real = analyse({"patient": {"sex": "Male", "age": "40"}, "tests": [
+        T("Transferrin saturation", "9", "%", "20-50"), T("Ferritin", "6", "ng/mL", "30-400"),
+        T("Iron", "25", "ug/dL", "33-193"), T("TIBC", "480", "ug/dL", "240-450"),
+        T("Hemoglobin", "10.8", "g/dL", "13-17"), T("MCV", "72", "fL", "80-100")]})
+    check("  an iron deficiency the evidence supports still gets it",
+          any(GUT in x["text"] for x in real["recommendations"]),
+          str([x["text"][:60] for x in real["recommendations"]]))
+    from engine.config import get_config
+    tagged = [s for specs in get_config().recommendations["cohort_actions"].values() for s in specs
+              if s.get("presumes_established")]
+    check("  every step tagged as presuming the finding is a confirmation-category step (else the tag is moot)",
+          tagged and all(s["category"] in ("Urgent", "Consultation", "Testing") for s in tagged), str(len(tagged)))
+
+
+def test_a_test_objects_page_or_id_is_not_patient_context():
+    from engine.extract import extract_json
+    _o, ctx, _w = extract_json({"tests": [{"test_name": "Hb", "value": "13.1", "unit": "g/dL", "page": 3,
+                                           "id": 17}],
+                                "patient": {"name": "A B", "sex": "Female", "age": "38 Y",
+                                            "patient_id": "P-9"}})
+    check("results listed before the demographics: age is the patient's, not a page number",
+          ctx.age == 38, str(ctx.age))
+    check("  and the patient id is not a test's id", ctx.patient_id == "P-9", str(ctx.patient_id))
+    _o, ctx, _w = extract_json({"patient": {"sex": "Female"},
+                                "tests": [{"test_name": "Hb", "value": "13.1", "page": 2}]})
+    check("  demographics without an age: no age is invented from a page number", ctx.age is None, str(ctx.age))
+    _o, ctx, _w = extract_json({"PName": "A B", "PAge": "52", "Gender": "F",
+                                "results": [{"test_name": "Hb", "value": "12"}]})
+    check("  a LIS 'PAge' field is still the patient's age", ctx.age == 52, str(ctx.age))
+    _o, ctx, _w = extract_json([{"patient_id": "X1", "age": 45, "sex": "M", "test": "Hb", "value": 13}])
+    check("  one-row-per-result exports keep their demographics",
+          (ctx.patient_id, ctx.age, ctx.sex) == ("X1", 45, "male"), str((ctx.patient_id, ctx.age, ctx.sex)))
 
 
 def test_private_real_reports_when_present():

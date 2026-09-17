@@ -38,6 +38,25 @@ def _ref_text(p):
     return None
 
 
+def _inside_printed_interval(p):
+    """An abnormal verdict reached by a guideline band on a value the report's own
+    interval contains. Only a measured number against a report interval qualifies: a
+    derived value, a qualitative result, or a dictionary interval says nothing about what
+    the laboratory printed.
+
+    Strictly inside only. A stored bound does not say whether the printed one was
+    inclusive: "<5.7: Non-diabetes / 5.7 - 6.4: Prediabetes" is kept as an upper limit of
+    5.7, and an HbA1c of exactly 5.7 - prediabetes by that very report - must never be
+    described as a result the laboratory would call normal."""
+    if (not p.abnormal or p.graded_by != "decision_band" or p.derived
+            or p.kind != "numeric" or not isinstance(p.value, (int, float))
+            or not str(p.reference_source or "").startswith("report")
+            or (p.reference_low is None and p.reference_high is None)):
+        return False
+    return ((p.reference_low is None or p.value > p.reference_low)
+            and (p.reference_high is None or p.value < p.reference_high))
+
+
 def _statement(p, in_range_bands):
     unit = (" " + p.unit) if p.unit else ""
     ref = _ref_text(p)
@@ -59,6 +78,16 @@ def _statement(p, in_range_bands):
     if p.graded_by == "decision_band":
         return ("%s is in the \"%s\" band of the guideline thresholds configured here. The "
                 "interval printed on the report would not flag it." % (p.name, p.grade_label))
+    # Not taken from the report is not the same as not printed on it. hs-CRP printed as
+    # "Low: < 1.0 / Average: 1.0-3.0 / High: > 3.0" gives risk bands rather than one normal
+    # interval, so the guideline band decides - and saying the report "gave no reference
+    # interval" contradicted the page, which the laboratory had also marked.
+    printed = ((p.raw.raw_range if p.raw else None) or "").strip()
+    if printed:
+        return ("The report printed \"%s\" rather than a single normal interval, so %s was "
+                "judged against the guideline band configured here: %s."
+                % ("; ".join(s.strip() for s in printed.split("\n") if s.strip()), p.name,
+                   p.grade_label or "outside range"))
     return ("The report gave no reference interval, so %s was judged against the guideline "
             "band configured here: %s." % (p.name, p.grade_label or "outside range"))
 
@@ -96,6 +125,13 @@ def build_lab_findings(patient, cohort_hits, risks):
         in_range_bands = p.triggered_bands if (not p.abnormal and p.triggered_bands) else []
         if not p.abnormal and not in_range_bands:
             continue
+        # Where a result sits against the interval the laboratory PRINTED - a fact about
+        # the report, whatever graded it. An LDL of 112 against a printed "100 - 129 :
+        # Desirable" band, called near/above optimal by a configured guideline band, was
+        # listed under "Results outside their range" while its own statement said the
+        # printed interval would not flag it. It belongs with the other guideline-only
+        # findings the laboratory would call normal.
+        in_lab_range = bool(in_range_bands) or _inside_printed_interval(p)
         linked = links.get(pid, [])
         conditions = [e for e in linked if e["kind"] == "condition" and e["name"] in reported]
         out.append({
@@ -111,7 +147,7 @@ def build_lab_findings(patient, cohort_hits, risks):
             "reference_source": p.reference_source,
             "finding_basis": p.finding_basis if p.finding_basis != "normal" else "decision_threshold",
             "graded_by": p.graded_by,
-            "in_lab_range": bool(in_range_bands),
+            "in_lab_range": in_lab_range,
             "abnormal": p.abnormal,
             "direction": p.direction,
             "grade": p.grade,
@@ -128,4 +164,58 @@ def build_lab_findings(patient, cohort_hits, risks):
 
     out.sort(key=lambda f: (f["in_lab_range"], -f["severity_score"],
                             BASIS_ORDER.get(f["finding_basis"], 9), f["name"]))
+    return out
+
+
+# Flags a laboratory prints to say a result is outside its range.
+_LAB_FLAG_WORDS = {"h", "l", "hh", "ll", "high", "low", "abnormal", "critical", "a", "*", "**",
+                   "(h)", "(l)", "[h]", "[l]"}
+
+
+def _norm_text(s):
+    return " ".join(str(s or "").lower().replace(",", " ").split())
+
+
+def build_lab_noted_findings(patient):
+    """What the LABORATORY marked that this analysis does not call abnormal.
+
+    Two cases, both facts printed on the report, neither graded abnormal here:
+      - a printed flag ("High", "L", "ABNORMAL") on a result the interval used here calls
+        normal. An HDL of 61 printed "High" is cardioprotective by the configured bands,
+        but the laboratory's own flag must not vanish into a note in the results table.
+      - a descriptive result that differs from the expected description printed beside it
+        ("Yellow" where the report expects "Pale Yellow").
+    Listed separately: they are not counted as abnormal and no plan step is generated
+    from them, since the rules here do not call them abnormal - but nothing the
+    laboratory marked is silently dropped.
+    """
+    out = []
+    for pid, p in patient.parameters.items():
+        if p.abnormal or p.raw is None or p.derived:
+            continue
+        flag = _norm_text(p.raw.raw_flag)
+        printed = (p.raw.raw_range or "").strip()
+        entry = None
+        if flag in _LAB_FLAG_WORDS:
+            entry = ("lab_flag",
+                     "The laboratory printed the flag \"%s\" beside %s. It is not graded "
+                     "abnormal here (%s), so both are shown: check the report's own "
+                     "interpretation." % (p.raw.raw_flag.strip(), p.name,
+                                          p.grade_label or "inside the interval used here"))
+        elif p.kind == "categorical" and printed and not any(c.isdigit() for c in printed) \
+                and _norm_text(printed) != _norm_text(p.category or p.raw.raw_value):
+            entry = ("lab_expected_text",
+                     "%s was reported as \"%s\"; the report prints \"%s\" as the expected "
+                     "result." % (p.name, str(p.raw.raw_value).strip(), printed))
+        if entry:
+            out.append({
+                "parameter_id": pid, "name": p.name, "profile": p.profile, "kind": p.kind,
+                "value": p.value if p.value is not None else (p.status or p.category or p.raw.raw_value),
+                "unit": p.unit, "reference_text": printed or _ref_text(p),
+                "lab_flag": p.raw.raw_flag, "grade_label": p.grade_label,
+                "finding_basis": entry[0], "statement": entry[1], "abnormal": False,
+                "severity_score": 0.0, "linked": [], "standalone": True, "in_lab_range": True,
+                "derived": False,
+            })
+    out.sort(key=lambda f: (f["finding_basis"], f["name"]))
     return out

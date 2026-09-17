@@ -140,13 +140,21 @@ class RecommendationEngine:
         # and medication advice presume the pattern is real; for a subclinical TSH with
         # nothing else behind it, "take thyroid medication on an empty stomach" was
         # being printed to someone who has no reason to be on any.
+        #
+        # The category alone does not make a step a confirmation. "Iron deficiency is a
+        # finding, not a diagnosis - the important question is where the iron is going...
+        # warrants investigation of the gut" is a Consultation, but it presumes the
+        # deficiency is real; it was being given with serum iron and TIBC both normal, and
+        # once on a transferrin saturation this engine had calculated itself. Steps written
+        # for an established finding carry `presumes_established` in the action library.
         supported = {c.get("id") for r in risks if r.presentation_tier != "insufficient"
                      for c in (r.cohorts or []) if isinstance(c, dict)}
         top_cohorts = sorted(cohort_hits, key=lambda h: -h.confidence)[:MAX_COHORT_SOURCES]
         for hit in top_cohorts:
             confirm_only = hit.cohort_id not in supported
             for spec in self.lib.get("cohort_actions", {}).get(hit.cohort_id, []):
-                if confirm_only and spec["category"] not in CONFIRMATION_CATEGORIES:
+                if confirm_only and (spec["category"] not in CONFIRMATION_CATEGORIES
+                                     or spec.get("presumes_established")):
                     continue
                 priority = spec["priority"]
                 if confirm_only:
@@ -255,16 +263,12 @@ class RecommendationEngine:
         if milder:
             extra.append(Recommendation(
                 category="Consultation", priority="medium",
-                text=("These results are outside their range and no other step in this plan "
-                      "covers them: %s. Show them to your doctor, who can judge whether any "
-                      "needs repeating."
+                text=("These results are outside their range, or past a guideline threshold, and "
+                      "no other step in this plan covers them: %s. Show them to your doctor, who "
+                      "can judge whether any needs repeating."
                       % "; ".join("%s %s%s%s" % (f["name"], _fmt_value(f["value"]),
                                                  (" " + f["unit"]) if f["unit"] else "",
-                                                 # inside the lab's own interval, outside a
-                                                 # configured guideline band - say which
-                                                 " (within the laboratory's interval; outside "
-                                                 "the guideline band)"
-                                                 if f.get("graded_by") == "decision_band" else "")
+                                                 _basis_clause(f))
                                   for f in milder[:10])),
                 because="results outside range not covered by another step",
                 trace="lab_finding",
@@ -484,6 +488,19 @@ class RecommendationEngine:
 def _urgency_rank(risk):
     return {"routine": 1, "monitoring": 2, "specialist": 3, "emergency": 4}.get(
         risk.urgency_tier, 0)
+
+
+def _basis_clause(f):
+    """What judged a listed result - never implied to be the laboratory's interval when it
+    was not. hs-CRP 1.28 against printed risk bands ("Low <1.0 / Average 1.0-3.0") is past a
+    configured guideline band; it is not outside a laboratory range."""
+    if f.get("finding_basis") == "derived":
+        return " (calculated here)"
+    if f.get("finding_basis") == "decision_threshold":
+        if f.get("in_lab_range"):
+            return " (within the laboratory's interval; past a guideline threshold)"
+        return " (past a guideline threshold, not the laboratory's printed interval)"
+    return ""
 
 
 def _priority_for(risk):

@@ -21,6 +21,7 @@ import re
 
 from .config import norm_key, norm_unit
 from .extract import parse_reference_range
+from .layout import GENERIC_RESULT_LABEL
 from .models import NormalizedParameter, StandardizedPatient
 
 GRADE_SEVERITY = {
@@ -32,6 +33,13 @@ GRADE_SEVERITY = {
 }
 
 _COUNT_RANGE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*[-\u2013]\s*(\d+(?:\.\d+)?)\s*$")
+
+# A result cell saying the result does not exist yet. The whole cell must say so: a
+# comment that merely mentions a pending test is not itself a pending result.
+_PENDING_VALUE = re.compile(
+    r"^\s*(?:(?:test\s+)?results?\s+|reports?\s+)?"
+    r"(?:pending|awaited|to\s+follow|will\s+follow|in\s+process|under\s+process|"
+    r"not\s+(?:yet\s+)?reported)\s*\.?\s*$", re.I)
 VALUE_NUM = re.compile(r"[-+]?\d[\d,]*\.?\d*(?:[eE][-+]?\d+)?")
 
 
@@ -409,6 +417,14 @@ class Normalizer:
         candidates = {}
         for obs in observations:
             pid = self._resolve(obs)
+            # "RESULT PENDING" is not a value. Unhandled, it vanished without trace when a
+            # later page carried the final result, was listed as an unrecognised test when
+            # it did not, and a categorical test would have stored "pending" as its answer.
+            if isinstance(obs.raw_value, str) and _PENDING_VALUE.match(obs.raw_value):
+                patient.pending_results.append({
+                    "parameter_id": pid, "name": obs.raw_name,
+                    "reported": obs.raw_value.strip(), "source": obs.source_path})
+                continue
             if pid is None:
                 patient.unmapped.append(obs)
                 continue
@@ -426,6 +442,15 @@ class Normalizer:
             patient.parameters[pid] = chosen
 
         self._compute_derived(patient, sex)
+
+        # Missing is not normal: a test the laboratory has not reported yet is said so.
+        for pend in patient.pending_results:
+            used = patient.parameters.get(pend["parameter_id"]) if pend["parameter_id"] else None
+            patient.extraction_warnings.append(
+                "%s is printed as '%s' - " % (pend["name"], pend["reported"])
+                + ("a result for %s reported elsewhere in this file was used." % used.name
+                   if used is not None else
+                   "no result for it was analysed, and it is not treated as normal."))
 
         # Values rejected as impossible are reported, never silently dropped - the user
         # needs to know a result on their report was not used, and why.
@@ -473,6 +498,17 @@ class Normalizer:
             sides = [resolve(s) for s in re.split(r"\s[-\u2013]\s", name, maxsplit=1)]
             if sides[0] and sides[0] == sides[1]:
                 pid = sides[0]
+
+        # "Remark" under the heading "RBC Morphology": the label names no test, the heading
+        # does. The PDF row parser applies this rule to the heading directly above the row;
+        # the innermost section is the same heading in a JSON or CSV export. Only a
+        # descriptive test qualifies, as in the PDF rule - a number under a "Findings"
+        # heading is not thereby that heading's result.
+        if pid is None and section and GENERIC_RESULT_LABEL.fullmatch(name.strip(" :")):
+            heading = section.split(">")[-1].strip()
+            cand = resolve(heading) if heading else None
+            if cand and self.cfg.param_by_id[cand].get("type") == "categorical":
+                pid = cand
 
         if pid is None:
             return None
@@ -698,6 +734,15 @@ class Normalizer:
             )
 
         ordered = sorted(built, key=rank, reverse=True)
+        # Separate tests folded into one screen ("HIV-1 ANTIBODIES" and "HIV-2 ANTIBODIES"
+        # -> one HIV screen) are not duplicates of one reading: the screen is positive if
+        # any of them is. Keeping the first hid a reactive HIV-2 behind a non-reactive
+        # HIV-1. Repeats of the same test name keep the completeness order above.
+        names = {re.sub(r"[^a-z0-9]", "", (b.raw.raw_name if b.raw else "").lower()) for b in built}
+        if len(names) > 1 and all(b.value is None and b.status is not None for b in built):
+            positive = [b for b in ordered if b.abnormal]
+            if positive:
+                ordered = positive[:1] + [b for b in ordered if b is not positive[0]]
         chosen, dropped = ordered[0], ordered[1:]
 
         values = {b.value for b in built if b.value is not None}
@@ -712,13 +757,22 @@ class Normalizer:
             "kept": _describe(chosen),
             "dropped": [_describe(b) for b in dropped],
             "conflicting_values": conflict,
-            "reason": ("kept the record with a report-supplied reference range"
+            "reason": "kept the reactive/abnormal result: separate tests combine into one screen"
+                      if (conflict and chosen.abnormal and len(names) > 1 and chosen.value is None) else
+                      ("kept the record with a report-supplied reference range"
                        + (", read from a results table" if chosen.raw and chosen.raw.origin == "table"
                           else "")
                        if chosen.reference_source == "report"
                        else "kept the first fully-parsed record, in the order they appeared"),
         })
-        if conflict:
+        combined = conflict and chosen.abnormal and len(names) > 1 and chosen.value is None
+        if combined:
+            chosen.notes.append(
+                "reported as separate tests (%s); at least one is %s, so the combined screen "
+                "is shown as %s - please check the original"
+                % ("; ".join("%s: %s" % (b.raw.raw_name if b.raw else "?", b.status) for b in built),
+                   chosen.status, chosen.status))
+        elif conflict:
             chosen.notes.append(
                 "this parameter appeared %d times with DIFFERENT values (%s); the most "
                 "complete record was used, but which one is correct cannot be determined "

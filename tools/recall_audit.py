@@ -53,8 +53,11 @@ def trace(result, cfg):
             ev = f.get("direct_evidence") or {}
             if ev.get("parameter_id"):
                 shown.add(ev["parameter_id"])
-    for f in result.get("abnormal_findings", []):
-        shown.add(f["parameter_id"])
+    # Both lists are rendered: results outside their range, and results inside the
+    # laboratory's range that a guideline threshold still flags.
+    for key in ("abnormal_findings", "threshold_findings"):
+        for f in result.get(key, []):
+            shown.add(f["parameter_id"])
 
     out = {}
     for pid, (value, abnormal) in exp.items():

@@ -16,7 +16,7 @@ from .config import get_config
 from .doccheck import assess
 from .gatekeeper import Gatekeeper
 from .extract import extract_with_text
-from .findings import build_lab_findings
+from .findings import build_lab_findings, build_lab_noted_findings
 from .models import PatientContext
 from .normalize import Normalizer
 from .recommend import RecommendationEngine
@@ -200,6 +200,8 @@ class Pipeline:
                 "parameters_unmapped": len(unmapped_tests),
                 "document_fields_skipped": len(document_fields),
                 "values_rejected": len(patient.rejected_values),
+                "results_pending": len(patient.pending_results),
+                "lab_noted_findings": len(build_lab_noted_findings(patient)),
                 "derived_values": sum(1 for p in params if p.derived),
                 "duplicates_resolved": len(patient.duplicates_resolved),
                 "abnormal_count": len(abnormal),
@@ -231,10 +233,14 @@ class Pipeline:
             # whether or not any Disease Master rule interprets it.
             "abnormal_findings": [f for f in lab_findings if not f["in_lab_range"]],
             "threshold_findings": [f for f in lab_findings if f["in_lab_range"]],
+            # Marked by the laboratory (a printed flag, or a description that differs from
+            # the expected one) but not abnormal by the rules here. Shown, never counted.
+            "lab_noted_findings": build_lab_noted_findings(patient),
             "parameters_by_profile": by_profile,
             "unmapped_observations": [o.to_dict() for o in unmapped_tests],
             "document_fields_skipped": [o.to_dict() for o in document_fields],
             "rejected_values": patient.rejected_values,
+            "pending_results": patient.pending_results,
             "duplicates_resolved": patient.duplicates_resolved,
             "warnings": patient.extraction_warnings,
             "cohorts": [c.to_dict() for c in cohort_hits],

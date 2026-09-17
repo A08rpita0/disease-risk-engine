@@ -102,6 +102,11 @@ RANGE_TAIL_RE = re.compile(
 # 285 x10^3/uL became 285 /uL - a thrombocytopenia that was never there.
 POWER_RE = re.compile(r"^[x×]?\s*10(?:\^|\*|e)?[369]$|^[x×]?\s*10[³⁶⁹]$", re.I)
 
+# A row label that names no test: the test is the heading it sits under
+# ("RBC Morphology" / "Remark | Normocytic Normochromic"). Shared by the PDF row parser and
+# the normalizer, so a PDF and its JSON export resolve the row the same way.
+GENERIC_RESULT_LABEL = re.compile(r"(?:remarks?|comments?|impression|findings?)", re.I)
+
 
 def _is_numeric(tok):
     return bool(NUMERIC_RE.match(tok))
@@ -673,6 +678,13 @@ def parse_row(row, resolver=None):
                 if BAND_LINE_RE.match(joined) and BAND_WORDS_RE.search(joined):
                     rng, band_label = re.sub(r"\s{2,}", " ", joined).strip(), True
                     break
+    # "< 40 : Low" is a band and its label. The label word read as a printed flag made an
+    # HDL of 52 look flagged "Low" by the laboratory, which printed no flag at all. A flag
+    # word that is part of the band text is the band's label. A flag only on the VALUE
+    # ("4.47 Low", "18.40 H") is never inside the range cell, so it is kept.
+    if flag and band_label and re.search(r"(?<![A-Za-z])%s(?![A-Za-z])" % re.escape(flag.strip("()[]")),
+                                         rng, re.I):
+        flag = inline_flag
     return Parsed(name=name, value=value, unit=unit, range=rng, flag=flag,
                   source=row.source, value_x=value_x, top=row.top, x0=row.x0,
                   band_label=band_label,
@@ -817,7 +829,7 @@ def parse_rows(rows, resolver=None, state=None):
         # "RBC Morphology" / "Remark | Normocytic Normochromic": a generic label row whose
         # test is named by the heading directly above it. Only for a descriptive test.
         if parsed is None and pending_name is not None and resolver and len(row.cells) >= 2 and \
-                re.fullmatch(r"(?:remarks?|comments?|impression|findings?)", row.cells[0][1].strip(" :"), re.I) and \
+                GENERIC_RESULT_LABEL.fullmatch(row.cells[0][1].strip(" :")) and \
                 _directly_below_row(pending_row, row):
             pid = in_context(pending_name)
             cfg = in_context.config

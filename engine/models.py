@@ -136,6 +136,7 @@ class StandardizedPatient:
     unmapped: list = field(default_factory=list)       # RawObservation that no alias matched
     duplicates_resolved: list = field(default_factory=list)
     rejected_values: list = field(default_factory=list)   # impossible values, not used
+    pending_results: list = field(default_factory=list)   # tests printed as not yet reported
     extraction_warnings: list = field(default_factory=list)
     # requested id -> the measured parameter that may answer for it when the requested
     # one is absent (hs-CRP for CRP). Built from `stands_in_for` in the dictionary, so it
