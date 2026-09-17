@@ -869,10 +869,25 @@ def test_scanned_pages_are_reported_not_silently_empty():
     r = analyse((FORMATS / "scanned.pdf").read_bytes(), "scanned.pdf")
     check("a fully scanned PDF says it needs OCR", any("no extractable text layer" in w for w in r["warnings"]),
           str(r["warnings"]))
+    check("  and is refused, with nothing analysed", r.get("analysed") is False and not r.get("parameters"))
+    check("  with the message shown to the user",
+          r["document"]["title"] == "This PDF appears to be scanned/image-based and could not be reliably read."
+          and r["document"]["guidance"].startswith("Please upload a digital/text-based PDF or JSON")
+          and "OCR" not in r["document"]["guidance"], str(r["document"]))
     r = analyse((FORMATS / "partly_scanned.pdf").read_bytes(), "partly_scanned.pdf")
     check("a partly scanned PDF says which results are missing",
           any("page(s) of this PDF have no text layer" in w for w in r["warnings"]) and param(r, "hemoglobin"),
           str(r["warnings"]))
+    inc = (r.get("document") or {}).get("incomplete") or {}
+    check("  and the response marks the analysis INCOMPLETE for the page to show first",
+          inc.get("unreadable_pages") == 1 and "scanned/image-based" in inc.get("message", "")
+          and "digital/text-based PDF or JSON" in inc.get("message", ""), str(inc))
+    whole = analyse((FORMATS / "method_column.pdf").read_bytes(), "method_column.pdf")
+    check("  a fully readable PDF is never marked incomplete", "incomplete" not in whole["document"])
+    for ui in ("web/app.js", "web_v2/app.js"):
+        src = (ROOT / ui).read_text(encoding="utf-8")
+        check("  %s shows the incomplete banner and the refusal guidance" % ui,
+              "document.incomplete" in src and "Analysis INCOMPLETE" in src and "guidance" in src)
     from engine import ocr
     saved = os.environ.pop("DRE_ENABLE_OCR", None)
     try:

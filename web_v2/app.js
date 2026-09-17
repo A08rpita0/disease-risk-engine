@@ -95,16 +95,21 @@
     fetch(url, { method: "POST", body: fd })
       .then(function (r) {
         return r.json().then(function (b) {
-          if (!r.ok) throw new Error(b.detail || "HTTP " + r.status);
+          if (!r.ok) {
+            var doc = b.document;
+            throw new Error(doc ? doc.title + " " + (doc.guidance || "") : (b.detail || "HTTP " + r.status));
+          }
           return b;
         });
       })
       .then(function (data) {
         state.result = data;
         var s = data.summary;
-        status("Analysis complete — <b>" + s.parameters_recognised + "</b> parameters, <b>" +
+        var incomplete = data.document && data.document.incomplete;
+        status((incomplete ? "<b>Analysis INCOMPLETE</b> — " + esc(incomplete.message) + " Read so far: <b>"
+                           : "Analysis complete — <b>") + s.parameters_recognised + "</b> parameters, <b>" +
                s.cohorts_detected + "</b> clusters, <b>" + s.conditions_flagged +
-               "</b> conditions flagged.", "info");
+               "</b> conditions flagged.", incomplete ? "error" : "info");
         render();
         $("results").hidden = false;
         $("collapseBtn").hidden = false;
@@ -180,6 +185,11 @@
 
   function renderOverview(d) {
     var s = d.summary, out = "";
+
+    if (d.document && d.document.incomplete) {
+      out += '<div class="callout crit" role="alert" style="margin:0 0 14px"><b>This analysis is incomplete.</b> ' +
+        esc(d.document.incomplete.message) + "</div>";
+    }
 
     out += '<div class="metrics">' +
       metric(s.parameters_recognised, "Parameters") +

@@ -83,9 +83,12 @@
       .then(function (data) {
         if (!data) return;                 // already handled as a rejected document
         state.result = data;
-        status("Analysis complete — " + data.summary.parameters_recognised +
+        var incomplete = data.document && data.document.incomplete;
+        status((incomplete ? "<b>Analysis INCOMPLETE</b> — " + esc(incomplete.message) + " Read so far: "
+                           : "Analysis complete — ") + data.summary.parameters_recognised +
                " parameters recognised, " + data.summary.cohorts_detected +
-               " clusters detected, " + data.summary.conditions_flagged + " conditions flagged.", "info");
+               " clusters detected, " + data.summary.conditions_flagged + " conditions flagged.",
+               incomplete ? "error" : "info");
         render();
         $("results").hidden = false;
         collapseUpload(data);
@@ -257,6 +260,13 @@
       "<dt>Report</dt><dd>" + esc(d.source_file) + "</dd>" +
       "<dt>Analysed on</dt><dd>" + esc(d.generated_at.replace("T", " ")) + "</dd></dl>" +
       '<p class="print-note">' + esc(d.disclaimer) + "</p>";
+
+    // Part of the file could not be read: said first, before any result, so a partial
+    // analysis is never mistaken for the whole report.
+    if (d.document && d.document.incomplete) {
+      out += '<div class="callout urgent" role="alert"><b>This analysis is incomplete.</b> ' +
+        esc(d.document.incomplete.message) + "</div>";
+    }
 
     out += '<div class="card"><h2>Record</h2><dl class="kv">' +
       "<dt>Patient</dt><dd>" + patientLine(d.patient) + "</dd>" +

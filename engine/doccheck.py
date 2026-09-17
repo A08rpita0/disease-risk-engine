@@ -69,12 +69,14 @@ def assess(patient, observations, raw_text, warnings):
     no_text_layer = any("no extractable text layer" in str(w).lower()
                         for w in (warnings or []))
     if no_text_layer or (not observations and recognised == 0 and not text.strip()):
+        # No suggestion to run it through OCR: on a real photographed report OCR read a
+        # troponin slip's reference line as the result, which is worse than no answer.
         return _verdict(
             "unreadable", signals,
-            "No readable text could be extracted from this file.",
-            "If this is a scanned or photographed report, the page is an image with no "
-            "text layer behind it. Upload the digital copy your laboratory issued, or a "
-            "version that has been run through OCR.")
+            ("This PDF appears to be scanned/image-based and could not be reliably read."
+             if no_text_layer else "No readable text could be extracted from this file."),
+            "Please upload a digital/text-based PDF or JSON. Nothing from this file has been "
+            "analysed, so no result - normal or abnormal - is shown for it.")
 
     # --- text was read, but nothing in it is a known test ---
     if recognised == 0:
@@ -95,7 +97,21 @@ def assess(patient, observations, raw_text, warnings):
             "or a reference range beside them and the document does not read like a "
             "report. Upload a pathology or diagnostic report instead.")
 
-    return _verdict("ok", signals, None, None)
+    verdict = _verdict("ok", signals, None, None)
+    # Some pages were images: the analysis is real but INCOMPLETE, and must say so where
+    # the user will see it - not only in a data-quality list - so nobody reads a partial
+    # result as the whole report.
+    for w in warnings or []:
+        m = re.search(r"(\d+) page\(s\) of this PDF have no text layer", str(w))
+        if m:
+            verdict["incomplete"] = {
+                "unreadable_pages": int(m.group(1)),
+                "message": ("Part of this PDF appears to be scanned/image-based: %s page(s) "
+                            "could not be reliably read, and any results printed on them are "
+                            "NOT included below. Please upload a digital/text-based PDF or "
+                            "JSON for a complete analysis." % m.group(1)),
+            }
+    return verdict
 
 
 def _verdict(status, signals, title, guidance):
