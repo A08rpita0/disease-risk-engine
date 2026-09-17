@@ -331,16 +331,16 @@
   },
 
   "parameter_actions": {
-    "vitamin_d": [{"category": "Lifestyle", "priority": "medium", "text": "Sunlight exposure and a supplement discussion with your doctor are the two levers here; diet alone rarely corrects a deficiency."}],
-    "vitamin_b12": [{"category": "Diet", "priority": "medium", "text": "B12 comes only from animal foods and fortified products. A vegetarian or vegan diet needs a reliable supplement."}],
-    "hemoglobin": [{"category": "Consultation", "priority": "medium", "text": "Anaemia is a finding, not a diagnosis. The cause determines the treatment, so ask for the cause to be established before supplementing."}],
+    "vitamin_d": [{"direction": "low", "category": "Lifestyle", "priority": "medium", "text": "Sunlight exposure and a supplement discussion with your doctor are the two levers here; diet alone rarely corrects a deficiency."}],
+    "vitamin_b12": [{"direction": "low", "category": "Diet", "priority": "medium", "text": "B12 comes only from animal foods and fortified products. A vegetarian or vegan diet needs a reliable supplement."}],
+    "hemoglobin": [{"direction": "low", "category": "Consultation", "priority": "medium", "text": "Anaemia is a finding, not a diagnosis. The cause determines the treatment, so ask for the cause to be established before supplementing."}],
     "hba1c": [{"category": "Monitoring", "priority": "medium", "text": "HbA1c reflects roughly the last three months, so recheck no sooner than 3 months after any change."}],
-    "triglycerides": [{"category": "Diet", "priority": "medium", "text": "Triglycerides respond quickly to alcohol and refined carbohydrate reduction, often within weeks."}],
-    "uric_acid": [{"category": "Diet", "priority": "low", "text": "Fructose-sweetened drinks raise urate as much as beer does, and are easier to remove."}],
-    "creatinine": [{"category": "Testing", "priority": "medium", "text": "Creatinine is affected by muscle mass, protein intake and hydration. A single raised value should be confirmed."}],
-    "esr": [{"category": "Consultation", "priority": "low", "text": "ESR rises with age, anaemia and pregnancy as well as with inflammation, so it needs context."}],
+    "triglycerides": [{"direction": "high", "category": "Diet", "priority": "medium", "text": "Triglycerides respond quickly to alcohol and refined carbohydrate reduction, often within weeks."}],
+    "uric_acid": [{"direction": "high", "category": "Diet", "priority": "low", "text": "Fructose-sweetened drinks raise urate as much as beer does, and are easier to remove."}],
+    "creatinine": [{"direction": "high", "category": "Testing", "priority": "medium", "text": "Creatinine is affected by muscle mass, protein intake and hydration. A single raised value should be confirmed."}],
+    "esr": [{"direction": "high", "category": "Consultation", "priority": "low", "text": "ESR rises with age, anaemia and pregnancy as well as with inflammation, so it needs context."}],
     "ferritin": [{"category": "Testing", "priority": "medium", "text": "Ferritin rises with any inflammation, so a normal value does not always exclude iron deficiency. Interpreted alongside CRP it is more reliable."}],
-    "psa_total": [{"category": "Testing", "priority": "medium", "text": "PSA is raised by cycling, ejaculation, infection and examination. Repeat under standard conditions before acting on it."}]
+    "psa_total": [{"direction": "high", "category": "Testing", "priority": "medium", "text": "PSA is raised by cycling, ejaculation, infection and examination. Repeat under standard conditions before acting on it."}]
   },
 
   "general": [

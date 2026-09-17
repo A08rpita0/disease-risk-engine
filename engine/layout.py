@@ -93,8 +93,14 @@ META_LABELS = re.compile(
 RANGE_TAIL_RE = re.compile(
     r"^\s*(?:"
     r"(?P<lo>%(n)s)\s*(?:-|–|—|to)\s*(?P<hi>%(n)s)"
-    r"|(?P<cmp>[<>≤≥]=?|up\s*to|upto|less\s*than|more\s*than|greater\s*than)\s*(?P<one>%(n)s)"
+    r"|(?P<cmp>[<>]\s*or\s*=|[<>]\s*/\s*=|=\s*[<>]|[<>≤≥]=?|up\s*to|upto|less\s*than|more\s*than|"
+    r"greater\s*than)\s*(?P<one>%(n)s)"
     r")" % {"n": _NUM}, re.I)
+
+# A power-of-ten multiplier printed apart from the rest of its unit: "10^3 /uL",
+# "10^3 / µl", "10^3 cells/uL". Read alone, "10^3" was dropped and a platelet count of
+# 285 x10^3/uL became 285 /uL - a thrombocytopenia that was never there.
+POWER_RE = re.compile(r"^[x×]?\s*10(?:\^|\*|e)?[369]$|^[x×]?\s*10[³⁶⁹]$", re.I)
 
 
 def _is_numeric(tok):
@@ -291,14 +297,23 @@ def _value_at(toks, i):
         return t, 1, None
     if SCI_RE.match(t):
         return t, 1, None
-    if COUNT_RANGE_TOKEN.match(t) and nxt is not None and \
-            (UNIT_RE.match(nxt) and "/" in nxt or RANGE_TAIL_RE.match(" ".join(toks[i + 1:]))):
-        # "1-2 /hpf": a microscopy count range is the result, not a reference interval
-        return t, 1, None
+    if COUNT_RANGE_TOKEN.match(t) and nxt is not None:
+        # "1-2 /hpf": a microscopy count range is the result, not a reference interval.
+        # Without a per-field unit it must look like a count - whole numbers - and not be
+        # followed by a comparator band: "TNI 0.00-0.02 >0.02" is a reference line, and
+        # reading 0.00-0.02 as the result called a troponin of 0.17 normal.
+        per_field = bool(re.search(r"/\s*(?:hpf|lpf|field)", " ".join(toks[i + 1:i + 3]), re.I))
+        whole = not re.search(r"\.", t)
+        after = " ".join(toks[i + 1:])
+        if per_field or (whole and RANGE_TAIL_RE.match(after) and not COMPARATOR_RE.match(nxt)
+                         and not re.match(r"^[<>≤≥]", nxt)):
+            return t, 1, None
 
     low = t.lower().strip(".,:;")
     if nxt is not None:
-        pair = (low, nxt.lower().strip(".,:;"))
+        # "Non Reactive,0.26": the verdict with the assay's index value fused to it
+        nxt_word = re.sub(r"[,;]\s*[<>]?\d[\d.]*$", "", nxt)
+        pair = (low, nxt_word.lower().strip(".,:;"))
         if pair in QUALITATIVE_PHRASES:
             return "%s %s" % (t, nxt), 2, None
     if low in QUALITATIVE_WORDS or PLUS_RE.match(t):
@@ -320,7 +335,10 @@ def _is_prose_name(name, toks):
         return True
     first = toks[0]
     # starts with a unit or a number: "K/uL Increased by", "0.45 mg/dL", "gm/dL cu.mm"
-    if "/" in first and not re.search(r"[A-Za-z]{3,}", first.split("/")[0]):
+    # ("A/G Ratio" is a name: "G" is not a unit's denominator)
+    if "/" in first and not re.search(r"[A-Za-z]{3,}", first.split("/")[0]) and \
+            re.match(r"^(?:[uµμmdkn]?[lL]|dL|uL|µL|hpf|HPF|cumm|cu\.?mm|mm|hr|min|kg|g|sec)\b",
+                     first.split("/", 1)[1]):
         return True
     if re.match(r"^[<>]?\d", first):
         return True
@@ -342,8 +360,23 @@ def _clean_name(tokens):
 
 # One labelled band of a multi-band reference: "Insufficient 21 - 29", "Normal Or High:
 # >= 90", "Kidney Failure: < 15".
+# Words a band label is made of. A word after an interval that is none of these is the
+# report's METHOD column ("12 - 15.5  Colorimetric", "0 - 30  Calculation"), not a band.
+BAND_WORDS_RE = re.compile(
+    r"\b(?:normal|optimal|optimum|desirable|acceptable|borderline|high|low|very|risk|"
+    r"deficien\w*|insufficien\w*|sufficien\w*|toxic\w*|non|diabet\w*|prediabet\w*|impaired|"
+    r"elevated|decrease\w*|increase\w*|failure|reactive|negative|positive|moderate|mild|"
+    r"severe|average|adequate|healthy|reference|pregnan\w*|trimester|adults?|males?|females?|"
+    r"men|women|child\w*|smokers?|nonsmokers?|target|action|upper|limit|hypervitaminosis|"
+    r"possible|near|above|below|intermediate|ideal|recommended|goal|range|level)\b", re.I)
+
+_BAND_NUM = (r"(?:(?:[<>≤≥]=?|[<>]\s*/\s*=|[<>]\s*or\s*=)\s*)?\d[\d.,]*"
+             r"(?:\s*(?:-|–|—|to)\s*\d[\d.,]*)?")
+# ...printed label first ("Optimum>60", "Sufficient : 30 - 100") or label last ("< 40 : Low",
+# "<200 - Desirable", "0.5 - 3.0 Desirable/Low Risk").
 BAND_LINE_RE = re.compile(
-    r"^\s*[A-Za-z][A-Za-z ]{2,40}?:?\s*(?:[<>≤≥]=?\s*)?\d[\d.,]*(?:\s*(?:-|–|—|to)\s*\d[\d.,]*)?\s*$")
+    r"^\s*(?:[A-Za-z][A-Za-z /()\-]{1,40}?\s*:{0,2}\s*%(n)s\s*[A-Za-zµμ/%%]{0,8}"
+    r"|%(n)s\s*(?:[:\-–]\s*|\s)[A-Za-z][A-Za-z /()\-]{1,40})\s*$" % {"n": _BAND_NUM})
 NORMAL_BAND_LABEL = re.compile(
     r"^(?:normal(?:\s+or\s+high)?|sufficient|optimal|desirable|reference)\s*:?\s*", re.I)
 RANGE_LABEL_RE = re.compile(
@@ -364,6 +397,19 @@ def _parse_tail(tail, leftovers=None):
     for tok in tail:
         inner = tok.strip("()[]")
         rest.append(inner if (inner != tok and re.search(r"\d", inner)) else tok)
+    # "Optimum>60", "Normal:4.6-5.6": a band label fused to its interval.
+    fused = []
+    for tok in rest:
+        m = re.match(r"^([A-Za-z]{3,}):?((?:[<>≤≥]=?)?\d[\d.,]*(?:[-–]\d[\d.,]*)?)$", tok)
+        fused += [m.group(1), m.group(2)] if m else [tok]
+    rest = fused
+    # "10 3 / µl": a superscript exponent sits on its own baseline and is read as a
+    # separate "3" (its caret a line above). Rejoined when a unit denominator follows.
+    k = 0
+    while k + 2 < len(rest):
+        if rest[k] == "10" and rest[k + 1] in ("3", "6", "9") and rest[k + 2].startswith("/"):
+            rest[k:k + 2] = ["10^" + rest[k + 1]]
+        k += 1
     i = 0
     while i < len(rest):
         tok = rest[i]
@@ -400,6 +446,20 @@ def _parse_tail(tail, leftovers=None):
                 rng = tok
                 i += 1
                 continue
+        if unit is None and POWER_RE.match(tok) and i + 1 < len(rest):
+            # Take "/", "/uL", "cells/uL", "µl" until the unit has a denominator.
+            parts, j = [tok], i + 1
+            while j < len(rest) and len(parts) < 4 and re.match(
+                    r"^(?:/|/\S+|cells?/\S*|cells?|[uµμ]l|cumm|cu\.?mm)$", rest[j], re.I):
+                parts.append(rest[j])
+                j += 1
+                if re.search(r"/[A-Za-zµμ]", rest[j - 1]) or (parts[-2] == "/" and rest[j - 1] != "/"):
+                    break
+            joined_unit = parts[0] + " " + "".join(parts[1:])
+            if len(parts) > 1 and re.search(r"/\s*[A-Za-zµμ]", joined_unit):
+                unit = joined_unit
+                i = j
+                continue
         if unit is None and UNIT_RE.match(tok) and tok.lower() not in UNIT_WORDS_NOT_UNITS \
                 and not _is_numeric(tok) and len(tok) <= 18 and (rng is None):
             unit = tok
@@ -414,7 +474,9 @@ def _parse_tail(tail, leftovers=None):
             continue
         if unit is None and rng is not None and UNIT_RE.match(tok) and len(tok) <= 18 \
                 and tok.lower() not in UNIT_WORDS_NOT_UNITS and not _is_numeric(tok) \
-                and _norm_flag(tok) is None:
+                and _norm_flag(tok) is None and LAB_UNIT_RE.search(tok):
+            # ...only a word shaped like a laboratory unit: after the interval a report
+            # may print its METHOD column, and "Calculation" is not a unit.
             # "70 - 100 mg/dL": unit after the range
             unit = tok
             i += 1
@@ -443,17 +505,31 @@ def parse_row(row, resolver=None):
     # A descriptive result in its own column - "Colour | Pale yellow | - | Pale yellow".
     # Only for a name the dictionary recognises, and only a short run of plain words
     # that is not a unit, a flag or a status caption.
-    if resolver and len(row.cells) >= 3:
+    # With only two cells ("Blood group (ABO typing) | O", "RBC Morphology | Normocytic
+    # Normochromic") there is no range column to confirm the layout, so it is accepted
+    # only for a test the dictionary declares descriptive (categorical).
+    cfg = getattr(resolver, "config", None) or getattr(resolver, "__self__", None)
+    if resolver and len(row.cells) >= 2:
         first, second = row.cells[0][1], row.cells[1][1]
+        pid = resolver(first)
+        kind = cfg.param_by_id.get(pid, {}).get("type") if (pid and cfg) else None
+        categorical = kind == "categorical"
+        if kind == "numeric":
+            # A measured test never has a word as its result: "Serum Ferritin | Decreased |
+            # Increased" is a row of an interpretation table.
+            pid = None
         descriptive = (re.fullmatch(r"[A-Za-z]+(?: [A-Za-z]+){0,2}", second)
-                       and _norm_flag(second) is None
+                       and (categorical or _norm_flag(second) is None)
                        and second.lower() not in STATUS_WORDS
                        # qualitative results keep going through the normal path
                        and second.lower() not in QUALITATIVE_WORDS
                        and second.lower().split()[0] not in ("non", "not", "weakly"))
-        if descriptive and resolver(first):
+        if descriptive and pid and (len(row.cells) >= 3 or categorical):
             rest = [c for _x, c in row.cells[2:]]
             rng = next((c for c in rest if c.lower() == second.lower()), None)
+            # "Colour | Yellow | | Pale Yellow": the expected description, when it differs
+            if rng is None and rest and re.fullmatch(r"[A-Za-z]+(?: [A-Za-z]+){0,2}", rest[-1]):
+                rng = rest[-1]
             return Parsed(name=first, value=second, unit=None, range=rng, flag=None,
                           source=row.source, value_x=row.cells[1][0], top=row.top,
                           x0=row.x0, complete=3)
@@ -488,7 +564,12 @@ def parse_row(row, resolver=None):
             seen_pids.append(pid)
         if starts[i]:
             s += 4                              # the value opens its own column
-        if any(starts[j] and _is_numeric(toks[j]) for j in range(1, i)):
+        if any(starts[j] and (_is_numeric(toks[j]) or (
+                _value_at(toks, j) is not None and not _is_numeric(toks[i])))
+               for j in range(1, i)):
+            # (...or a qualitative result opening its own column: "HBsAg Screening | Non
+            # Reactive,0.26 | COI | Non Reactive: < 0.90" is not a test named "HBsAg
+            # Screening Non Reactive,0.26 COI" whose result is the band label.)
             # The name would contain a number that opens its own column - a value column
             # swallowed into the name. "eGFR 111.85 ml/min | Normal Or High: >= 90" read
             # as a result of ">= 90".
@@ -555,6 +636,13 @@ def parse_row(row, resolver=None):
             return None
         if re.search(r"\b(?:profile|panel|studies|monitoring)\b", name, re.I):
             return None                         # a panel heading, never a single test
+        # Fragments of interpretation prose: "... greater than 17 mg/dl", "Above 100
+        # ng/ml", "and Poor Control - More than 10 %", a method line "(Serum, ..."
+        # beside a band, and a "unit" that is a cut word ("D10/").
+        if re.search(r"\b(?:than|above|below|over|under|upto|up\s+to)\s*$", name, re.I) or \
+                re.match(r"^(?:and|or|of|with|in|to|for|the)\b", name) or name.startswith("(") or \
+                (unit and unit.endswith("/")):
+            return None
 
     value_x = 0.0
     k = 0
@@ -571,12 +659,20 @@ def parse_row(row, resolver=None):
         rng = None
     # Was the interval printed after a band label - the first line of a multi-band
     # reference ("Deficient <20" / "Insufficient 21 - 29" / "Sufficient 30 - 100")?
+    # The label and its interval may fall in separate cells ("Deficiency | : < 20").
     band_label = False
     if rng:
-        for _cx, ctext in row.cells:
-            if rng in ctext and BAND_LINE_RE.match(ctext):
-                rng, band_label = ctext.strip(), True
-                break
+        right = [(cx, t) for cx, t in row.cells if cx > value_x + 1 and t != unit]
+        # The smallest run of cells holding the interval - a method column may follow
+        # ("Optimal: < 100 | Direct").
+        spans = sorted(((k, m) for k in range(len(right)) for m in range(k + 1, len(right) + 1)),
+                       key=lambda km: km[1] - km[0])
+        for k, m in spans:
+            joined = "  ".join(t for _x, t in right[k:m])
+            if rng in re.sub(r"\s{2,}", " ", joined) or rng in joined:
+                if BAND_LINE_RE.match(joined) and BAND_WORDS_RE.search(joined):
+                    rng, band_label = re.sub(r"\s{2,}", " ", joined).strip(), True
+                    break
     return Parsed(name=name, value=value, unit=unit, range=rng, flag=flag,
                   source=row.source, value_x=value_x, top=row.top, x0=row.x0,
                   band_label=band_label,
@@ -680,13 +776,21 @@ def _join_cut_cells(rows):
     return [r for r in rows if r.cells]
 
 
-def parse_rows(rows, resolver=None):
-    """Parse a page's rows, repairing results that span two lines."""
+def parse_rows(rows, resolver=None, state=None):
+    """Parse a page's rows, repairing results that span two lines.
+
+    `state`, a dict shared across the pages of one document, carries the section heading
+    over a page break: a urine microscopy table that continues onto the next page
+    ("Bacteria", "Yeast cells") is still under its urine heading, and without it those
+    rows were unrecognised. A heading on the new page replaces the carried one rather than
+    adding to it, so a new panel never inherits the previous page's specimen.
+    """
     out = []
     rows = _join_cut_cells(list(rows))
     pending_name = None          # a name-only line that may be the first half of a name
     pending_row = None
-    section = None
+    section = state.get("section") if state else None
+    carried = section is not None
     expanded = []
     for r in rows:
         expanded.extend(split_side_by_side(r, resolver))
@@ -704,10 +808,41 @@ def parse_rows(rows, resolver=None):
                 not re.search(r"\burine\b", name, re.I):
             pid = resolver("urine " + name)
         return pid
+    in_context.config = getattr(resolver, "config", None) or getattr(resolver, "__self__", None)
 
     for idx, row in enumerate(rows):
         text = row.text.strip()
         parsed = parse_row(row, in_context if resolver else None)
+
+        # "RBC Morphology" / "Remark | Normocytic Normochromic": a generic label row whose
+        # test is named by the heading directly above it. Only for a descriptive test.
+        if parsed is None and pending_name is not None and resolver and len(row.cells) >= 2 and \
+                re.fullmatch(r"(?:remarks?|comments?|impression|findings?)", row.cells[0][1].strip(" :"), re.I) and \
+                _directly_below_row(pending_row, row):
+            pid = in_context(pending_name)
+            cfg = in_context.config
+            if pid and cfg and cfg.param_by_id.get(pid, {}).get("type") == "categorical":
+                parsed = Parsed(name=pending_name, value=row.cells[1][1], source=row.source,
+                                value_x=row.cells[1][0], top=row.top, x0=row.x0, complete=3)
+
+        # 2a. Further bands of a multi-band reference, one per line below the first. The
+        #     name column beside a band line may hold the test's method ("(Method:
+        #     Chemiluminescence)   Insufficiency : 20-29"); only the cells in the value /
+        #     range columns are the band. Checked before the row is read as a result of its
+        #     own: "(Method: Lipase / Glycerol Kinase)   150 - 199 : High" is a band line,
+        #     not a test called "(Method: ...)" with a result of 150.
+        if out and out[-1].band_label and \
+                (parsed is None or not (resolver and in_context(parsed.name))) and \
+                out[-1].source.split(",")[0] == row.source.split(",")[0] and \
+                0 < _line_gap(out[-1].top, row.top, row.page == 0) <= 1.6 * (1 + out[-1].range.count("\n")):
+            right = [t for x, t in row.cells if x >= out[-1].value_x - 6]
+            left = [t for x, t in row.cells if x < out[-1].value_x - 6]
+            band = "  ".join(right)
+            if right and BAND_LINE_RE.match(band) and BAND_WORDS_RE.search(band) and \
+                    (not left or (row.page and all(not re.search(r"\d", t) or t.startswith("(")
+                                                   for t in left))):
+                out[-1].range = out[-1].range + "\n" + re.sub(r"\s{2,}", " ", band)
+                continue
 
         if parsed is not None:
             # 1. Wrapped name: "HIGHLY SENSITIVE C-REACTIVE PROTEIN" / "(hs-CRP) 18.4 mg/L".
@@ -758,14 +893,6 @@ def parse_rows(rows, resolver=None):
                 pending_name = None
                 continue
 
-        # 2a. Further bands of a multi-band reference, one per line below the first.
-        if out and out[-1].band_label and BAND_LINE_RE.match(text) and len(row.cells) == 1 and \
-                out[-1].source.split(",")[0] == row.source.split(",")[0] and \
-                0 < _line_gap(out[-1].top, row.top, row.page == 0) <= 1.6 * (1 + out[-1].range.count("\n")) and \
-                row.x0 >= out[-1].value_x - 6:
-            out[-1].range = out[-1].range + "\n" + text
-            continue
-
         # 2b. A unit printed a fraction of a line below the value it belongs to.
         if out and out[-1].unit is None and len(text.split()) == 1 and "/" in text and \
                 UNIT_RE.match(text) and row.page and 0 < (row.top - out[-1].top) <= 6 and \
@@ -786,7 +913,10 @@ def parse_rows(rows, resolver=None):
             # A name-only line is also a heading candidate. Headings accumulate over the
             # page, so "Microscopic Examination" does not erase "Urine Routine ...".
             if not (resolver and resolver(text)):
-                section = (section + " > " + text) if section else text
+                section = (section + " > " + text) if (section and not carried) else text
+                carried = False
         else:
             pending_name = None
+    if state is not None:
+        state["section"] = section
     return out

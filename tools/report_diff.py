@@ -20,6 +20,7 @@ git-ignored private/ folder.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -50,11 +51,24 @@ def diff(pdf_path, truth_path):
     out = {"context": [], "missing": [], "spurious": [], "field": [], "abnormal_findings": {},
            "conditions": {}, "plan": {}, "summary": {}}
 
+    def _ctx(v, k):
+        if not v:
+            return v
+        s = str(v).lower().strip()
+        # "Mr. X" and "X" are the same patient; the title is kept as printed but not compared
+        return re.sub(r"^(?:mr|mrs|ms|miss|master|baby|dr)\.?\s+", "", s) if k == "name" else s
+
     for k in ("name", "sex", "age", "patient_id"):
         a, b = rj["patient"].get(k), rp["patient"].get(k)
-        if (str(a).lower() if a else a) != (str(b).lower() if b else b):
+        if _ctx(a, k) != _ctx(b, k):
             out["context"].append({"field": k, "json": a, "pdf": b})
 
+    # A PDF the engine could not read at all (a scan) has no parameters: every JSON test
+    # is then missing, which is exactly the discrepancy to report.
+    for r in (rj, rp):
+        for key in ("parameters", "unmapped_observations", "abnormal_findings", "disease_risks",
+                    "recommendations", "duplicates_resolved"):
+            r.setdefault(key, [])
     pj = {p["parameter_id"]: p for p in rj["parameters"]}
     pp = {p["parameter_id"]: p for p in rp["parameters"]}
     for pid, a in pj.items():

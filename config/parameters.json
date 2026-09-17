@@ -660,8 +660,10 @@
         "cardiac troponin i",
         "hs troponin i",
         "high sensitivity troponin i",
-        "troponin t",
-        "trop t"
+        "tni",
+        "ctni",
+        "trop-i",
+        "troponin i test"
       ],
       "ref": {
         "default": [
@@ -4191,7 +4193,9 @@
           "lh",
           "fsh"
         ]
-      }
+      },
+      "interpret_for_sex": "female",
+      "interpret_for_sex_basis": "The 2.0 cut-off is the polycystic ovary syndrome criterion; the only cohort that reads this ratio (pcos_pattern) is itself restricted to female patients. For other patients the value is shown but not graded."
     },
     {
       "id": "prolactin",
@@ -5526,7 +5530,10 @@
         "anti-hcv",
         "hcv antibody",
         "hepatitis c antibody",
-        "hcv ab"
+        "hcv ab",
+        "hepatitis c abs",
+        "hcv abs",
+        "hepatitis c virus antibodies"
       ],
       "abnormal_when": "positive",
       "redundancy_group": "hepatitis_c"
@@ -5558,7 +5565,12 @@
         "hiv antigen antibody",
         "hiv screening",
         "hiv combo",
-        "hiv duo"
+        "hiv duo",
+        "hiv 1 antibodies",
+        "hiv 2 antibodies",
+        "hiv 1 antibody",
+        "hiv 2 antibody",
+        "hiv 1 and 2 antibodies"
       ],
       "abnormal_when": "positive",
       "redundancy_group": "hiv"
@@ -7220,6 +7232,264 @@
       "redundancy_group": "urine_osmolality",
       "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured.",
       "note": "Named by the Disease Master's SIADH row. Until this entry existed the marker resolved only because 'Urine Blood' had been stored under the bare key 'urine', so 'urine osmolality' was silently read as the urine blood test."
+    },
+    {
+      "id": "urine_rbc_count",
+      "name": "Urine RBC Count (microscopy)",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1
+      },
+      "aliases": [
+        "urine rbc count",
+        "urine red blood cell count",
+        "urine rbc per hpf"
+      ],
+      "redundancy_group": "haematuria",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy. A name such as 'Red blood cells' under a urine heading is this count when it is reported per HPF; the dipstick blood test is urine_blood."
+    },
+    {
+      "id": "urine_dysmorphic_rbc",
+      "name": "Urine Dysmorphic RBC",
+      "profile": "Urinalysis",
+      "type": "qualitative",
+      "abnormal_when": "positive",
+      "aliases": [
+        "dysmorphic red blood cells",
+        "dysmorphic rbc",
+        "dysmorphic rbcs",
+        "urine dysmorphic rbc"
+      ],
+      "redundancy_group": "urine_dysmorphic_rbc",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_trichomonas",
+      "name": "Urine Trichomonas vaginalis",
+      "profile": "Urinalysis",
+      "type": "qualitative",
+      "abnormal_when": "positive",
+      "aliases": [
+        "trichomonas vaginalis",
+        "urine trichomonas",
+        "trichomonas urine",
+        "t vaginalis"
+      ],
+      "redundancy_group": "urine_trichomonas",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_caox_monohydrate_crystals",
+      "name": "Urine Calcium Oxalate Monohydrate Crystals",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1
+      },
+      "aliases": [
+        "cry calcium oxalate monohydrate",
+        "calcium oxalate monohydrate crystals",
+        "calcium oxalate monohydrate"
+      ],
+      "redundancy_group": "urine_crystal_caox_mono",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_caox_dihydrate_crystals",
+      "name": "Urine Calcium Oxalate Dihydrate Crystals",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1
+      },
+      "aliases": [
+        "cry calcium oxalate dihydrate",
+        "calcium oxalate dihydrate crystals",
+        "calcium oxalate dihydrate"
+      ],
+      "redundancy_group": "urine_crystal_caox_di",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_triple_phosphate_crystals",
+      "name": "Urine Triple Phosphate Crystals",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1
+      },
+      "aliases": [
+        "cry triple phosphate",
+        "triple phosphate crystals",
+        "triple phosphate"
+      ],
+      "redundancy_group": "urine_crystal_triple_phosphate",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_uric_acid_crystals",
+      "name": "Urine Uric Acid Crystals",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1
+      },
+      "aliases": [
+        "cry uric acid",
+        "uric acid crystals",
+        "urine uric acid crystals"
+      ],
+      "redundancy_group": "urine_crystal_uric_acid",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_hyaline_casts",
+      "name": "Urine Hyaline Casts",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1
+      },
+      "aliases": [
+        "casts hyalin",
+        "casts hyaline",
+        "hyaline casts",
+        "hyalin casts",
+        "urine hyaline casts"
+      ],
+      "redundancy_group": "urine_hyaline_casts",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "urine_pathological_casts",
+      "name": "Urine Pathological Casts",
+      "profile": "Urinalysis",
+      "type": "numeric",
+      "unit": "/hpf",
+      "units": {
+        "/hpf": 1,
+        "hpf": 1,
+        "cells/hpf": 1
+      },
+      "aliases": [
+        "casts pathological",
+        "pathological casts",
+        "urine pathological casts"
+      ],
+      "redundancy_group": "urine_pathological_casts",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one.",
+      "note": "Urine microscopy."
+    },
+    {
+      "id": "rbc_morphology",
+      "name": "RBC Morphology",
+      "profile": "Blood Counts",
+      "type": "categorical",
+      "aliases": [
+        "rbc morphology",
+        "red cell morphology",
+        "red blood cell morphology"
+      ],
+      "redundancy_group": "rbc_morphology",
+      "note": "Peripheral smear description; recorded as reported, not graded."
+    },
+    {
+      "id": "wbc_morphology",
+      "name": "WBC Morphology",
+      "profile": "Blood Counts",
+      "type": "categorical",
+      "aliases": [
+        "wbc morphology",
+        "white cell morphology",
+        "leucocyte morphology"
+      ],
+      "redundancy_group": "wbc_morphology",
+      "note": "Peripheral smear description; recorded as reported, not graded."
+    },
+    {
+      "id": "platelet_morphology",
+      "name": "Platelet Morphology",
+      "profile": "Blood Counts",
+      "type": "categorical",
+      "aliases": [
+        "platelet morphology",
+        "platelets on smear",
+        "platelet smear"
+      ],
+      "redundancy_group": "platelet_morphology",
+      "note": "Peripheral smear description; recorded as reported, not graded."
+    },
+    {
+      "id": "transferrin",
+      "name": "Transferrin",
+      "profile": "Anemia Studies",
+      "type": "numeric",
+      "unit": "mg/dL",
+      "units": {
+        "mg/dl": 1,
+        "g/l": 100
+      },
+      "aliases": [
+        "transferrin",
+        "serum transferrin"
+      ],
+      "redundancy_group": "transferrin",
+      "no_default_reference_note": "Graded only against the reference interval the report supplies; no default interval is configured because no source in this project gives one."
+    },
+    {
+      "id": "troponin_t",
+      "name": "Troponin T",
+      "profile": "Cardiac Profile",
+      "type": "numeric",
+      "unit": "ng/mL",
+      "units": {
+        "ng/ml": 1,
+        "ug/l": 1,
+        "pg/ml": 0.001,
+        "ng/l": 0.001
+      },
+      "aliases": [
+        "troponin t",
+        "trop t",
+        "hs troponin t",
+        "high sensitivity troponin t",
+        "cardiac troponin t",
+        "tnt",
+        "ctnt",
+        "hs tnt",
+        "troponin t test"
+      ],
+      "direction_of_concern": "high",
+      "redundancy_group": "myocardial_injury_t",
+      "no_default_reference_note": "Graded only against the assay's own upper reference limit as printed on the report. Troponin T and troponin I are different assays on different scales, so troponin I's configured limit is not applied.",
+      "alias_notes": {
+        "troponin t": "Moved from troponin_i: a troponin T result was being graded against troponin I's 0.04 ng/mL limit."
+      }
     }
   ]
 }

@@ -310,8 +310,187 @@ def summary_then_lab(path):
     c.save()
 
 
+def _band_cells(c, x, y, band):
+    """Draw one reference band, splitting "Label : interval" into two cells the way some
+    reports lay it out ("Deficiency" | ": < 20")."""
+    if " : " in band and band.split(" : ")[0][:1].isalpha():
+        label, rng = band.split(" : ", 1)
+        c.drawString(x, y, label)
+        c.drawString(x + 68, y, ": " + rng)
+    elif " : " in band:
+        rng, label = band.split(" : ", 1)
+        c.drawString(x, y, rng)
+        c.drawString(x + 44, y, ": " + label)
+    else:
+        c.drawString(x, y, band)
+
+
+def stacked_bands(path):
+    """See tests/fixtures/format_reports.py - STACKED."""
+    import format_reports as F
+    rep = F.STACKED
+    c = canvas.Canvas(str(path), pagesize=A4)
+    pages = max(t[0] for t in rep["tests"])
+    P = rep["patient"]
+
+    def header(page):
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(30, H - 30, "SAMPLE PATHOLOGY LABS")
+        c.setFont("Helvetica", 8)
+        for n, (l1, v1, l2, v2) in enumerate([
+                ("Name", ": " + P["name"], "VID No.", ": 260000000001"),
+                ("Age / Gender", ": %s/ %s" % (P["age"], P["sex"]), "PID No.", ": " + P["patient_id"]),
+                ("Contact No.", ": +910000000000", "Referred by", ": SELF")]):
+            y = H - 50 - 11 * n
+            c.drawString(30, y, l1)
+            c.drawString(110, y, v1)
+            c.drawString(330, y, l2)
+            c.drawString(400, y, v2)
+        c.setFont("Helvetica-Bold", 9)
+        for x, label in ((40, "Investigation"), (250, "Observed Value"), (330, "Unit"),
+                         (410, "Biological Reference Interval")):
+            c.drawString(x, H - 100, label)
+        c.setFont("Helvetica", 7)
+        c.drawString(250, 40, "MEDICAL LABORATORY REPORT")
+        c.drawString(480, 30, "Page %d of %d" % (page, pages))
+
+    y, page, section = None, 0, None
+    for pg, sec, name, method, value, unit, rng in rep["tests"]:
+        if pg != page:
+            if page:
+                c.showPage()
+            page = pg
+            header(page)
+            y = H - 120
+            if page == 1:
+                c.setFont("Helvetica", 8)
+                c.drawString(40, 70, "Note: serum bilirubin concentrations greater than 17 mg/dl may be pathologic.")
+            section = sec if pg == 3 else None       # the continued page repeats no heading
+        c.setFont("Helvetica-Bold", 9)
+        if sec and sec != section:
+            for part in sec.split(" > "):
+                if part not in (section or ""):
+                    c.drawString(40, y, part)
+                    y -= 13
+            section = sec
+        if name == "RBC Morphology":
+            c.drawString(40, y, name)
+            y -= 13
+            c.setFont("Helvetica", 9)
+            c.drawString(40, y, "Remark")
+            c.drawString(250, y, value)
+            y -= 16
+            continue
+        c.setFont("Helvetica", 9)
+        c.drawString(40, y, name)
+        c.drawString(250, y, value)
+        if unit == "10^3 / µl":
+            # as the real report draws it: "10", a raised caret, "3" back on the baseline
+            c.drawString(330, y, "10")
+            c.drawString(342, y + 3, "^")
+            c.drawString(348, y, "3")
+            c.drawString(360, y, "/ µl")
+        elif unit:
+            c.drawString(330, y, unit)
+        bands = rng.split("\n") if rng else []
+        if bands:
+            _band_cells(c, 410, y, bands[0])
+        if method:
+            c.setFont("Helvetica", 7)
+            c.drawString(40, y - 11, method)
+            c.setFont("Helvetica", 9)
+        for k, band in enumerate(bands[1:], 1):
+            _band_cells(c, 410, y - 11 * k, band)
+        y -= 11 * max(len(bands), 2 if method else 1) + 6
+    c.showPage()
+    c.save()
+
+
+def method_column(path):
+    """See tests/fixtures/format_reports.py - METHOD_COLUMN."""
+    import format_reports as F
+    rep = F.METHOD_COLUMN
+    c = canvas.Canvas(str(path), pagesize=A4)
+    pages = max(t[0] for t in rep["tests"])
+    P = rep["patient"]
+
+    def header(page):
+        c.setFont("Helvetica", 9)
+        rows = [("Patient Name", ": " + P["name"], "Request Date", ": 07/10/2025 12:46"),
+                ("Age / Sex", ": %s / %s" % (P["age"], P["sex"]), "Report Status", ": Final Report"),
+                ("Patient No", ": " + P["patient_id"], "External Visit Id", ":")]
+        for n, (l1, v1, l2, v2) in enumerate(rows):
+            y = H - 60 - 12 * n
+            c.drawString(40, y, l1)
+            c.drawString(120, y, v1)
+            c.drawString(330, y, l2)
+            c.drawString(420, y, v2)
+        c.setFont("Helvetica-Bold", 9)
+        for x, label in ((45, "INVESTIGATION / SPECIMEN"), (230, "RESULT"), (290, "UNIT"),
+                         (360, "REFERENCE RANGE"), (500, "METHOD")):
+            c.drawString(x, H - 110, label)
+        c.setFont("Helvetica", 8)
+        c.drawString(470, 40, "Page %d of %d" % (page, pages))
+
+    y, page, shown = None, 0, set()
+    for pg, sec, name, method, value, unit, rng in rep["tests"]:
+        if pg != page:
+            if page:
+                c.showPage()
+            page, shown = pg, set()
+            header(page)
+            y = H - 130
+        for part in (sec or "").split(" > "):
+            if part and part not in shown:
+                c.setFont("Helvetica-Bold", 9)
+                c.drawString(40, y, part)
+                shown.add(part)
+                y -= 13
+        c.setFont("Helvetica", 9)
+        c.drawString(45, y, name)
+        c.drawString(230, y, value)
+        if unit and unit.startswith("10^3 "):
+            c.drawString(290, y, "10^3")
+            c.drawString(310, y, unit[5:])
+        elif unit:
+            c.drawString(290, y, unit)
+        bands = rng.split("\n") if rng else []
+        for k, band in enumerate(bands):
+            c.drawString(360, y - 10 * k, band)
+        if method:
+            c.drawString(500, y, method)
+        y -= 10 * max(1, len(bands)) + 7
+    c.showPage()
+    c.save()
+
+
+def scanned(path, text_first_page=False):
+    """A page with no text layer - only drawing - as a scanner or phone camera produces."""
+    c = canvas.Canvas(str(path), pagesize=A4)
+    if text_first_page:
+        c.setFont("Helvetica", 9)
+        c.drawString(40, H - 60, "Patient Name : Mr Test Scan")
+        c.drawString(40, H - 100, "Haemoglobin")
+        c.drawString(250, H - 100, "13.5")
+        c.drawString(330, H - 100, "g/dL")
+        c.drawString(410, H - 100, "13.0 - 17.0")
+        c.showPage()
+    c.setFillGray(0.85)
+    c.rect(40, H - 400, W - 80, 300, fill=1, stroke=0)
+    for k in range(12):
+        c.line(60, H - 130 - 20 * k, W - 60, H - 130 - 20 * k)
+    c.showPage()
+    c.save()
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    formats = ROOT / "tests" / "fixtures" / "pdf_formats"
+    formats.mkdir(parents=True, exist_ok=True)
+    stacked_bands(formats / "stacked_bands.pdf")
+    method_column(formats / "method_column.pdf")
+    scanned(formats / "scanned.pdf")
+    scanned(formats / "partly_scanned.pdf", text_first_page=True)
     text_columns(OUT / "text_columns.pdf")
     ruled_table(OUT / "ruled_table.pdf")
     hard(OUT / "hard.pdf")

@@ -136,7 +136,11 @@ class RiskEngine:
 
         # Scale with how much of the expected support was checked and came back clear.
         floor = spec.get("penalty_when_all_normal", 0.25)
-        fraction_clear = len(measured_normal) / float(len(params) or 1)
+        # Of the markers that could still have supported the pattern, how many came back
+        # clear. A marker already abnormal is not one of them: with haemoglobin raised and
+        # haematocrit and RBC count both measured normal, every remaining marker argues
+        # against a raised red cell mass - that is "all normal", not two in three.
+        fraction_clear = len(measured_normal) / float((len(params) - len(measured_abnormal)) or 1)
         penalty = 1.0 - (1.0 - floor) * fraction_clear
         names = [patient.get(p).name for p in measured_normal]
         note = ("expected supporting markers were measured and normal (%s), which argues "

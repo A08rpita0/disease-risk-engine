@@ -313,6 +313,58 @@
     {
       "id": "urine_osmolality",
       "reason": "Named in the Disease Master's SIADH row, which the engine cannot infer from bloods alone (it needs volume status). Extracted and graded against the report's interval; drives no cluster."
+    },
+    {
+      "id": "urine_rbc_count",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "urine_dysmorphic_rbc",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "urine_trichomonas",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "urine_caox_monohydrate_crystals",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "urine_caox_dihydrate_crystals",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "urine_triple_phosphate_crystals",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "urine_uric_acid_crystals",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "urine_hyaline_casts",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "urine_pathological_casts",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "rbc_morphology",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "wbc_morphology",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "platelet_morphology",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
+    },
+    {
+      "id": "transferrin",
+      "reason": "Printed on real laboratory reports and previously dropped as an unrecognised test. No Disease Master row names it as a marker, so it is extracted, graded only against the report's own interval where one is printed, and shown - it drives no cluster."
     }
   ],
   "reported_only_note": "These parameters are deliberately extracted, unit-converted, graded against their reference range and displayed, but do not feed any cluster. Listing them here keeps the distinction between 'not covered' and 'covered as a reported value' explicit."

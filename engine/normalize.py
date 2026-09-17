@@ -267,6 +267,25 @@ class Normalizer:
 
     # ---------- grading ----------
 
+    @staticmethod
+    def _not_interpreted_for_sex(pdef, sex, np_):
+        """A quantity whose configured interval is a criterion for one sex only - the
+        LH/FSH ratio's 2.0 is the PCOS criterion - is shown for everyone but graded only
+        for that sex. A man's ratio of 2.46 was being listed as an abnormal result."""
+        only = pdef.get("interpret_for_sex")
+        if not only or sex == only:
+            return False
+        np_.reference_low = np_.reference_high = None
+        np_.reference_source = "none"
+        np_.abnormal, np_.direction, np_.grade = False, None, "unknown"
+        np_.grade_label = "Not interpreted - the configured interval applies to %s patients" % only
+        np_.graded_by = "none"
+        np_.severity_score = 0.0
+        np_.notes.append("%s%s" % (
+            "shown as reported; " if not np_.derived else "calculated; ",
+            pdef.get("interpret_for_sex_basis") or ("interpreted only for %s patients" % only)))
+        return True
+
     def _bands_for(self, pdef, sex):
         if "bands_by_sex" in pdef and sex in pdef["bands_by_sex"]:
             return pdef["bands_by_sex"][sex]
@@ -592,6 +611,8 @@ class Normalizer:
         if conv_note and "not recognised" in conv_note:
             np_.notes.append(conv_note)
 
+        if self._not_interpreted_for_sex(pdef, sex, np_):
+            return np_
         low, high, src = self._reference(pdef, sex, obs.raw_range)
         if not unit_known and src != "report":
             # The only interval that shares this unit is one the report itself printed.
@@ -743,6 +764,9 @@ class Normalizer:
                 derived=True,
                 derivation="computed as %s from %s" % (
                     spec["formula"], ", ".join(self.cfg.param_by_id[i]["name"] for i in inputs)))
+            if self._not_interpreted_for_sex(pdef, sex, np_):
+                patient.parameters[pdef["id"]] = np_
+                continue
             low, high, src = self._reference(pdef, sex, None)
             np_.reference_low, np_.reference_high, np_.reference_source = low, high, src
             abnormal, direction, grade, label, gnote, gbasis = self._grade(

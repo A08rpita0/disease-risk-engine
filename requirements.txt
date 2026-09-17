@@ -17,3 +17,9 @@ pdfminer.six==20260107
 # Optional, development only - not needed to run the site or the tests:
 #   reportlab>=4.0   regenerate samples/ and tests/fixtures/pdf/ (tools/make_pdf_fixtures.py)
 #   pypdf>=4.0       only for the multi-part fixture tests/fixtures/pdf/mixed.pdf
+#
+# Optional, NOT installed by default - OCR for scanned PDFs (engine/ocr.py):
+#   rapidocr_onnxruntime, pypdfium2   ~270 MB, beyond a serverless function's size limit.
+#   Also requires DRE_ENABLE_OCR=1. Off by default: in validation on a real photographed
+#   report it read a troponin slip's reference line as the result. Without it a scanned
+#   page is reported as unreadable rather than guessed.

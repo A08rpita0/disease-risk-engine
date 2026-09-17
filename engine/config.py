@@ -67,6 +67,8 @@ _NAME_SYNONYMS = [
 # Word order may vary ("C-Reactive Protein, High Sensitivity") EXCEPT where order is the
 # meaning: LDL/HDL and HDL/LDL are reciprocal ratios.
 _ORDERED = re.compile(r"\bratio\b|/|\bindex\b|\bper\b")
+# Specimens a test name can declare. A name that says "urine" is not a serum test.
+_SPECIMEN_WORDS = {"urine", "stool", "csf", "semen", "sputum", "saliva"}
 
 
 def canon_keys(nk):
@@ -83,7 +85,9 @@ def canon_keys(nk):
     for pat, rep in _NAME_SYNONYMS:
         folded = pat.sub(rep, folded)
     folded = re.sub(r"\s+", " ", folded).strip()
-    compact = re.sub(r"[\s/]+", "", folded)
+    # The slash stays: dropping it turned "A/G" (albumin/globulin) into "ag", which is
+    # the anion gap.
+    compact = re.sub(r"\s+", "", folded)
     bag = None if _ORDERED.search(folded) else " ".join(sorted(folded.split()))
     return compact, bag
 
@@ -91,15 +95,30 @@ def canon_keys(nk):
 def norm_unit(unit):
     if unit is None:
         return None
-    u = unicodedata.normalize("NFKD", str(unit)).strip().lower()
+    # Superscript powers first: NFKD would turn "10³" into "103".
+    u = str(unit).replace("³", "^3").replace("⁶", "^6").replace("⁹", "^9")
+    u = unicodedata.normalize("NFKD", u).strip().lower()
     u = u.replace("μ", "u").replace("µ", "u")
     u = u.replace(" ", "")
     u = u.replace("percent", "%")
     u = re.sub(r"^\(|\)$", "", u)
     # "-", "---", "NA": a unit column with nothing in it. Treated as no unit rather than
     # an unrecognised one, which would stop pH and specific gravity being interpreted.
-    if u in ("-", "--", "---", "\u2014", "\u2013", "na", "n/a", "nil", ".", "_"):
+    if u in ("-", "--", "---", "—", "–", "na", "n/a", "nil", ".", "_"):
         return None
+    # Spellings of ONE unit, folded to one form. Notation only - never a conversion
+    # between different quantities. Each was a real report's unit that left a result
+    # uninterpreted: haemoglobin 17.2 "gms%", RBC "mill/cu.mm", WBC "10^3 cells/uL".
+    u = re.sub(r"(?<![a-z])gms?(?=[/%])", "g", u)          # gm/dL, gms% -> g/dL, g%
+    u = re.sub(r"^(m?g)%$", r"\1/dl", u)                   # g% = g/100 mL; mg% = mg/100 mL
+    u = re.sub(r"cu\.?mm|cmm|mm\^?3", "ul", u)             # per cubic millimetre = per uL
+    u = re.sub(r"cells?/", "/", u)                         # cells/uL = /uL
+    u = re.sub(r"^[x×](?=10)", "", u)                 # x10^3/uL
+    u = re.sub(r"10(?:\*|e)(?=\d)", "10^", u)              # 10*3/uL, 10e3/uL
+    u = re.sub(r"^thou(?:sands?)?/", "10^3/", u)
+    u = re.sub(r"^(?:millions?|mill|mil)/", "10^6/", u)
+    u = re.sub(r"^lakhs/", "lakh/", u)
+    u = re.sub(r"/(?:hours?|hrs)$", "/hr", u)              # mm/Hour
     return u or None
 
 
@@ -483,9 +502,20 @@ class Config:
         # 'hscrp', which matches nothing, while the parenthetical spells out an alias
         # the dictionary already holds; 'RhD factor (Rh typing)' is the same shape.
         # Both were being dropped as unmapped.
+        # Not when the words outside name a specimen the bracketed test is not measured
+        # in: "Urine Protein (Albumin)" is urine protein, never serum albumin.
+        outside = norm_key(stripped).split()
         for inner in re.findall(r"[\(\[]([^\)\]]+)[\)\]]", str(raw_name)):
             ik = norm_key(inner)
             if ik and ik in self.alias_index:
+                target = self.alias_index[ik]
+                specimen = [w for w in outside if w in _SPECIMEN_WORDS]
+                if specimen and not any(
+                        w in norm_key(" ".join([self.param_by_id[target]["name"],
+                                                self.param_by_id[target].get("profile") or ""]))
+                        or w == "urine" and self.param_by_id[target].get("profile") == "Urinalysis"
+                        for w in specimen):
+                    continue
                 return self.alias_index[ik]
         # A ratio or index is its OWN quantity, never one of the analytes in its name.
         # Both fallbacks below would otherwise mis-file it: splitting
@@ -497,6 +527,13 @@ class Config:
         # "Total Cholesterol:HDL" is a ratio written with a colon; trimming it back to
         # "Total Cholesterol" filed a ratio of 3.0 as a cholesterol of 3.0 mg/dL.
         if re.search(r"\b(ratio|index)\b|[A-Za-z)]\s*:\s*[A-Za-z(]", str(raw_name), re.I):
+            return None
+        # "B/A1", "A/G", "Na/K", "T3/T4": a slash between abbreviations is a ratio even
+        # without the word. Splitting "Apolipoproteins B/A1" filed a heading as ApoB.
+        # (One slash only: "Vitamin D/B12/Folate" is a list of tests, not a ratio.)
+        pairs = re.findall(r"(?<![A-Za-z0-9])([A-Z][A-Za-z0-9]{0,3})\s*/\s*([A-Z][A-Za-z0-9]{0,3})"
+                           r"(?![A-Za-z0-9])", str(raw_name))
+        if str(raw_name).count("/") == 1 and any(min(len(a), len(b)) <= 2 for a, b in pairs):
             return None
 
         # 'SGOT/AST' and 'SGPT (ALT)' style dual naming: try each side of the slash.

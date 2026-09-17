@@ -107,7 +107,17 @@
           "name": "Hypothyroidism",
           "role": "primary",
           "weight": 0.9,
-          "dm_basis": "High-Risk Indicators: 'High TSH with Low FT3/FT4; TSH + Anti-Thyroglobulin Abs both abnormal (suggests autoimmune origin)'; Related Markers/Tests: TSH, Free T4, Free T3, Anti-Thyroglobulin Antibodies"
+          "dm_basis": "High-Risk Indicators: 'High TSH with Low FT3/FT4; TSH + Anti-Thyroglobulin Abs both abnormal (suggests autoimmune origin)'; Related Markers/Tests: TSH, Free T4, Free T3, Anti-Thyroglobulin Antibodies",
+          "requires_support": {
+            "parameters": [
+              "free_t4",
+              "free_t3"
+            ],
+            "min_abnormal": 1,
+            "penalty_when_all_normal": 0.5,
+            "basis": "Disease Master High-Risk Indicators for Hypothyroidism: 'High TSH with Low FT3/FT4'. A TSH in the subclinical band with free T4 and free T3 measured and normal does not meet that criterion, so the signal is damped. The floor is kept at 0.5 so a markedly raised TSH (>= 10, the cluster's own threshold) is still reported.",
+            "weight_source": "The 0.5 damping floor is a rule-design value chosen so that a single marker, with the rest of the stated criterion measured and normal, is reported at a reduced level rather than as a supported pattern. It is not a clinically validated coefficient."
+          }
         },
         {
           "name": "Autoimmune thyroiditis (Hashimoto's)",

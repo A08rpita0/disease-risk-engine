@@ -394,6 +394,15 @@
           },
           "weight": 1.0,
           "label": "Troponin above the upper reference limit"
+        },
+        {
+          "parameter": "troponin_t",
+          "condition": {
+            "abnormal": "high"
+          },
+          "weight": 1.0,
+          "label": "Troponin T above the assay's upper reference limit",
+          "basis": "Disease Master: 'High Troponin (acute)' names troponin without restricting the assay. Troponin T has no configured limit of its own, so the laboratory's printed upper reference limit decides."
         }
       ],
       "supporting": [

@@ -152,7 +152,19 @@
           "name": "Iron Deficiency Anemia",
           "role": "primary",
           "weight": 0.9,
-          "dm_basis": "High-Risk Indicators: 'Low Ferritin with Low Iron and elevated TIBC/UIBC'; Related Markers/Tests: Iron, TIBC, UIBC, Ferritin, Transferrin Saturation"
+          "dm_basis": "High-Risk Indicators: 'Low Ferritin with Low Iron and elevated TIBC/UIBC'; Related Markers/Tests: Iron, TIBC, UIBC, Ferritin, Transferrin Saturation",
+          "requires_support": {
+            "parameters": [
+              "ferritin",
+              "serum_iron",
+              "tibc",
+              "uibc"
+            ],
+            "min_abnormal": 1,
+            "penalty_when_all_normal": 0.25,
+            "basis": "Disease Master High-Risk Indicators for Iron Deficiency Anemia: 'Low Ferritin with Low Iron and elevated TIBC/UIBC'. A transferrin saturation just below 20% is one arm of that picture. When ferritin, serum iron, TIBC or UIBC were measured and are normal, the stated criterion is not met and the signal is damped; markers that were not measured carry no penalty (coverage handles them).",
+            "weight_source": "The 0.25 damping floor is a rule-design value chosen so that a single marker, with the rest of the stated criterion measured and normal, is reported at a reduced level rather than as a supported pattern. It is not a clinically validated coefficient."
+          }
         },
         {
           "name": "Celiac Disease",
@@ -799,7 +811,18 @@
           "name": "Polycythemia",
           "role": "primary",
           "weight": 0.82,
-          "dm_basis": "High-Risk Indicators: 'Persistently elevated hemoglobin/hematocrit above normal range'; Related Markers/Tests: RBC count, Hemoglobin, Hematocrit"
+          "dm_basis": "High-Risk Indicators: 'Persistently elevated hemoglobin/hematocrit above normal range'; Related Markers/Tests: RBC count, Hemoglobin, Hematocrit",
+          "requires_support": {
+            "parameters": [
+              "hemoglobin",
+              "hematocrit",
+              "rbc_count"
+            ],
+            "min_abnormal": 2,
+            "penalty_when_all_normal": 0.25,
+            "basis": "Disease Master High-Risk Indicators for Polycythemia: 'Persistently elevated hemoglobin/hematocrit above normal range'; Related Markers/Tests: RBC count, Hemoglobin, Hematocrit. A single index marginally above range while the other red cell mass measures were taken and are normal does not meet that criterion.",
+            "weight_source": "The 0.25 damping floor is a rule-design value chosen so that a single marker, with the rest of the stated criterion measured and normal, is reported at a reduced level rather than as a supported pattern. It is not a clinically validated coefficient."
+          }
         }
       ],
       "redundancy_note": "Haemoglobin, haematocrit and RBC count are three views of one measurement (red cell mass) and share a redundancy group, so requiring two of them made the cluster discount its own second trigger. The reference criterion - 'persistently elevated haemoglobin/hematocrit above normal range' - is met by either, so one is required and agreement between them raises confidence."

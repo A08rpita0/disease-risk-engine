@@ -20,7 +20,8 @@ import re
 
 from .models import RawObservation, PatientContext
 from .config import norm_unit
-from .layout import rows_from_words, rows_from_text, drop_repeated, parse_rows, parse_row, Row
+from .layout import (rows_from_words, rows_from_text, drop_repeated, parse_rows, parse_row, Row,
+                     BAND_WORDS_RE)
 
 # --- keys a JSON payload might use for each field, in priority order ---
 NAME_KEYS = ["test_name", "testname", "test", "name", "parameter", "parameter_name",
@@ -81,36 +82,102 @@ RANGE_PATTERNS = [
 ]
 
 
-# The band a laboratory calls normal, when it prints several: "Deficient <20 /
-# Insufficient 21 - 29 / Sufficient 30 - 100", "Normal Or High: >= 90 / Mild ...".
-_NORMAL_BAND = re.compile(
-    r"^\s*(?:normal(?:\s+or\s+high)?|sufficient|optimal|desirable|reference|"
-    r"non[-\s]?diabetic(?:\s+adults?)?|healthy|adequate)\b\s*:?\s*(?P<rng>.+)$", re.I)
+# How laboratories write "less than or equal to" and friends. Folded first, so every
+# form below sees one spelling: "< or = 0.90", "< /= 30", ">/= 190", "=< 5", "Up to 1.2".
+_COMPARATOR_FORMS = [
+    (re.compile(r"<\s*or\s*=|<\s*/\s*=|=\s*<|≤", re.I), "<="),
+    (re.compile(r">\s*or\s*=|>\s*/\s*=|=\s*>|≥", re.I), ">="),
+    (re.compile(r"\bup\s*to\b|\bupto\b", re.I), "<="),
+]
+
+# The label a laboratory gives its healthy band. Matched against the WHOLE label, so
+# "Near/Above Optimal", "Insufficiency", "Pre-diabetic" and "Borderline High" - which
+# contain a healthy word - are not mistaken for it.
+_NORMAL_LABEL = re.compile(
+    r"^(?:normal(?:\s+or\s+high)?|optimal|optimum(?:\s+level)?|desirable(?:\s*/\s*low\s+risk)?|"
+    r"sufficient|sufficiency|non[-\s]?diabet(?:ic|es)(?:\s+adults?)?|healthy|adequate|"
+    r"reference(?:\s+range)?|acceptable|low\s+risk)$", re.I)
+
+_RANGE_PIECE = (r"(?:[<>]=?\s*)?[-+]?\d[\d.,]*(?:\s*(?:-|–|—|to)\s*[-+]?\d[\d.,]*)?"
+                r"(?:\s*[A-Za-zµμ%/^.\d]{0,12})?")
+_LABEL_FIRST = re.compile(r"^\s*(?P<label>[A-Za-z][A-Za-z /()\-]*?)\s*[:=]*\s*(?P<rng>%s)\s*$"
+                          % _RANGE_PIECE)
+_RANGE_FIRST = re.compile(r"^\s*(?P<rng>%s?)\s*(?:[:\-–]\s*|\s)(?P<label>[A-Za-z][A-Za-z /()\-]*)\s*$"
+                          % r"(?:[<>]=?\s*)?[-+]?\d[\d.,]*(?:\s*(?:-|–|—|to)\s*[-+]?\d[\d.,]*)")
+
+
+def _is_unit_word(label):
+    """'uIU/mL', 'mg/dL', 'Ratio' after an interval are its unit, not a band label."""
+    lab = label.strip()
+    return ((" " not in lab and ("/" in lab or "%" in lab))
+            or lab.lower() in ("ratio", "index", "fl", "pg", "sec", "secs", "mm", "u", "iu", "units"))
+
+
+def _band(line):
+    """One printed line of a reference -> (label or None, low, high), or None.
+
+    A word beside the interval that is no band vocabulary is the report's method column
+    ("12 - 15.5 Colorimetric") and leaves the interval unlabelled.
+    """
+    for pat in (_LABEL_FIRST, _RANGE_FIRST):
+        m = pat.match(line)
+        if m and not _is_unit_word(m.group("label")):
+            low, high = _plain_range(m.group("rng"))
+            if low is not None or high is not None:
+                label = re.sub(r"\s+", " ", m.group("label")).strip(" -/:")
+                return (label if BAND_WORDS_RE.search(label) else None), low, high
+    low, high = _plain_range(line)
+    if low is not None or high is not None:
+        return None, low, high
+    return None
 
 
 def parse_reference_range(text):
     """'70 - 99', '< 150', '>= 40', '0.4-4.0 uIU/mL' -> (low, high) floats or Nones.
 
-    A reference printed as several labelled bands yields the band labelled normal /
-    sufficient / optimal. Taking none of them discarded the laboratory's own interval
-    for vitamin D and eGFR and fell back to the dictionary's.
+    A reference printed as labelled bands yields the band the laboratory calls healthy -
+    normal / optimal / desirable / sufficient / non-diabetic - whichever side of the
+    interval the label is printed on ("Sufficient 30 - 100", "< 100 : Normal", "<200 -
+    Desirable"). Where the laboratory calls more than one band acceptable ("< 100 :
+    Normal", "100 - 129 : Desirable") the interval spans them. With no such label, a
+    single unlabelled interval among labelled sub-population notes ("0.3-4.5" /
+    "Pregnant women: First trimester ...") is the interval; anything else yields nothing,
+    and the dictionary's interval applies. Taking none of them discarded the laboratory's
+    own interval for vitamin D and eGFR; taking the first band read "Low: < 40" as HDL's
+    normal range and called an HDL of 52 high.
     """
     if text is None:
         return None, None
     s = str(text).strip()
     if not s:
         return None, None
+    for pat, rep in _COMPARATOR_FORMS:
+        s = pat.sub(rep, s)
 
-    lines = [ln for ln in re.split(r"[\n;|]+", s) if ln.strip()]
-    if len(lines) > 1 or _NORMAL_BAND.match(s):
-        for ln in lines:
-            m = _NORMAL_BAND.match(ln)
-            if m:
-                low, high = parse_reference_range(m.group("rng"))
-                if low is not None or high is not None:
-                    return low, high
-        if len(lines) > 1:
-            return None, None
+    lines = [ln.strip() for ln in re.split(r"[\n;|]+", s) if ln.strip()]
+    bands = [b for b in (_band(ln) for ln in lines) if b is not None]
+    labelled = [b for b in bands if b[0]]
+    if len(lines) > 1 or labelled:
+        normal = [b for b in labelled if _NORMAL_LABEL.match(b[0])]
+        if normal:
+            lows = [b[1] for b in normal]
+            highs = [b[2] for b in normal]
+            return (None if None in lows else min(lows)), (None if None in highs else max(highs))
+        unlabelled = [b for b in bands if not b[0]]
+        if len(lines) > 1 and len(unlabelled) == 1:
+            return unlabelled[0][1], unlabelled[0][2]
+        return None, None
+    # One unlabelled interval, possibly with a method word after it ("12 - 15.5 Colorimetric")
+    if bands:
+        return bands[0][1], bands[0][2]
+    return _plain_range(s)
+
+
+def _plain_range(s):
+    """A single interval with no band label."""
+    s = str(s).strip()
+    if not s:
+        return None, None
 
     # A titre ('1:8', '1:160') is a dilution, not an interval. Reading it as the range
     # 1 to 8 would silently replace the real reference interval with nonsense.
@@ -125,6 +192,7 @@ def parse_reference_range(text):
     # drop a trailing unit so '0.4 - 4.0 uIU/mL' still parses as a numeric interval
     s_clean = re.sub(r"\s*(mg|g|ng|pg|ug|µg|mmol|umol|µmol|mcg|iu|miu|uiu|u|meq|fl|pg|cells|million|lakhs?|thou)\s*/?\s*"
                      r"(dl|l|ml|ul|µl|cumm|mm3|hpf|hr|g|m2|min)?\b\.?", " ", s, flags=re.I)
+    s_clean = re.sub(r"\s*\b(?:ratio|index)\s*$", " ", s_clean, flags=re.I)
     s_clean = s_clean.replace("%", " ").strip()
     for pat in RANGE_PATTERNS:
         m = pat.match(s_clean)
@@ -567,8 +635,9 @@ CTX_TEXT = [
         r"([A-Za-z][A-Za-z .]{1,60})", re.I)),
     # 'Age/Sex : 45 Y / Male' is a very common single-field header, so allow a short
     # run of age text between the label and the sex value.
-    ("sex", re.compile(r"(?:sex|gender)\s*[:\-]\s*[\d\s/yr.]{0,12}(male|female|m|f)\b", re.I)),
-    ("age", re.compile(r"age\s*(?:/\s*sex)?\s*[:\-]?\s*(\d{1,3})\s*(?:y|yr|yrs|years)?", re.I)),
+    ("sex", re.compile(r"\b(?:sex|gender)\s*[:\-]\s*[\d\s/yrs.()ea]{0,16}(male|female|m|f)\b", re.I)),
+    # \b: "Page 1 of 26" contains "age 1", which was being read as the patient's age.
+    ("age", re.compile(r"\bage\s*(?:/\s*sex)?\s*[:\-]?\s*(\d{1,3})\s*(?:y|yr|yrs|years)?", re.I)),
     ("patient_id", re.compile(
         r"(?:uhid|mrn|patient\s*id|reg(?:istration)?\s*(?:no|number))\s*[:\-]\s*"
         r"([A-Za-z0-9\-/]{2,24})", re.I)),
@@ -603,14 +672,20 @@ def _trim_trailing_label(text, match, group=1):
 # layout the looser patterns cannot read, while the laboratory pages that state the
 # details plainly sit ten thousand characters in.
 CTX_LABELLED = [
-    ("name", re.compile(r"patient\s*name\s*:\s*"
+    # "Patient Name : X" or, in a two-column header, "Patient Name    X" - the column gap
+    # stands in for the colon.
+    ("name", re.compile(r"\bpatient\s*name\s*(?::\s*|\s{2,}:?\s*)"
                         r"([A-Za-z][A-Za-z .]{1,60}?)\s*(?:\n|\s{2,}|$)", re.I)),
-    ("age", re.compile(r"(?:dob\s*/\s*)?age\s*(?:/\s*(?:sex|gender))?\s*:\s*(\d{1,3})\s*"
-                       r"(?:y|yr|yrs|years)\b", re.I)),
-    ("sex", re.compile(r"(?:sex|gender)\s*:\s*(?:\d{1,3}\s*(?:y|yr|yrs|years)?\s*/\s*)?"
+    # ...or with neither, when an honorific makes plain where the name begins.
+    ("name", re.compile(r"\bpatient\s*name\s+((?:mr|mrs|ms|miss|master|baby)\.?\s+"
+                        r"[A-Za-z][A-Za-z .]{1,60}?)\s*(?:\n|\s{2,}|$)", re.I)),
+    ("age", re.compile(r"(?:dob\s*/\s*)?\bage\s*(?:/\s*(?:sex|gender))?\s*:\s*(\d{1,3})\s*"
+                       r"(?:y|yr|yrs|years?)(?:\(s\))?(?![a-z])", re.I)),
+    ("sex", re.compile(r"\b(?:sex|gender)\s*:\s*(?:\d{1,3}\s*(?:y|yr|yrs|years?)?(?:\(s\))?\s*/\s*)?"
                        r"(male|female|m|f)\b", re.I)),
-    ("sex", re.compile(r"\b\d{1,3}\s*(?:y|yr|yrs|years)\s*/\s*(male|female|m|f)\b", re.I)),
-    ("patient_id", re.compile(r"(?:patient\s*id|uhid)(?:\s*/\s*uhid)?\s*:\s*([A-Za-z0-9\-]{2,24})", re.I)),
+    ("sex", re.compile(r"\b\d{1,3}\s*(?:y|yr|yrs|years?)(?:\(s\))?\s*/\s*(male|female|m|f)\b", re.I)),
+    ("patient_id", re.compile(r"(?:\bpatient\s*id|\buhid|\bpid\s*no\.?|\bpatient\s*no\.?)(?:\s*/\s*uhid)?\s*:\s*"
+                              r"([A-Za-z0-9\-]{2,24})", re.I)),
 ]
 
 
@@ -705,6 +780,39 @@ def _merge_table_and_text(table_obs, text_obs, resolver):
     return merged
 
 
+def _is_drawing_glyph(text):
+    """Box-drawing, block and geometric-shape characters, and private-use glyphs: the
+    alphabet of barcode and ornament fonts, never part of a result or a patient field."""
+    if not text:
+        return False
+    cp = ord(text[0])
+    return 0x2500 <= cp <= 0x25FF or 0xE000 <= cp <= 0xF8FF
+
+
+def _not_drawing(chars):
+    """A page filter that drops drawing glyphs and the blank characters interleaved
+    with them on the same line - the spaces of a barcode chain lines just as well."""
+    spans = {}
+    for ch in chars:
+        if _is_drawing_glyph(ch.get("text")):
+            key = round(ch["top"], 1)
+            lo, hi = spans.get(key, (ch["x0"], ch["x1"]))
+            spans[key] = (min(lo, ch["x0"]), max(hi, ch["x1"]))
+
+    def keep(obj):
+        if obj.get("object_type") != "char":
+            return True
+        text = obj.get("text") or ""
+        if _is_drawing_glyph(text):
+            return False
+        if not text.strip():
+            span = spans.get(round(obj["top"], 1))
+            if span and span[0] - 1 <= obj["x0"] <= span[1] + 1:
+                return False
+        return True
+    return keep
+
+
 def _has_stacked_glyphs(page):
     """True if any glyph is drawn twice at the same position - one pass, no copies."""
     seen = set()
@@ -729,9 +837,16 @@ def extract_pdf(data, source_name="input.pdf", resolver=None):
         return [], PatientContext(source_file=source_name), ["pdfplumber is not installed"], ""
 
     table_obs, text_obs, warnings, text_parts, rows_by_page = [], [], [], [], []
+    blank_pages = []
     header = None
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         for pageno, page in enumerate(pdf.pages, 1):
+            # A barcode drawn in a block-glyph font is a staircase of characters a couple
+            # of points apart. Line grouping chains through it, fusing the two header
+            # lines beside it ("Patient Name Mr X" / "Age : 35") into one garbled line, so
+            # the patient's name, age and sex were all lost. They are not text.
+            if any(_is_drawing_glyph(ch.get("text")) for ch in page.chars):
+                page = page.filter(_not_drawing(page.chars))
             # Fake-bold text is drawn two or three times at the same spot, which reads as
             # "BBBooorrrdddeeerrr". De-duplicating glyphs is expensive (two thirds of the
             # time on an ordinary report), so it runs only on a page that has them.
@@ -755,19 +870,57 @@ def extract_pdf(data, source_name="input.pdf", resolver=None):
             words = page.extract_words(x_tolerance=1.5, y_tolerance=2.5,
                                        keep_blank_chars=False, use_text_flow=False)
             rows_by_page.append(rows_from_words(words, pageno, page.width))
+            if not page.chars:
+                blank_pages.append(pageno)
 
+    # A page with no text layer is a scan. With the optional OCR stage installed its text
+    # boxes become words and go through the same row reconstruction and parser.
+    ocr_pages = set()
+    if blank_pages:
+        from . import ocr
+        if ocr.available():
+            for pageno, (words, width) in ocr.page_words(data, blank_pages).items():
+                heights = sorted(w["bottom"] - w["top"] for w in words) or [8.0]
+                rows_by_page[pageno - 1] = rows_from_words(
+                    words, pageno, width, y_tol=max(2.6, 0.45 * heights[len(heights) // 2]))
+                text_parts[pageno - 1] = "\n".join(r.text for r in rows_by_page[pageno - 1])
+                ocr_pages.add(pageno)
+            if ocr_pages:
+                warnings.append(
+                    "%d page(s) had no text layer and were read by OCR (optical character "
+                    "recognition). OCR can misread digits and decimal points - check every "
+                    "value below against the original report before acting on it."
+                    % len(ocr_pages))
+
+    state = {}
     for page_rows in drop_repeated(rows_by_page, resolver):
-        for pr in parse_rows(page_rows, resolver):
-            text_obs.append(_obs_from_parsed(pr, "pdf"))
+        for pr in parse_rows(page_rows, resolver, state):
+            o = _obs_from_parsed(pr, "pdf")
+            if pr.source.startswith("page ") and int(pr.source.split(",")[0].split()[1]) in ocr_pages:
+                o.origin = "ocr"
+            text_obs.append(o)
 
     obs = _merge_table_and_text(table_obs, text_obs, resolver)
     full_text = "\n".join(text_parts)
     if not obs:
         warnings.append("no result rows could be read from this PDF")
-    if not full_text.strip():
-        warnings.append("this PDF has no extractable text layer - it is probably a scan, "
-                        "and would need OCR before it can be read")
-    ctx = _context_from_text(full_text, source_name)
+    if blank_pages and not ocr_pages:
+        warnings.append(("this PDF has no extractable text layer - it is probably a scan, "
+                         "and would need OCR before it can be read")
+                        if len(blank_pages) == len(rows_by_page) else
+                        ("%d page(s) of this PDF have no text layer (scanned images) and could "
+                         "not be read - results printed on those pages are missing from this "
+                         "analysis" % len(blank_pages)))
+    # Patient details are read first from the rebuilt rows, where a column gap separates
+    # one header field from the next ("Name : Mr X   VID No. : 123"). The flattened text
+    # joins them with a single space, which made the name "X VID".
+    cell_text = "\n".join("   ".join(t for _x, t in r.cells)
+                          for page_rows in rows_by_page for r in page_rows)
+    ctx = _context_from_text(cell_text, source_name)
+    plain = _context_from_text(full_text, source_name)
+    for f in ("patient_id", "name", "sex", "age", "report_date"):
+        if getattr(ctx, f) is None:
+            setattr(ctx, f, getattr(plain, f))
     return obs, ctx, warnings, full_text
 
 

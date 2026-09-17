@@ -746,11 +746,304 @@ def test_no_control_characters_in_source():
     check("no control characters in engine, tools, tests or config", not bad, str(bad))
 
 
+# ---------------------------------------------------------------- five-laboratory validation
+#
+# Each check below comes from a defect found by running real reports from four laboratories
+# (and one scanned report) through both input paths. The PDFs used here are synthetic
+# replicas of those layouts - tests/fixtures/format_reports.py lists the traits - with
+# invented patients and values.
+
+FORMATS = ROOT / "tests" / "fixtures" / "pdf_formats"
+
+
+def _p(result, pid):
+    return param(result, pid) or {}
+
+
+def test_format_replicas_pdf_equals_json_field_by_field():
+    import format_reports as F
+    import pdfplumber
+    for key in F.REPORTS:
+        pdf = (FORMATS / ("%s.pdf" % key)).read_bytes()
+        res = _diff(pdf, F.as_json(key), key + ".pdf")
+        check("%s layout: PDF and JSON agree on every field" % key, _count(res) == 0,
+              json.dumps({k: res[k] for k in ("context", "missing", "spurious", "field")}, default=str)[:600])
+        check("  %s: nothing unrecognised on either side" % key,
+              res["summary"]["parameters_unmapped"] == {"json": 0, "pdf": 0}, str(res["summary"]))
+        orig = pdfplumber.page.Page.extract_tables
+        pdfplumber.page.Page.extract_tables = lambda self, *a, **k: []
+        try:
+            res_t = _diff(pdf, F.as_json(key), key + ".pdf")
+        finally:
+            pdfplumber.page.Page.extract_tables = orig
+        check("  %s: text layer alone still agrees" % key, _count(res_t) == 0,
+              json.dumps({k: res_t[k] for k in ("missing", "spurious", "field")}, default=str)[:400])
+
+
+def test_stacked_band_layout_reads_what_the_laboratory_printed():
+    r = analyse((FORMATS / "stacked_bands.pdf").read_bytes(), "stacked_bands.pdf")
+    ctx = r["patient"]
+    check("header split only by column gaps: name without the next field's label",
+          ctx["name"] == "Test Rao", repr(ctx["name"]))
+    check("'Age / Gender : 41 Year(s)/ Male' -> 41, male; 'Page 1 of 3' is not an age",
+          ctx["age"] == 41.0 and ctx["sex"] == "male", str(ctx))
+    check("'PID No.' is the patient id", ctx["patient_id"] == "TP0000123", repr(ctx["patient_id"]))
+    hdl = _p(r, "hdl_cholesterol")
+    check("HDL 52 against '< 40 : Low / 40 - 60 : Optimal / > 60 : Desirable' is normal",
+          hdl.get("abnormal") is False and hdl.get("reference_low") == 40.0, str(hdl.get("reference_low")))
+    ldl = _p(r, "ldl_cholesterol")
+    check("LDL 112: inside the lab's Normal+Desirable bands, flagged only by the guideline band",
+          ldl.get("reference_high") == 129.0 and ldl.get("graded_by") == "decision_band", str(ldl.get("graded_by")))
+    vd = _p(r, "vitamin_d")
+    check("'Deficiency | : < 20' split across cells still yields the Optimum band 30-80",
+          (vd.get("reference_low"), vd.get("reference_high")) == (30.0, 80.0) and vd.get("direction") == "low",
+          str((vd.get("reference_low"), vd.get("reference_high"))))
+    hb = _p(r, "hemoglobin")
+    check("haemoglobin in 'gms%' is interpreted as g/dL", hb.get("interpretable") and hb.get("abnormal"),
+          str(hb.get("unit")))
+    for pid, want in (("rbc_count", 5.5), ("wbc_count", 6700.0), ("platelet_count", 233000.0)):
+        q = _p(r, pid)
+        check("%s: unit spelling folded, value %s" % (pid, want),
+              q.get("value") == want and q.get("interpretable"), "%s %s" % (q.get("value"), q.get("unit")))
+    check("'Non Reactive,0.26' is a negative HBsAg", _p(r, "hbsag").get("status") == "negative")
+    check("'Blood group (ABO typing) | O' is read", _p(r, "blood_group_abo").get("category") == "o")
+    check("'Remark' under an 'RBC Morphology' heading is the RBC morphology",
+          _p(r, "rbc_morphology").get("category") == "normocytic normochromic")
+    check("an 'Apolipoproteins B/A1' heading is not an ApoB of 1", not param(r, "apo_b"))
+    check("the ApoB/A1 ratio itself is read", _p(r, "apo_b_apo_a1_ratio").get("value") == 1.23)
+    lf = _p(r, "lh_fsh_ratio")
+    check("LH/FSH ratio for a man: shown, not graded against the female PCOS criterion",
+          lf.get("value") and lf.get("abnormal") is False and lf.get("grade") == "unknown", str(lf.get("grade")))
+    urbc = _p(r, "urine_rbc_count")
+    check("urine 'Red blood cells 12 /hpf' is the microscopy count, abnormal against 0-2",
+          urbc.get("abnormal") and not param(r, "urine_blood"), str(urbc))
+    for pid in ("urine_pathological_casts", "urine_uric_acid_crystals", "urine_bacteria", "urine_yeast_cells"):
+        check("urine %s read (incl. rows continued on the next page without a heading)" % pid,
+              bool(param(r, pid)))
+    check("interpretation prose ('greater than 17 mg/dl') is not an unrecognised test",
+          not r["unmapped_observations"], str([o["raw_name"] for o in r["unmapped_observations"]]))
+
+
+def test_method_column_layout_reads_what_the_laboratory_printed():
+    r = analyse((FORMATS / "method_column.pdf").read_bytes(), "method_column.pdf")
+    ctx = r["patient"]
+    check("'Patient Name : Ms. X   Request Date' stops at the column gap",
+          ctx["name"] == "Ms. Test Devi" and ctx["age"] == 38.0 and ctx["sex"] == "female", str(ctx))
+    check("'Patient No' is the patient id", ctx["patient_id"] == "TST0042", repr(ctx["patient_id"]))
+    for pid, want in (("platelet_count", 285000.0), ("wbc_count", 6100.0), ("absolute_neutrophil_count", 3570.0)):
+        q = _p(r, pid)
+        check("'10^3 /uL' printed apart: %s = %s, not a count per uL" % (pid, want),
+              q.get("value") == want and not q.get("abnormal"), "%s %s" % (q.get("value"), q.get("unit")))
+    names = {d["name"] for d in r["disease_risks"]}
+    check("no thrombocytopenia / leukaemia from a misread multiplier",
+          not ({"Immune Thrombocytopenia (ITP)", "Leukemia (Suspected/Screening)"} & names), str(names))
+    hct = _p(r, "hematocrit")
+    check("'37 - 54  Calculation': the method column does not replace the range",
+          (hct.get("reference_low"), hct.get("reference_high")) == (37.0, 54.0) and hct.get("abnormal"))
+    ratio = _p(r, "tc_hdl_ratio")
+    check("a ratio with '--' in the unit column: 'Calculation' is not its unit",
+          ratio.get("unit") == "ratio" and ratio.get("abnormal") and not ratio.get("derived"), str(ratio.get("unit")))
+    check("'Normal:4.6-5.6' fused label -> HbA1c 4.6-5.6",
+          (_p(r, "hba1c").get("reference_low"), _p(r, "hba1c").get("reference_high")) == (4.6, 5.6))
+    check("'Optimum>60' fused label -> HDL low limit 60", _p(r, "hdl_cholesterol").get("reference_low") == 60.0)
+    ib = _p(r, "indirect_bilirubin")
+    check("'< or = 0.90' parses, so indirect bilirubin 0.08 is not called low",
+          ib.get("reference_high") == 0.9 and ib.get("abnormal") is False, str(ib))
+    check("'Up to 1.2' parses", _p(r, "total_bilirubin").get("reference_high") == 1.2)
+    ag = _p(r, "ag_ratio")
+    check("'A/G RATIO' with no unit is read from the report, not recalculated",
+          ag.get("derived") is False and ag.get("reference_low") == 0.8, str(ag))
+    tt = _p(r, "troponin_t")
+    check("troponin T is its own test, graded against the assay's printed limit",
+          tt.get("abnormal") and tt.get("reference_high") == 0.014 and not param(r, "troponin_i"), str(tt))
+    urgent = [x for x in r["recommendations"] if x["priority"] == "urgent"]
+    check("a raised troponin makes the plan urgent and names the result",
+          any(x["category"] == "Urgent" and "Troponin T" in x["text"] for x in urgent), str([x["text"][-90:] for x in urgent]))
+    check("diet and lifestyle steps are never 'urgent'",
+          not any(x["category"] in ("Diet", "Lifestyle", "Exercise") for x in urgent),
+          str([(x["category"], x["text"][:40]) for x in urgent]))
+
+
+def test_scanned_pages_are_reported_not_silently_empty():
+    import os
+    r = analyse((FORMATS / "scanned.pdf").read_bytes(), "scanned.pdf")
+    check("a fully scanned PDF says it needs OCR", any("no extractable text layer" in w for w in r["warnings"]),
+          str(r["warnings"]))
+    r = analyse((FORMATS / "partly_scanned.pdf").read_bytes(), "partly_scanned.pdf")
+    check("a partly scanned PDF says which results are missing",
+          any("page(s) of this PDF have no text layer" in w for w in r["warnings"]) and param(r, "hemoglobin"),
+          str(r["warnings"]))
+    from engine import ocr
+    saved = os.environ.pop("DRE_ENABLE_OCR", None)
+    try:
+        check("OCR is off unless explicitly enabled (it misread a troponin slip in validation)",
+              ocr.available() is False)
+    finally:
+        if saved is not None:
+            os.environ["DRE_ENABLE_OCR"] = saved
+
+
+def test_barcode_glyphs_do_not_fuse_header_lines():
+    from engine.extract import _not_drawing
+    chars = [{"object_type": "char", "text": ch, "top": top, "x0": x, "x1": x + 2}
+             for top in (108.8, 111.1, 113.5, 115.8, 118.2, 120.5, 122.9, 125.2)
+             for x, ch in ((460, "█"), (462, "▐"), (464, " "), (467, "▌"))]
+    chars += [{"object_type": "char", "text": "N", "top": 110.5, "x0": 58, "x1": 64},
+              {"object_type": "char", "text": " ", "top": 110.5, "x0": 64, "x1": 67}]
+    keep = _not_drawing(chars)
+    kept = [c["text"] for c in chars if keep(c)]
+    check("block-glyph barcode characters and the blanks among them are dropped; text is kept",
+          kept == ["N", " "], str(kept))
+
+
+def test_unit_spellings_fold_to_one_form():
+    from engine.config import norm_unit
+    for a, b in (("gms%", "g/dL"), ("gm/dL", "g/dL"), ("mill/cu.mm", "10^6/uL"), ("mil/µL", "million/uL"),
+                 ("cells/cu.mm", "/uL"), ("10^3 cells/uL", "10^3/uL"), ("thou/µL", "10^3/uL"),
+                 ("x10^3/uL", "10^3/uL"), ("lakhs/cumm", "lakh/cumm"), ("mm/Hour", "mm/hr")):
+        check("unit %r folds with %r" % (a, b), norm_unit(a) == norm_unit(b), "%s vs %s" % (norm_unit(a), norm_unit(b)))
+    for a, b in (("IU/mL", "uIU/mL"), ("mg/dL", "g/dL"), ("10^3/uL", "/uL")):
+        check("different units stay different: %r vs %r" % (a, b), norm_unit(a) != norm_unit(b))
+
+
+def test_reference_band_forms_from_real_reports():
+    from engine.extract import parse_reference_range
+    cases = [
+        ("< 40 : Low\n40 - 60 : Optimal\n> 60 : Desirable", (40, None)),
+        ("< 100   : Normal\n100 - 129 : Desirable\n130 - 159 : Borderline-High", (None, 129)),
+        ("<200 - Desirable\n200-239 - Borderline risk\n>240 - High risk", (None, 200)),
+        ("Deficiency : < 20\nInsufficiency : 20-29\nOptimum Level : 30-80", (30, 80)),
+        ("<5.7: Non-diabetes\n5.7 - 6.4: Prediabetes", (None, 5.7)),
+        ("Optimum>60\nBorderline : 50-59\nHigh risk : <50", (60, None)),
+        ("Optimal: < 100\nNear/Above Optimal: 100 - 129", (None, 100)),
+        ("Low: <40\nHigh >/=60", (None, None)),
+        ("Optimal <130\nDesirable 130-159\nBorderline High 160-189", (None, 159)),
+        ("< /= 30", (None, 30)), ("< or = 0.90", (None, 0.9)), ("Up to 1.2", (None, 1.2)),
+        ("0.5 - 3.0 Desirable/Low Risk\n3.1 - 6.0 Borderline/Moderate Risk", (0.5, 3.0)),
+        ("0.3-4.5\nPregnant women:\nFirst trimester: 0.25-4.33", (0.3, 4.5)),
+        ("Nonsmokers: < 3.0\nSmokers: < 5.0", (None, None)),
+        ("0.67-1.17\nKindly note change in Method and\nreference ranges", (0.67, 1.17)),
+        ("Low: < 1.0\nAverage: 1.0-3.0\nHigh: > 3.0", (None, None)),
+        ("12 - 15.5 Colorimetric", (12, 15.5)), ("0.0-5.0 Ratio", (0.0, 5.0)),
+        ("0.4-4.0 uIU/mL", (0.4, 4.0)),
+    ]
+    norm = lambda t: tuple(None if x is None else float(x) for x in t)
+    for text, want in cases:
+        got = parse_reference_range(text)
+        check("range %r -> %s" % (text.replace("\n", " / ")[:48], want), norm(got) == norm(want), str(got))
+
+
+def test_names_that_used_to_resolve_to_the_wrong_test():
+    for name, want in (("A/G", None), ("A/G RATIO", "ag_ratio"), ("Apolipoproteins B/A", None),
+                       ("Apolipoprotein B/A1 Ratio", "apo_b_apo_a1_ratio"),
+                       ("Urine Protein (Albumin) Absent", "urine_protein"),
+                       ("Vitamin D/B12/Folate", "vitamin_d"), ("Troponin T", "troponin_t"),
+                       ("TNI", "troponin_i"), ("HIV-1 ANTIBODIES", "hiv_screen"),
+                       ("HEPATITIS C ABS", "anti_hcv"), ("Transferrin", "transferrin"),
+                       ("Transferrin saturation", "transferrin_saturation"),
+                       ("CRY - Uric acid", "urine_uric_acid_crystals"), ("Uric Acid", "uric_acid")):
+        check("name %r -> %s" % (name, want), RESOLVE(name) == want, str(RESOLVE(name)))
+
+
+def test_a_reference_line_is_not_a_count_result():
+    from engine.layout import parse_row
+    row = Row(cells=[(0.0, "TNI"), (100.0, "0.00-0.02"), (200.0, ">0.02")], source="t")
+    p = parse_row(row, RESOLVE)
+    check("'TNI | 0.00-0.02 | >0.02' is not a troponin result of 0.00-0.02",
+          p is None or p.value != "0.00-0.02", str(p and p.value))
+    row = Row(cells=[(0.0, "Pus Cells"), (100.0, "8-10"), (160.0, "/hpf"), (220.0, "0 - 5")], source="t")
+    p = parse_row(row, RESOLVE)
+    check("'Pus Cells | 8-10 | /hpf' is still a count result", p is not None and p.value == "8-10",
+          str(p and p.value))
+
+
+def test_units_and_bands_of_a_scanned_style_json_report():
+    tests = [
+        {"test_name": "RED BLOOD CELL (RBC) COUNT", "value": "4.47", "unit": "mil/µL", "reference_range": "4.5 - 5.5"},
+        {"test_name": "ABSOLUTE LYMPHOCYTE COUNT", "value": "1.06", "unit": "thou/µL", "reference_range": "1.0 - 3.0"},
+        {"test_name": "HDL CHOLESTEROL", "value": "61", "unit": "mg/dL", "reference_range": "Low: <40\nHigh >/=60", "flag": "High"},
+        {"test_name": "VERY LOW DENSITY LIPOPROTEIN", "value": "52.4", "unit": "mg/dL", "reference_range": "< /= 30"},
+        {"test_name": "CHOL/HDL RATIO", "value": "3.7", "reference_range": "Optimal < 3.5\nDesirable 3.5 - 5.0\nHigh Risk > 5.0"},
+        {"test_name": "TSH (ULTRASENSITIVE)", "value": "1.400", "unit": "IU/mL",
+         "reference_range": "0.3-4.5\nPregnant women:\nFirst trimester: 0.25-4.33"},
+        {"test_name": "HIV-1 ANTIBODIES", "value": "NON REACTIVE"},
+        {"test_name": "TNI", "value": "0.17", "unit": "ng/mL", "reference_range": "0.00-0.02"},
+    ]
+    r = analyse({"patient": {"name": "Test Agil", "age": "54 Years", "sex": "Male"}, "tests": tests})
+    check("RBC 'mil/µL' interpreted and low", _p(r, "rbc_count").get("interpretable") and _p(r, "rbc_count").get("abnormal"))
+    check("'thou/µL' converts to /uL", _p(r, "absolute_lymphocyte_count").get("value") == 1060.0)
+    check("HDL 61 flagged 'High' by the lab is protective, not abnormal", _p(r, "hdl_cholesterol").get("abnormal") is False)
+    check("'< /= 30' makes VLDL 52.4 high", _p(r, "vldl_cholesterol").get("abnormal") is True)
+    check("Chol/HDL 3.7 inside Optimal+Desirable is not abnormal", _p(r, "tc_hdl_ratio").get("abnormal") is False)
+    tsh = _p(r, "tsh")
+    check("TSH in an unrecognised unit is graded only against its own printed interval",
+          tsh.get("reference_source") == "report" and tsh.get("abnormal") is False, str(tsh))
+    check("'HIV-1 ANTIBODIES: NON REACTIVE' is a negative HIV screen", _p(r, "hiv_screen").get("status") == "negative")
+    check("'TNI 0.17' is a raised troponin I", _p(r, "troponin_i").get("abnormal") is True)
+    check("the urgent step names the troponin result",
+          any(x["priority"] == "urgent" and "Troponin I 0.17" in x["text"] for x in r["recommendations"]))
+
+
+def _cond(tests, name, sex="male"):
+    r = analyse({"patient": {"sex": sex, "age": "40"}, "tests": tests})
+    return next(((d["evidence_level"], d["presentation_tier"]) for d in r["disease_risks"] if d["name"] == name), None)
+
+
+def test_measured_normal_markers_argue_against_a_single_marker_pattern():
+    T = lambda n, v, u, rg: {"test_name": n, "value": v, "unit": u, "reference_range": rg}
+    got = _cond([T("Hemoglobin", "17.2", "g/dL", "13-17"), T("Hematocrit", "46", "%", "40-50"),
+                 T("RBC Count", "5.1", "mill/cumm", "4.5-5.5")], "Polycythemia")
+    check("Hb just high with haematocrit and RBC normal: polycythaemia not presented as a pattern",
+          got is None or got[1] == "insufficient", str(got))
+    got = _cond([T("Hemoglobin", "18.5", "g/dL", "13-17"), T("Hematocrit", "55", "%", "40-50"),
+                 T("RBC Count", "6.3", "mill/cumm", "4.5-5.5")], "Polycythemia")
+    check("Hb, haematocrit and RBC all raised: still a supported pattern", got and got[1] == "pattern", str(got))
+    got = _cond([T("Transferrin saturation", "17.7", "%", "20-50"), T("Iron", "58.8", "ug/dL", "33-193"),
+                 T("TIBC", "332", "ug/dL", "240-450")], "Iron Deficiency Anemia")
+    check("low TSAT with iron and TIBC normal: iron deficiency anaemia not a supported pattern",
+          got is None or got[1] == "insufficient", str(got))
+    got = _cond([T("Transferrin saturation", "12", "%", "20-50"), T("Ferritin", "8", "ng/mL", "30-400"),
+                 T("Iron", "30", "ug/dL", "33-193"), T("TIBC", "470", "ug/dL", "240-450")], "Iron Deficiency Anemia")
+    check("low ferritin, iron and TSAT with high TIBC: supported", got and got[1] == "pattern", str(got))
+    got = _cond([T("TSH", "5.05", "uIU/mL", "0.54-5.3"), T("FT4", "1.39", "ng/dL", "0.93-1.7"),
+                 T("FT3", "2.9", "pg/mL", "2.0-4.4")], "Hypothyroidism")
+    check("TSH 5.05 with free T4 and T3 normal: hypothyroidism not a supported pattern",
+          got is None or got[1] == "insufficient", str(got))
+    got = _cond([T("TSH", "12", "uIU/mL", "0.54-5.3"), T("FT4", "0.6", "ng/dL", "0.93-1.7")], "Hypothyroidism")
+    check("TSH 12 with free T4 low: supported", got and got[1] == "pattern", str(got))
+
+
+def test_advice_is_never_given_for_the_opposite_direction():
+    T = lambda n, v, u, rg: {"test_name": n, "value": v, "unit": u, "reference_range": rg}
+    high = analyse({"patient": {"sex": "male"}, "tests": [T("Hemoglobin", "17.2", "g/dL", "13-17")]})
+    low = analyse({"patient": {"sex": "female"}, "tests": [T("Hemoglobin", "9.0", "g/dL", "12-15")]})
+    check("a HIGH haemoglobin gets no anaemia advice",
+          not any("Anaemia" in x["text"] for x in high["recommendations"]))
+    check("a LOW haemoglobin still does", any("Anaemia" in x["text"] for x in low["recommendations"]))
+    lf = analyse({"patient": {"sex": "female"}, "tests": [T("LH", "9.0", "mIU/mL", "1.7-8.6"),
+                                                         T("FSH", "3.0", "mIU/mL", "1.4-15.4")]})
+    check("the LH/FSH ratio is still graded for a woman", _p(lf, "lh_fsh_ratio").get("grade") not in (None, "unknown"))
+
+
 def test_private_real_reports_when_present():
     """Real reports live in the git-ignored private/ folder beside a *_truth.json
     transcription. When present they must diff to zero; elsewhere this is skipped."""
     pairs = [(p, p.with_name(p.stem + "_truth.json")) for p in sorted((ROOT / "private").glob("*.pdf"))]
+    pairs += [(p, p.parent / "truth" / (p.stem + "_truth.json"))
+              for p in sorted((ROOT / "private" / "multi").glob("report_*.pdf"))]
     pairs = [(p, t) for p, t in pairs if t.exists()]
+    # A scanned report cannot be read without OCR; it is checked for its warning instead.
+    scanned = []
+    for p, t in list(pairs):
+        import pdfplumber
+        with pdfplumber.open(str(p)) as doc:
+            if not any(pg.chars for pg in doc.pages):
+                scanned.append(p)
+                pairs.remove((p, t))
+    for p in scanned:
+        r = analyse(p.read_bytes(), p.name)
+        check("real scanned report %s says it needs OCR" % p.stem,
+              any("no extractable text layer" in w for w in r.get("warnings", [])))
     if not pairs:
         check("private real-report check skipped - none present", True)
         return

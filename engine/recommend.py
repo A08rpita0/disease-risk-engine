@@ -20,6 +20,8 @@ import re
 from .models import Recommendation
 
 PRIORITY_ORDER = {"urgent": 0, "high": 1, "medium": 2, "low": 3}
+# Only steps about getting care can carry "urgent".
+URGENT_CATEGORIES = {"Urgent", "Consultation", "Testing"}
 # Steps that confirm or rule a pattern out. The only ones an unsupported pattern gets.
 CONFIRMATION_CATEGORIES = {"Urgent", "Consultation", "Testing"}
 
@@ -91,11 +93,21 @@ class RecommendationEngine:
             spec = self.lib["urgency_actions"][top_tier]
             names = [r.name for r in risks
                      if r.urgency_tier == top_tier and r.evidence_level in GUIDANCE_LEVELS][:4]
+            # Name the result that set the triage level. "One or more findings need
+            # same-day assessment" under a cardiovascular heading did not say that the
+            # finding was a troponin of 0.17 ng/mL.
+            drivers = [h for c in cohort_hits if c.urgency_override == top_tier
+                       for h in c.hits if h.role == "trigger" and h.effective_weight > 0]
+            text = spec["text"]
+            if drivers:
+                text += " The result behind this: %s." % "; ".join(
+                    "%s %s" % (h.parameter_name, h.observed) for h in drivers[:3])
             add(Recommendation(
-                category=spec["category"], priority=spec["priority"], text=spec["text"],
+                category=spec["category"], priority=spec["priority"], text=text,
                 because="based on the most urgent finding in this report",
                 trace="urgency", trace_detail=top_tier,
-                sources=names or ["overall triage level"]))
+                sources=[c.name for c in cohort_hits if c.urgency_override == top_tier][:2]
+                + names or ["overall triage level"]))
 
         # ---- 2. Disease Master guidance for the conditions actually flagged ----
         guidance_risks = [r for r in risks if r.evidence_level in GUIDANCE_LEVELS]
@@ -151,6 +163,10 @@ class RecommendationEngine:
             if not param.abnormal:
                 continue
             for spec in self.lib.get("parameter_actions", {}).get(pid, []):
+                # Advice written for one direction ("Anaemia is a finding...") is never
+                # given for the other - a haemoglobin of 17.2 is not anaemia.
+                if spec.get("direction") and spec["direction"] != param.direction:
+                    continue
                 add(Recommendation(
                     category=spec["category"], priority=spec["priority"], text=spec["text"],
                     because="your %s was flagged (%s)" % (
@@ -241,8 +257,13 @@ class RecommendationEngine:
                 text=("These results are outside their range and no other step in this plan "
                       "covers them: %s. Show them to your doctor, who can judge whether any "
                       "needs repeating."
-                      % "; ".join("%s %s%s" % (f["name"], _fmt_value(f["value"]),
-                                               (" " + f["unit"]) if f["unit"] else "")
+                      % "; ".join("%s %s%s%s" % (f["name"], _fmt_value(f["value"]),
+                                                 (" " + f["unit"]) if f["unit"] else "",
+                                                 # inside the lab's own interval, outside a
+                                                 # configured guideline band - say which
+                                                 " (within the laboratory's interval; outside "
+                                                 "the guideline band)"
+                                                 if f.get("graded_by") == "decision_band" else "")
                                   for f in milder[:10])),
                 because="results outside range not covered by another step",
                 trace="lab_finding",
@@ -288,6 +309,12 @@ class RecommendationEngine:
             if PRIORITY_ORDER[drop.priority] < PRIORITY_ORDER[keep.priority]:
                 keep.priority = drop.priority
             best[key] = keep
+        # "Urgent" means seek care now. Diet, activity and lifestyle advice for the same
+        # condition is not made urgent by it - "reduce alcohol" was printed as urgent
+        # beside a raised troponin.
+        for rec in best.values():
+            if rec.priority == "urgent" and rec.category not in URGENT_CATEGORIES:
+                rec.priority = "high"
         return [best[k] for k in order]
 
     @staticmethod
