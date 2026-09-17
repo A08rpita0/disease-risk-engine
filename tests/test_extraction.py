@@ -999,6 +999,26 @@ def test_units_and_bands_of_a_scanned_style_json_report():
           any(x["priority"] == "urgent" and "Troponin I 0.17" in x["text"] for x in r["recommendations"]))
 
 
+def test_urgent_wording_is_the_specific_action_and_nothing_routine_inherits_it():
+    tests = [
+        {"test_name": "TNI", "value": "0.17", "unit": "ng/mL", "reference_range": "0.00-0.02"},
+        {"test_name": "TRIGLYCERIDES", "value": "262", "unit": "mg/dL", "reference_range": "Normal <150"},
+        {"test_name": "HDL CHOLESTEROL", "value": "38", "unit": "mg/dL", "reference_range": "Low: <40\nHigh >/=60"},
+        {"test_name": "NON HDL CHOLESTEROL", "value": "163", "unit": "mg/dL", "reference_range": "Optimal <130"},
+        {"test_name": "CHOLESTEROL, TOTAL", "value": "201", "unit": "mg/dL", "reference_range": "Desirable <200"},
+    ]
+    r = analyse({"patient": {"age": "54", "sex": "Male"}, "tests": tests})
+    urgent = [x for x in r["recommendations"] if x["priority"] == "urgent"]
+    check("a raised troponin gives exactly one urgent step", len(urgent) == 1,
+          str([(x["category"], x["text"][:60]) for x in urgent]))
+    check("  it is the troponin-specific action, not generic triage wording",
+          urgent and "heart muscle injury" in urgent[0]["text"], str([x["text"] for x in urgent]))
+    check("  and it names the result behind it",
+          urgent and "Troponin I 0.17" in urgent[0]["text"], str([x["text"] for x in urgent]))
+    check("  cardiovascular-risk and lifestyle advice for the same condition is not urgent",
+          not any("calculate your overall cardiovascular risk" in x["text"] for x in urgent))
+
+
 def _cond(tests, name, sex="male"):
     r = analyse({"patient": {"sex": sex, "age": "40"}, "tests": tests})
     return next(((d["evidence_level"], d["presentation_tier"]) for d in r["disease_risks"] if d["name"] == name), None)

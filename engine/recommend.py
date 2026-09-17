@@ -22,6 +22,7 @@ from .models import Recommendation
 PRIORITY_ORDER = {"urgent": 0, "high": 1, "medium": 2, "low": 3}
 # Only steps about getting care can carry "urgent".
 URGENT_CATEGORIES = {"Urgent", "Consultation", "Testing"}
+TRIGGER_CLAUSE = "The result behind this:"
 # Steps that confirm or rule a pattern out. The only ones an unsupported pattern gets.
 CONFIRMATION_CATEGORIES = {"Urgent", "Consultation", "Testing"}
 
@@ -100,7 +101,7 @@ class RecommendationEngine:
                        for h in c.hits if h.role == "trigger" and h.effective_weight > 0]
             text = spec["text"]
             if drivers:
-                text += " The result behind this: %s." % "; ".join(
+                text += " " + TRIGGER_CLAUSE + " %s." % "; ".join(
                     "%s %s" % (h.parameter_name, h.observed) for h in drivers[:3])
             add(Recommendation(
                 category=spec["category"], priority=spec["priority"], text=text,
@@ -303,6 +304,18 @@ class RecommendationEngine:
                 order.append(key)
                 continue
             keep, drop = (rec, prev) if len(rec.text) > len(prev.text) else (prev, rec)
+            # An urgent step's wording is never replaced by a non-urgent one: the longer
+            # text used to win and carry the urgency off with it.
+            if drop.priority == "urgent" and keep.priority != "urgent":
+                keep, drop = drop, keep
+            # Two urgent steps: the specific action ("A raised troponin means heart muscle
+            # injury ...") is kept over the generic triage wording, and takes the
+            # sentence naming the result that set the triage level.
+            if keep.priority == drop.priority == "urgent" and keep.trace == "urgency" \
+                    and drop.trace != "urgency":
+                keep, drop = drop, keep
+            if drop.trace == "urgency" and TRIGGER_CLAUSE in drop.text and TRIGGER_CLAUSE not in keep.text:
+                keep.text = keep.text.rstrip() + " " + drop.text[drop.text.index(TRIGGER_CLAUSE):]
             for s in drop.sources:
                 if s not in keep.sources:
                     keep.sources.append(s)
@@ -474,8 +487,10 @@ def _urgency_rank(risk):
 
 
 def _priority_for(risk):
-    if risk.urgency_tier == "emergency":
-        return "urgent"
-    if risk.urgency_tier == "specialist" or risk.evidence_level == "High":
+    # A condition's emergency tier makes its triage step and its own urgent actions
+    # urgent. Its general Disease Master guidance is not thereby urgent: that is how
+    # "ask your doctor to calculate your overall cardiovascular risk" came to be printed
+    # as urgent beside a raised troponin.
+    if risk.urgency_tier in ("emergency", "specialist") or risk.evidence_level == "High":
         return "high"
     return "medium"
