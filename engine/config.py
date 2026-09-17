@@ -53,6 +53,14 @@ def norm_key(text):
     return text
 
 
+# Qualitative result states, and the status each is graded as unless a parameter
+# declares its own `state_grading`. Only POSITIVE and NEGATIVE are clinical claims; the
+# others record what was printed and are never read as negative.
+QUAL_STATES = ("positive", "negative", "equivocal", "weak_positive", "trace", "normal_text")
+QUAL_STATE_STATUS = {"positive": "positive", "negative": "negative", "equivocal": "indeterminate",
+                     "weak_positive": "indeterminate", "trace": "indeterminate",
+                     "normal_text": "normal"}
+
 # Words laboratories use interchangeably for the same thing. Folded before the fallback
 # lookup only - never used to decide between two exact aliases. Each pair is a naming
 # variant of ONE assay; nothing here merges two different tests.
@@ -156,6 +164,8 @@ class Config:
         self.param_meta = pm["meta"]
         self.parameters = pm["parameters"]
         self.qual_vocab = pm["qualitative_vocabulary"]
+        self.context_bands = {k: v for k, v in (pm.get("context_bands") or {}).items()
+                              if isinstance(v, dict)}
 
         self.cohorts = []
         cohort_dir = self.dir / "cohorts"
@@ -169,6 +179,7 @@ class Config:
                 self.cohorts.append(c)
 
         self.unmappable = self._read("unmappable.json")
+        self.presentation = self._read("presentation.json")
         self.exclusions = self._read("exclusions.json")
         try:
             self.recommendations = self._read("recommendations.json")
@@ -221,9 +232,19 @@ class Config:
             for link in c.get("diseases", []):
                 self.links_by_disease.setdefault(link["name"], []).append((c, link))
 
-        self.qual_positive = {norm_key(v) for v in self.qual_vocab["positive"]}
-        self.qual_negative = {norm_key(v) for v in self.qual_vocab["negative"]}
-        self.qual_indeterminate = {norm_key(v) for v in self.qual_vocab["indeterminate"]}
+        # Result STATES - how a qualitative result was written. Longest phrase wins across
+        # all of them (see Normalizer._qual_state). An older vocabulary with a single
+        # "indeterminate" list is read as "equivocal".
+        v = self.qual_vocab
+        self.qual_states = {
+            state: {norm_key(w) for w in (v.get(state) or [])}
+            for state in QUAL_STATES}
+        if v.get("indeterminate"):
+            self.qual_states["equivocal"] |= {norm_key(w) for w in v["indeterminate"]}
+        self.qual_positive = self.qual_states["positive"]
+        self.qual_negative = self.qual_states["negative"]
+        self.qual_indeterminate = (self.qual_states["equivocal"] | self.qual_states["weak_positive"]
+                                   | self.qual_states["trace"])
         # keep the raw symbol forms too, which norm_key would strip
         self.qual_positive_raw = {v.strip().lower() for v in self.qual_vocab["positive"]}
         self.qual_negative_raw = {v.strip().lower() for v in self.qual_vocab["negative"]}

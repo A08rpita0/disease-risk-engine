@@ -60,7 +60,8 @@ def evaluate_condition(param, cond):
         want = cond["abnormal"]
         if want == "none":
             if param.kind == "qualitative":
-                return param.status == "negative", "reported as %s" % param.status
+                # "Normal" (within the expected amount) is as much "not abnormal" as negative
+                return param.status in ("negative", "normal"), "reported as %s" % param.status
             if param.value is None:
                 return False, None
             return (not param.abnormal), "%s %s (within range)" % (_v(param.value), param.unit or "")
@@ -190,13 +191,18 @@ class CohortEngine:
 
     def _eval_weighted(self, cohort, patient, observed, missing, coverage):
         trigger_hits = self._collect(cohort.get("triggers", []), patient, "trigger")
-        distinct_trigger_params = {h.parameter_id for h in trigger_hits}
+        fired_triggers = {h.parameter_id for h in trigger_hits}
+        # A value calculated from a trigger that already fired is not a second, independent
+        # trigger: a TG/HDL ratio raised only because triglycerides are raised (HDL normal)
+        # made "high triglycerides + low HDL" count as met on triglycerides alone.
+        distinct_trigger_params = {h.parameter_id for h in trigger_hits
+                                   if not self._calculated_from(h.parameter_id, fired_triggers)}
         min_triggers = cohort.get("min_triggers", 1)
         if len(distinct_trigger_params) < min_triggers:
             return None, None
 
         support_hits = self._collect(cohort.get("supporting", []), patient, "supporting")
-        all_hits = self._apply_redundancy(trigger_hits + support_hits)
+        all_hits = self._apply_input_redundancy(self._apply_redundancy(trigger_hits + support_hits))
 
         fired = sum(h.effective_weight for h in all_hits)
         # Denominator: the trigger weight required to fire, plus an allowance for
@@ -274,7 +280,7 @@ class CohortEngine:
             return None, None
 
         support_hits = self._collect(cohort.get("supporting", []), patient, "supporting")
-        all_hits = self._apply_redundancy(comp_hits + support_hits)
+        all_hits = self._apply_input_redundancy(self._apply_redundancy(comp_hits + support_hits))
 
         # Confidence scales with how far past the threshold the patient is.
         total_components = len(cohort.get("components", []))
@@ -323,6 +329,35 @@ class CohortEngine:
                 weight=round(base, 4), effective_weight=round(base * sev, 4), role=role,
                 redundancy_group=self.cfg.param_by_id[ref["parameter"]].get("redundancy_group")))
         return out
+
+    def _calculated_from(self, pid, fired):
+        """The input, among `fired`, that parameter `pid` is calculated from - or None.
+
+        Only inputs in a DIFFERENT redundancy group count: where a calculated value
+        shares its input's group (ApoB/ApoA1 ratio with ApoB) the group discount
+        already applies and is left exactly as it was."""
+        pdef = self.cfg.param_by_id.get(pid) or {}
+        group = pdef.get("redundancy_group")
+        for src in (pdef.get("derived_from") or {}).get("inputs", []):
+            if src != pid and src in fired and                     self.cfg.param_by_id.get(src, {}).get("redundancy_group") != group:
+                return src
+        return None
+
+    def _apply_input_redundancy(self, hits):
+        """Discount a calculated value whose input already counts in this cluster.
+
+        The formula inputs come from the parameter dictionary and the discount is the
+        existing REDUNDANCY_DISCOUNT - no new weight. The calculated value stays listed,
+        with what it was discounted against."""
+        counting = {h.parameter_id: h for h in hits if h.effective_weight > 0}
+        for h in hits:
+            if h.suppressed_by or h.effective_weight <= 0:
+                continue
+            src = self._calculated_from(h.parameter_id, set(counting) - {h.parameter_id})
+            if src:
+                h.effective_weight = round(h.effective_weight * REDUNDANCY_DISCOUNT, 4)
+                h.suppressed_by = "calculated from %s, which already counts here" % counting[src].parameter_name
+        return sorted(hits, key=lambda h: h.effective_weight, reverse=True)
 
     def _apply_redundancy(self, hits):
         """Keep full weight for the strongest signal in each redundancy group; discount

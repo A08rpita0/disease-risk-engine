@@ -110,6 +110,7 @@
         },
         {
           "name": "Cardiovascular / Coronary Artery Disease",
+          "presented_as": "cardiovascular_risk_signal",
           "role": "supporting",
           "weight": 0.45,
           "dm_basis": "Related Markers/Tests lists Total Cholesterol, LDL, HDL, Triglycerides; High-Risk Indicators names 'High LDL + Low HDL + High Triglycerides together'"
@@ -204,6 +205,7 @@
       "diseases": [
         {
           "name": "Cardiovascular / Coronary Artery Disease",
+          "presented_as": "cardiovascular_risk_signal",
           "role": "primary",
           "weight": 0.72,
           "dm_basis": "High-Risk Indicators: 'High LDL + Low HDL + High Triglycerides together (Critically High per risk summary)'; Related Markers/Tests lists Total Cholesterol, LDL, APO A, APO B"
@@ -282,6 +284,7 @@
       "diseases": [
         {
           "name": "Cardiovascular / Coronary Artery Disease",
+          "presented_as": "cardiovascular_risk_signal",
           "role": "primary",
           "weight": 0.68,
           "dm_basis": "High-Risk Indicators explicitly names 'High APO B / Low APO A ratio'; Related Markers/Tests lists APO A and APO B"
@@ -355,6 +358,7 @@
       "diseases": [
         {
           "name": "Cardiovascular / Coronary Artery Disease",
+          "presented_as": "cardiovascular_risk_signal",
           "role": "supporting",
           "weight": 0.5,
           "dm_basis": "High-Risk Indicators names 'High Homocysteine'; Related Markers/Tests lists Homocysteine"
@@ -448,6 +452,7 @@
       "diseases": [
         {
           "name": "Cardiovascular / Coronary Artery Disease",
+          "presented_as": "possible_myocardial_injury",
           "role": "primary",
           "weight": 0.9,
           "dm_basis": "High-Risk Indicators names 'High Troponin (acute)'; Severity/Urgency Level: 'Emergency if acute chest pain/suspected heart attack'"
@@ -1000,6 +1005,7 @@
         },
         {
           "name": "Cardiovascular / Coronary Artery Disease",
+          "presented_as": "cardiovascular_risk_signal",
           "role": "downstream_risk",
           "weight": 0.5,
           "dm_basis": "Possible Complications on the Metabolic Syndrome row names cardiovascular disease as the principal downstream outcome"
@@ -1138,6 +1144,7 @@
         },
         {
           "name": "Cardiovascular / Coronary Artery Disease",
+          "presented_as": "cardiovascular_risk_signal",
           "role": "downstream_risk",
           "weight": 0.38,
           "dm_basis": "External Risk Factors on the Cardiovascular row name hypertension among the major modifiable contributors"
@@ -1209,6 +1216,7 @@
       "diseases": [
         {
           "name": "Cardiovascular / Coronary Artery Disease",
+          "presented_as": "cardiovascular_risk_signal",
           "role": "supporting",
           "weight": 0.4,
           "dm_basis": "Other Important Factors and External Risk Factors on the Cardiovascular row treat inflammatory burden as a contributing factor; hs-CRP is a Cardiac Profile marker"

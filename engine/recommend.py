@@ -225,6 +225,23 @@ class RecommendationEngine:
                 trace="lab_noted", trace_detail=",".join(f["finding_basis"] for f in marked[:8]),
                 sources=[f["name"] for f in marked[:8]]))
 
+        # ---- 6c. readings flagged for checking ----
+        suspicious = [p for p in patient.parameters.values()
+                      if getattr(p, "data_quality", "valid") == "suspicious" and not p.derived]
+        if suspicious:
+            add(Recommendation(
+                category="Testing", priority="high",
+                text="Ask the laboratory to confirm these results, which are unusually far from "
+                     "their range or were reported inconsistently: %s. Extreme results can be "
+                     "real - do not delay any urgent step in this plan while checking." % "; ".join(
+                         "%s %s%s (%s)" % (p.name, _fmt_value(p.value if p.value is not None else p.status),
+                                           (" " + p.unit) if p.unit and p.value is not None else "",
+                                           p.data_quality_reason) for p in suspicious[:6]),
+                because="these readings were flagged for checking",
+                trace="data_quality", trace_detail=",".join(p.parameter_id for p in suspicious[:6]),
+                finding="Results to confirm", finding_kind="general",
+                sources=[p.name for p in suspicious[:6]]))
+
         # ---- 7. baseline ----
         if not any(p.abnormal for p in patient.parameters.values()) and not marked:
             for spec in self.lib.get("no_abnormality", []):
@@ -297,6 +314,12 @@ class RecommendationEngine:
             rec.finding = rec.finding or rec.sources[0]
             self._enrich(rec, patient, risks, cohort_hits)
         recs += extra
+
+        # A step about a condition is headed the way the evidence lets it be named: the
+        # lipid advice is under "Cardiovascular risk signal", not under a disease name.
+        display = {r.name: (r.display_name or r.name) for r in risks}
+        for rec in recs:
+            rec.finding_display = display.get(rec.finding, rec.finding)
 
         recs.sort(key=lambda r: (PRIORITY_ORDER[r.priority],
                                  CATEGORY_ORDER.index(r.category) if r.category in CATEGORY_ORDER else 99))

@@ -7,6 +7,13 @@
     "reference_note": "Reference intervals are widely used adult intervals (Tietz / NCEP ATP III / ADA / KDIGO / WHO where noted per parameter). Any range supplied on the patient's own report overrides these.",
     "bands_authority_note": "bands_are_decision_thresholds: true marks a band set that comes from a named clinical guideline and therefore outranks a reference interval printed on the patient's own report - 'HbA1c >= 6.5% is the diabetes range' holds whatever a lab prints. Band sets WITHOUT this flag are an encoded reference interval, and the laboratory's own range wins when it supplies one."
   },
+  "context_bands": {
+    "note": "Printed reference bands that apply to a sub-population ('Nonsmokers: < 3.0 / Smokers: < 5.0'). The label words below say which context value a band is for. With the context unknown, a result is graded only where every printed band agrees; otherwise it is reported as depending on that context. No interval is invented here - only the report's own bands are used.",
+    "smoking": {
+      "true": ["smoker", "smokers", "current smoker", "current smokers"],
+      "false": ["non smoker", "non smokers", "nonsmoker", "nonsmokers", "non-smoker", "non-smokers", "never smoker", "never smokers"]
+    }
+  },
   "qualitative_vocabulary": {
     "positive": [
       "positive",
@@ -35,27 +42,37 @@
       "nil",
       "none",
       "no",
-      "normal",
       "no growth",
       "not seen",
       "-"
     ],
-    "indeterminate": [
+    "equivocal": [
       "equivocal",
       "borderline",
       "indeterminate",
       "inconclusive",
       "grey zone",
       "gray zone",
-      "trace",
-      "traces",
+      "borderline reactive"
+    ],
+    "weak_positive": [
       "faint",
       "faintly positive",
       "weak positive",
+      "weakly positive",
       "weakly reactive",
-      "borderline reactive",
       "low positive"
     ],
+    "trace": [
+      "trace",
+      "traces"
+    ],
+    "normal_text": [
+      "normal",
+      "within normal limits",
+      "wnl"
+    ],
+    "states_note": "How a result was WRITTEN, not what it means clinically. 'normal_text' is 'within the expected amount' (urobilinogen is normally present), never 'not detected', and never excludes a condition. 'weak_positive', 'trace' and 'equivocal' are kept apart for display and are graded as equivocal unless a parameter declares its own `state_grading` - no clinical meaning is assumed for them here.",
     "numeric_note": "A bare number on a qualitative test is reported as equivocal unless the parameter declares `numeric_interpretation`. Dipstick grades ('3+') and titres ('1:80') are recognised by notation and read as positive; those are facts about how the result was written, not clinical thresholds."
   },
   "parameters": [
@@ -1270,12 +1287,20 @@
       "unit": "mL/min/1.73m2",
       "units": {
         "ml/min/1.73m2": 1,
-        "ml/min": 1,
         "ml/min/1.73 m2": 1,
         "ml/min/1.73 sq m": 1,
         "ml/min/1.73sqm": 1,
         "ml/min/1.73 sq.m": 1,
         "ml/min/1.73": 1
+      },
+      "unit_context": {
+        "basis": "KDIGO 2012 CKD guideline: GFR categories G1-G5 are defined on GFR indexed to 1.73 m2 body surface area. Cockcroft-Gault estimates creatinine clearance in mL/min, not indexed; indexing needs height and weight, which a report does not give.",
+        "unindexed_units": ["ml/min"],
+        "unindexed_methods": "cockcroft(?:[\\s-]*gault)?|creatinine\\s+clearance|\\bcrcl\\b",
+        "indexed_methods": "ckd[\\s-]*epi|mdrd",
+        "note_unindexed_unit": "reported in mL/min, which is not indexed to body surface area, so it is compared only with the report's own interval and is not used for kidney-disease (CKD) staging",
+        "note_unindexed_method": "the report names %s, which estimates creatinine clearance and is not indexed to body surface area, so it is compared only with the report's own interval and is not used for kidney-disease (CKD) staging",
+        "note_inconsistent": "the report names %s, which gives a result per 1.73 m2, but prints the unit '%s' - this inconsistency is not resolved here, so the result is not used for kidney-disease (CKD) staging"
       },
       "aliases": [
         "egfr",
@@ -5573,7 +5598,12 @@
         "hiv 1 and 2 antibodies"
       ],
       "abnormal_when": "positive",
-      "redundancy_group": "hiv"
+      "redundancy_group": "hiv",
+      "screen_components": {
+        "basis": "The screen stands for HIV-1 and HIV-2. A printed name that numbers its type(s) covers only those ('HIV-1 Antibody'); a name with no type number ('HIV', 'HIV combo', 'HIV Ag/Ab') covers the whole screen. The screen is negative only when every component is explicitly negative - unknown, unreadable, pending or not reported is never negative.",
+        "name_prefix": "hiv",
+        "components": {"HIV-1": ["1", "i"], "HIV-2": ["2", "ii"]}
+      }
     },
     {
       "id": "vdrl_rpr",

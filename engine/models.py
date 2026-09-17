@@ -52,6 +52,9 @@ class RawObservation:
     # Method line printed under the test name ("HPLC", "Immunoturbidimetric"); kept
     # out of the name so it cannot distort name matching.
     method: Optional[str] = None
+    # True when the interval came from separate low/high FIELDS (MinValue/MaxValue) rather
+    # than printed reference text; such an interval is checked for scale before use
+    range_from_fields: bool = False
 
     def to_dict(self):
         return asdict(self)
@@ -66,7 +69,31 @@ class NormalizedParameter:
     kind: str                               # numeric | qualitative | categorical
     value: Any = None                       # canonical numeric value
     unit: Optional[str] = None              # canonical unit
-    status: Optional[str] = None            # positive | negative | indeterminate (qualitative)
+    status: Optional[str] = None            # positive | negative | indeterminate | normal (qualitative)
+    # how a qualitative result was written: positive | negative | equivocal |
+    # weak_positive | trace | normal_text (see config.QUAL_STATES)
+    result_state: Optional[str] = None
+    # a multi-component screen: each component's state as reported ("HIV-2": "unreadable")
+    components: Optional[dict] = None
+    # Facts about the REPORT, kept apart from the grading used here:
+    #   printed_band      - the labelled band printed on the report that the value falls in
+    #   lab_range_status  - above | below | within the report's own interval, or
+    #                       not_determinable (bands printed, none labelled normal) | not_printed
+    printed_band: Optional[str] = None
+    lab_range_status: Optional[str] = None
+    # Data quality of the reading itself, apart from what it means clinically:
+    #   valid       - nothing about the reading is in doubt
+    #   suspicious  - kept and shown, but a rule found reason to check it (a value more
+    #                 than 50x the top of its interval, a probably misprinted unit, two
+    #                 different results for one test). A pattern resting only on
+    #                 suspicious readings is not presented as a supported finding.
+    # Values that cannot be used at all (impossible, unreadable) never become a parameter;
+    # they are listed in rejected_values and shown as "could not be interpreted".
+    data_quality: str = "valid"
+    data_quality_reason: Optional[str] = None
+    # Printed bands for sub-populations ("Nonsmokers < 3.0 / Smokers < 5.0") when the
+    # context that picks one is not stated and the bands disagree about this value
+    conditional_range: Optional[dict] = None
     category: Optional[str] = None          # categorical raw text, lowercased
 
     reference_low: Optional[float] = None
@@ -121,6 +148,7 @@ class PatientContext:
     sex: Optional[str] = None               # male | female | None
     age: Optional[float] = None
     report_date: Optional[str] = None
+    smoking: Optional[bool] = None          # True | False | None (not stated - never assumed)
     source_file: Optional[str] = None
     extras: dict = field(default_factory=dict)
 
@@ -224,6 +252,7 @@ class RiskContribution:
     dm_basis: str
     support_penalty: float = 1.0            # 1.0 = untouched; <1 = expected support measured and normal
     support_note: str = ""
+    presented_as: Optional[str] = None      # config/presentation.json key of this link, if any
 
     def to_dict(self):
         return asdict(self)
@@ -253,6 +282,14 @@ class DiseaseRisk:
     dm_fields: dict = field(default_factory=dict)
     review_status: Optional[str] = None
     icd10: Optional[str] = None
+    # How the condition is NAMED to the reader (config/presentation.json). `name` stays the
+    # Disease Master name for audit; `display_name` is what the evidence supports saying:
+    # raised LDL is a "Cardiovascular risk signal", not "Coronary Artery Disease".
+    display_name: Optional[str] = None
+    display_note: Optional[str] = None
+    # set when every result behind this rests on a reading flagged for checking
+    unconfirmed_reason: Optional[str] = None
+    evidence_type: Optional[str] = None      # risk_factor | process_marker | None (DM name kept)
 
     # --- presentation tier -------------------------------------------------
     # "direct"  a single measured parameter meets a configured threshold that
@@ -298,6 +335,7 @@ class Recommendation:
 
     # --- grouping and evidence, so the plan can be read per finding -------------
     finding: str = ""                       # the one thing this step is about
+    finding_display: str = ""               # how that finding is named to the reader
     finding_kind: str = ""                  # condition | pattern | parameter | general
     values: list = field(default_factory=list)    # the measured results behind it
     timeframe: str = ""                     # "4-6 weeks" etc., lifted out of the text

@@ -1,0 +1,25 @@
+{
+  "meta": {
+    "purpose": "How a condition is NAMED to the reader, by the kind of evidence behind it. Wording only: no weight, threshold, score or Disease Master row is read from here.",
+    "hierarchy": [
+      "Direct finding - one measured result against its range (named by the result itself).",
+      "Pattern - results that match a defined cluster (named by the cluster).",
+      "Risk signal - a pattern that is a recognised RISK FACTOR for a condition; not evidence that the condition is present.",
+      "Disease hypothesis - a marker of the disease PROCESS itself; still not a diagnosis.",
+      "Confirmed disease - never produced by this system."
+    ],
+    "rule": "A cohort-to-condition link may carry `presented_as`, naming an entry below. A condition is presented under the entry of its largest contribution; a link without `presented_as` keeps the Disease Master name."
+  },
+  "presentations": {
+    "cardiovascular_risk_signal": {
+      "evidence_type": "risk_factor",
+      "label": "Cardiovascular risk signal",
+      "note": "These results match a recognised risk factor for coronary artery disease. They are not evidence that the disease is present, which needs clinical assessment and tests such as ECG or imaging."
+    },
+    "possible_myocardial_injury": {
+      "evidence_type": "process_marker",
+      "label": "Possible acute myocardial injury",
+      "note": "A raised troponin indicates injury to heart muscle. That has several causes - coronary artery disease is one - so it does not by itself establish that disease."
+    }
+  }
+}

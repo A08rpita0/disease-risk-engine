@@ -147,6 +147,7 @@
         },
         {
           "name": "Cardiovascular / Coronary Artery Disease",
+          "presented_as": "cardiovascular_risk_signal",
           "role": "downstream_risk",
           "weight": 0.25,
           "dm_basis": "Possible Complications on the CKD row include cardiovascular disease and CKD-associated hyperlipidaemia (per the 'Unclear Mappings - Resolved' sheet)"

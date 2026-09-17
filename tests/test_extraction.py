@@ -993,7 +993,11 @@ def test_units_and_bands_of_a_scanned_style_json_report():
     tsh = _p(r, "tsh")
     check("TSH in an unrecognised unit is graded only against its own printed interval",
           tsh.get("reference_source") == "report" and tsh.get("abnormal") is False, str(tsh))
-    check("'HIV-1 ANTIBODIES: NON REACTIVE' is a negative HIV screen", _p(r, "hiv_screen").get("status") == "negative")
+    # HIV-1 alone is not the whole screen: HIV-2 was not reported, so it is incomplete, never negative
+    check("'HIV-1 ANTIBODIES: NON REACTIVE' alone is an incomplete HIV screen, not a negative one",
+          _p(r, "hiv_screen").get("status") == "incomplete"
+          and _p(r, "hiv_screen").get("components") == {"HIV-1": "negative", "HIV-2": "not reported"},
+          str(_p(r, "hiv_screen")))
     check("'TNI 0.17' is a raised troponin I", _p(r, "troponin_i").get("abnormal") is True)
     check("the urgent step names the troponin result",
           any(x["priority"] == "urgent" and "Troponin I 0.17" in x["text"] for x in r["recommendations"]))

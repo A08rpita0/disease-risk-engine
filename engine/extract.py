@@ -47,6 +47,7 @@ CONTEXT_KEYS = {
     "age": ["age", "patient_age", "age_years", "page", "p_age"],
     "report_date": ["report_date", "reported_on", "collection_date", "date", "sample_date",
                     "collected_on", "test_date"],
+    "smoking": ["smoking", "smoker", "smoking_status", "is_smoker", "tobacco_use", "tobacco"],
 }
 
 # Context aliases that mean something else on a test record. "page" is here for a LIS
@@ -88,6 +89,46 @@ IDENTIFIER_KEY = re.compile(
     r"(?:^|_)(?:id|ids|no|nos|num|number|code|codes|barcode|accession|phone|mobile|tel|"
     r"fax|uhid|mrn|serial|seq|sequence|batch|lot|invoice|bill|receipt|order|version|"
     r"year|month|day|pincode|zip|page|email|url|sample|specimen|slip|ref|srno|sr)(?:_|$)")
+
+
+def _norm_smoking(v):
+    """Stated smoking status -> True / False / None. Anything unclear ("former",
+    "occasional") stays unknown rather than being guessed."""
+    if isinstance(v, bool):
+        return v
+    s = re.sub(r"[^a-z]+", " ", str(v or "").lower()).strip()
+    if s in ("yes", "y", "true", "smoker", "current", "current smoker", "smokes"):
+        return True
+    if s in ("no", "n", "false", "non smoker", "nonsmoker", "never", "never smoker", "none"):
+        return False
+    return None
+
+
+def _unusable_limit_fields(low, high):
+    """Why separate low/high limit fields cannot be a reference interval, or None.
+
+    Only placeholders a laboratory system writes when it has no interval are refused:
+    an all-nines value (999, 9999), both limits zero, equal limits, or low above high.
+    A real interval - however wide - is left for the scale check at normalisation."""
+    def num(x):
+        try:
+            return float(str(x).replace(",", "").strip())
+        except (TypeError, ValueError):
+            return None
+    lo, hi = num(low), num(high)
+    if low not in (None, "") and lo is None or high not in (None, "") and hi is None:
+        return "not a number"
+    for v in (lo, hi):
+        if v is not None and v >= 99 and set(str(int(v))) == {"9"} and float(v).is_integer():
+            return "%s is a placeholder value" % int(v)
+    if lo is not None and hi is not None:
+        if lo == 0 and hi == 0:
+            return "both limits are zero"
+        if lo == hi:
+            return "the limits are equal"
+        if lo > hi:
+            return "the lower limit is above the upper limit"
+    return None
 
 
 def _snake(key):
@@ -161,6 +202,34 @@ def _band(line):
     if low is not None or high is not None:
         return None, low, high
     return None
+
+
+def printed_band(text, value):
+    """The labelled band printed on the report that `value` falls in -> (label, line), or
+    (None, None). Read from the report's own numbers in the report's own unit; a strict
+    comparator ("< 40") excludes its limit, "<= 40" includes it.
+
+    What the laboratory NAMED the band is a fact about the report, recorded apart from any
+    grading: "High >/= 60" names a band that, for HDL, is the favourable one.
+    """
+    if text is None or value is None:
+        return None, None
+    s = str(text)
+    for pat, rep in _COMPARATOR_FORMS:
+        s = pat.sub(rep, s)
+    for line in (ln.strip() for ln in re.split(r"[\n;|]+", s) if ln.strip()):
+        band = _band(line)
+        if not band or not band[0]:
+            continue
+        label, low, high = band
+        strict_high = bool(re.search(r"<(?!=)", line))
+        strict_low = bool(re.search(r">(?!=)", line))
+        if low is not None and (value < low or (value == low and strict_low)):
+            continue
+        if high is not None and (value > high or (value == high and strict_high)):
+            continue
+        return label, line
+    return None, None
 
 
 def parse_reference_range(text):
@@ -358,9 +427,19 @@ def extract_json(payload, source_name="input.json"):
         unit = _first(d, UNIT_KEYS, idx)
         rng = _first(d, RANGE_KEYS, idx)
         flag = _first(d, FLAG_KEYS, idx)
+        from_fields = False
         if rng is None:
             low, high = _first(d, LOW_KEYS, idx), _first(d, HIGH_KEYS, idx)
+            unusable = _unusable_limit_fields(low, high)
+            if unusable:
+                # Separate low/high fields (a LIS export's MinValue/MaxValue) are the
+                # laboratory's interval when they hold one. A placeholder is not: "0" and
+                # "999" would have become a reference interval nothing is ever outside.
+                warnings.append("the limit fields given for '%s' (%s / %s) were not used as a "
+                                "reference interval: %s" % (name, low, high, unusable))
+                low = high = None
             if low is not None or high is not None:
+                from_fields = True
                 if low is not None and high is not None:
                     rng = "%s - %s" % (low, high)
                 elif high is not None:
@@ -377,6 +456,8 @@ def extract_json(payload, source_name="input.json"):
              section=_first(d, ["section", "panel", "panel_name", "category", "group",
                                 "department", "profile", "test_group"], idx),
              method=_first(d, ["method", "methodology"], idx))
+        if from_fields and obs:
+            obs[-1].range_from_fields = True
 
     context_key_names = {x for ks in CONTEXT_KEYS.values() for x in ks}
     # Keys that name a FIELD rather than a test. They appear as loose scalars when a
@@ -439,6 +520,7 @@ def extract_json(payload, source_name="input.json"):
         sex=_norm_sex(ctx_found.get("sex")),
         age=_norm_age(ctx_found.get("age")),
         report_date=_str_or_none(ctx_found.get("report_date")),
+        smoking=_norm_smoking(ctx_found.get("smoking")),
         source_file=source_name,
     )
     return obs, ctx, warnings

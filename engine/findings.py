@@ -112,14 +112,14 @@ def build_lab_findings(patient, cohort_hits, risks):
     for r in risks:
         ev = r.direct_evidence or {}
         if ev.get("parameter_id"):
-            link(ev["parameter_id"], {"kind": "condition", "name": r.name,
+            link(ev["parameter_id"], {"kind": "condition", "name": r.display_name or r.name,
                                       "tier": r.presentation_tier,
                                       "evidence_level": r.evidence_level})
         for t in r.triggering_parameters:
-            link(t["parameter_id"], {"kind": "condition", "name": r.name,
+            link(t["parameter_id"], {"kind": "condition", "name": r.display_name or r.name,
                                      "tier": r.presentation_tier,
                                      "evidence_level": r.evidence_level})
-    reported = {r.name for r in risks}
+    reported = {r.display_name or r.name for r in risks}
     for h in cohort_hits:
         for t in h.hits:
             if t.effective_weight > 0:
@@ -163,7 +163,14 @@ def build_lab_findings(patient, cohort_hits, risks):
             "severity_score": p.severity_score,
             "lab_flag": p.raw.raw_flag if p.raw else None,
             "derived": p.derived,
-            "statement": _statement(p, in_range_bands),
+            "printed_band": p.printed_band,
+            "lab_range_status": p.lab_range_status,
+            "data_quality": p.data_quality,
+            "data_quality_reason": p.data_quality_reason,
+            "statement": _statement(p, in_range_bands) + (
+                " Ask the laboratory to confirm this result (%s); extreme results can be real, "
+                "so do not delay any urgent step while checking."
+                % p.data_quality_reason if p.data_quality == "suspicious" else ""),
             "linked": linked,
             # True when nothing in the rule set interprets this result. It is listed
             # anyway - that is the point - but without any suggestion of a diagnosis.
@@ -204,7 +211,17 @@ def build_lab_noted_findings(patient):
         flag = _norm_text(p.raw.raw_flag)
         printed = (p.raw.raw_range or "").strip()
         entry = None
-        if flag in _LAB_FLAG_WORDS:
+        band_named = bool(p.printed_band) and flag and (
+            _norm_text(p.printed_band).startswith(flag) or (" %s" % flag) in _norm_text(p.printed_band))
+        if flag in _LAB_FLAG_WORDS and band_named:
+            entry = ("lab_flag",
+                     "The report prints \"%s\" beside %s: the name of its printed band \"%s\", "
+                     "which this result falls in. A band name is not a statement that the result "
+                     "is abnormal. Graded here as %s against the guideline band configured here; "
+                     "both are shown so the report's own wording is not lost."
+                     % (p.raw.raw_flag.strip(), p.name, p.printed_band,
+                        p.grade_label or "within the interval used here"))
+        elif flag in _LAB_FLAG_WORDS:
             entry = ("lab_flag",
                      "The laboratory printed the flag \"%s\" beside %s. It is not graded "
                      "abnormal here (%s), so both are shown: check the report's own "
@@ -227,12 +244,28 @@ def build_lab_noted_findings(patient):
             })
     for p in patient.parameters.values():
         if p.kind == "qualitative" and p.status == "indeterminate" and not p.abnormal and p.raw:
+            state = p.result_state if p.result_state in ("weak_positive", "trace") else "equivocal"
+            meaning = {
+                "equivocal": "neither positive nor negative",
+                "weak_positive": "a weak positive, which is not read as negative; what it means "
+                                 "depends on the test and the laboratory's confirmation policy",
+                "trace": "a trace (low-level) result, which is not read as negative; what it "
+                         "means depends on the test",
+            }[state]
             out.append(_noted(p.parameter_id, p.name, p.profile, p.kind, p.raw.raw_value, None,
                               (p.raw.raw_range or "").strip(), p.raw.raw_flag, p.grade_label,
-                              "equivocal",
-                              "%s was reported as \"%s\": neither positive nor negative, so it "
-                              "neither confirms nor rules anything out here."
-                              % (p.name, str(p.raw.raw_value).strip())))
+                              state,
+                              "%s was reported as \"%s\": %s. It neither confirms nor rules "
+                              "anything out here." % (p.name, str(p.raw.raw_value).strip(), meaning)))
+
+        if p.status == "incomplete" and p.components:
+            out.append(_noted(
+                p.parameter_id, p.name, p.profile, p.kind, "Incomplete", None,
+                (p.raw.raw_range or "").strip() if p.raw else "", p.raw.raw_flag if p.raw else None,
+                p.grade_label, "incomplete_screen",
+                "%s is incomplete: %s. An incomplete screen is not a negative result, so it "
+                "neither reassures nor rules anything out here." % (
+                    p.name, "; ".join("%s %s" % (c, st) for c, st in p.components.items()))))
 
     # A reading outside its own range that lost to another record of the same parameter.
     for c in getattr(patient, "conflicting_readings", []):
@@ -249,6 +282,33 @@ def build_lab_noted_findings(patient):
                 _fmt_num(other.value if other.value is not None else other.status),
                 (" " + other.unit) if other.unit and other.value is not None else "",
                 other.grade_label)))
+
+    # A result whose printed interval depends on a context the report does not state.
+    for p in patient.parameters.values():
+        cr = getattr(p, "conditional_range", None)
+        if not cr:
+            continue
+        inside = [b["printed"] for b in cr["bands"] if b["contains_value"]]
+        outside = [b["printed"] for b in cr["bands"] if not b["contains_value"]]
+        out.append(_noted(
+            p.parameter_id, p.name, p.profile, p.kind, p.value, p.unit,
+            "; ".join(b["printed"] for b in cr["bands"]), p.raw.raw_flag if p.raw else None,
+            p.grade_label, "conditional_range",
+            "%s %s%s is outside the printed band \"%s\" but inside \"%s\". The report does not "
+            "say which applies (%s status is not stated), so it is graded neither normal nor "
+            "abnormal here. Tell your doctor your %s status." % (
+                p.name, _fmt_num(p.value), (" " + p.unit) if p.unit else "", "; ".join(outside),
+                "; ".join(inside), cr["context"], cr["context"])))
+
+    # A result that was reported but could not be used at all.
+    for v in getattr(patient, "rejected_values", []) or []:
+        out.append(_noted(
+            None, v.get("parameter"), None, "uninterpretable", v.get("reported"), v.get("unit"), "",
+            None, "Could not be interpreted", "uninterpretable",
+            "%s was reported as \"%s\"%s, which could not be used: %s. It counts as not "
+            "measured here - not as normal. Ask the laboratory to confirm it." % (
+                v.get("parameter"), v.get("reported"),
+                (" " + v["unit"]) if v.get("unit") else "", v.get("reason"))))
 
     # A test this dictionary does not know, which the report itself marks.
     for o in getattr(patient, "unmapped", []):
@@ -267,7 +327,9 @@ def build_lab_noted_findings(patient):
 
 
 # the noted kinds that stand for something a reader must not miss: each gets a plan step
-NOTED_NEEDS_STEP = ("equivocal", "conflicting_reading", "not_in_dictionary")
+NOTED_NEEDS_STEP = ("equivocal", "weak_positive", "trace", "conflicting_reading",
+                    "not_in_dictionary", "incomplete_screen", "conditional_range",
+                    "uninterpretable")
 
 _POSITIVE_TEXT = re.compile(r"\b(?:reactive|positive|detected|present|seen)\b", re.I)
 _NEGATED_TEXT = re.compile(r"\b(?:non|not|no|negative|absent|nil|none)\b", re.I)

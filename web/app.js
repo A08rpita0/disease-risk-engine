@@ -14,13 +14,41 @@
 
   // A patient reads words, not a 0-1 score. The number stays available under
   // Technical details for anyone who wants it.
-  var LEVEL_WORD = { High: "Strong signal", Moderate: "Moderate signal",
-                     Low: "Weak signal", Limited: "Not enough data" };
+  // How closely results match a configured pattern - never how likely a disease is.
+  var LEVEL_WORD = { High: "Strong match", Moderate: "Moderate match",
+                     Low: "Weak match", Limited: "Not enough data" };
+
+  /* The name the evidence supports, and - when it differs - the reference condition it
+     relates to. Raised LDL is a "Cardiovascular risk signal"; the Disease Master row it is
+     linked to is shown as a reference, never as the finding's name. */
+  function riskName(r) { return r.display_name || r.name; }
+  function riskReference(r) {
+    if (!r.display_name || r.display_name === r.name) return "";
+    return '<div class="risk-ref small muted">' + esc(r.display_note || "") +
+      ' <span class="nowrap">Reference condition: ' + esc(r.name) + ".</span></div>";
+  }
+  /* One number style everywhere, independent of the browser's locale: at most four
+     decimals with trailing zeros dropped, and digit grouping (Western 1,234,567) from
+     10,000 up, where a count is always a whole number. */
+  var NUMBER_LOCALE = "en-US";
   function num(v) {
     if (v === null || v === undefined) return "—";
     if (typeof v !== "number") return esc(v);
-    if (Math.abs(v) >= 10000) return v.toLocaleString();
+    if (Math.abs(v) >= 10000) {
+      return v.toLocaleString(NUMBER_LOCALE, { maximumFractionDigits: Math.abs(v) >= 100000 ? 0 : 2 });
+    }
     return String(Math.round(v * 10000) / 10000);
+  }
+
+  /* A label adds nothing when it only repeats the value or the badge beside it:
+     "Equivocal" printed as the value, the badge "Equivocal result" and the grade
+     "Equivocal" said the same thing three times. */
+  function words(s) { return String(s === null || s === undefined ? "" : s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+  function repeats(label, value, badge) {
+    var l = words(label);
+    if (!l) return true;
+    var v = typeof value === "number" ? "" : words(value);
+    return l === v || words(badge).indexOf(l) >= 0 || (v && l.indexOf(v) >= 0);
   }
 
   /* ---------------- upload wiring ---------------- */
@@ -311,7 +339,7 @@
 
     if (d.urgent_findings.length) {
       out += '<div class="callout urgent"><b>Time-critical findings.</b> ' +
-        d.urgent_findings.map(function (r) { return esc(r.name); }).join(", ") +
+        d.urgent_findings.map(function (r) { return esc(riskName(r)); }).join(", ") +
         " — these need prompt medical assessment. " +
         "Seek medical care now rather than waiting for a routine appointment.</div>";
     }
@@ -364,7 +392,7 @@
         "<b>" + np + "</b> pattern" + (np === 1 ? "" : "s") +
         " (combinations worth exploring)" +
         (ni ? " and <b>" + ni + "</b> considered but not supported by the evidence here" : "") +
-        ". None of this is a diagnosis — a strong signal means your results closely match " +
+        ". None of this is a diagnosis — a strong match means your results closely match " +
         "a known pattern, not that you have the condition.</p>";
       // Only what the evidence actually supports is listed here. An insufficient-evidence
       // condition shown in the same five-row summary, at the same size, is exactly how a
@@ -379,9 +407,9 @@
           (r.presentation_tier === "derived" ? "Calculated finding"
             : r.presentation_tier === "direct" ? "Direct finding"
             : esc(LEVEL_WORD[r.evidence_level] || r.evidence_level)) + "</span>" +
-          "<b>" + esc(r.name) + "</b>" +
+          "<b>" + esc(riskName(r)) + "</b>" +
           '<div class="bar" role="img" aria-label="' +
-            esc(LEVEL_WORD[r.evidence_level] || r.evidence_level) + ' signal">' +
+            esc(LEVEL_WORD[r.evidence_level] || r.evidence_level) + '">' +
             '<i class="lv-' + r.evidence_level + '" style="width:' + pct(r.score) + '"></i></div>' +
           '<span class="w tech-only">' + r.score.toFixed(2) + "</span></div>";
       });
@@ -443,7 +471,7 @@
     return '<div class="direct">' +
       '<div class="direct-head"><span class="badge b-direct">' +
         (derived ? "Calculated finding" : "Direct finding") + "</span>" +
-      "<b>" + esc(r.name) + "</b></div>" +
+      "<b>" + esc(riskName(r)) + "</b></div>" + riskReference(r) +
       '<div class="direct-measure"><span class="dm-param">' + esc(e.parameter || "") + "</span>" +
       '<span class="dm-value">' + num(e.value) +
         (e.unit ? ' <span class="dm-unit">' + esc(e.unit) + "</span>" : "") + "</span>" +
@@ -481,13 +509,14 @@
       '" data-i="' + i + '">';
     out += '<div class="risk-head"><div><div class="risk-title">' +
       '<span class="sig-kind">' +
-        (tier === "insufficient" ? "Considered" : "Risk signal") + "</span>" +
-      esc(r.name) + "</div>";
+        (tier === "insufficient" ? "Considered" : "Pattern") + "</span>" +
+      esc(riskName(r)) + "</div>" + riskReference(r);
     out += '<div class="risk-meta">' +
       '<span class="badge b-' + r.evidence_level + '">' +
         esc(LEVEL_WORD[r.evidence_level] || r.evidence_level) + "</span>" +
       '<span class="badge b-' + r.urgency_tier + '">' + esc(r.urgency_tier) + "</span>" +
-      '<span class="badge b-tag">' + esc(r.classification) + "</span>" +
+      (r.display_name && r.display_name !== r.name ? ""
+        : '<span class="badge b-tag">' + esc(r.classification) + "</span>") +
       (r.icd10 ? '<span class="badge b-tag">ICD-10 ' + esc(r.icd10) + "</span>" : "") +
       (r.evidence_capped ? '<span class="badge b-Limited">capped — thin data</span>' : "") +
       '<span class="small muted">' + r.profiles.map(esc).join(" · ") + "</span>" +
@@ -601,17 +630,26 @@
     lab_flag: "Flagged by the laboratory",
     lab_expected_text: "Differs from the report's expected result",
     equivocal: "Equivocal result",
+    weak_positive: "Weak positive (as reported)",
+    trace: "Trace (as reported)",
+    incomplete_screen: "Incomplete screen - not negative",
+    conditional_range: "Depends on information not in the report",
+    uninterpretable: "Could not be interpreted",
     conflicting_reading: "Reported more than once with different results",
     not_in_dictionary: "Not recognised here, marked by the report"
   };
 
-  var NOTED_KINDS = { equivocal: 1, conflicting_reading: 1, not_in_dictionary: 1 };
+  var NOTED_KINDS = { equivocal: 1, weak_positive: 1, trace: 1, incomplete_screen: 1,
+                      conditional_range: 1, uninterpretable: 1, conflicting_reading: 1,
+                      not_in_dictionary: 1 };
 
   /* Every abnormal result, whether or not any rule interprets it. A result used to
      reach this page only by feeding a Disease Master condition, so an hs-CRP of 31.98
      mg/L - which feeds none on its own - was flagged and then shown nowhere but the raw
      results table. The Disease Master enriches this list; it does not filter it. */
   function labFindingRow(f) {
+    var badgeText = (f.kind === "qualitative" || f.kind === "categorical") && !NOTED_KINDS[f.finding_basis]
+      ? "Reported by the laboratory" : (BASIS_LABEL[f.finding_basis] || f.finding_basis);
     var links = (f.linked || []).map(function (l) {
       var tier = l.kind === "pattern" ? "pattern"
         : (l.tier === "insufficient" ? "considered, not supported" : l.tier + " finding");
@@ -625,10 +663,12 @@
         '<span class="labf-val">' + num(f.value) +
           (f.unit ? ' <span class="meas-unit">' + esc(f.unit) + "</span>" : "") + "</span>" +
         (f.reference_text ? '<span class="labf-ref">ref ' + esc(f.reference_text) + "</span>" : "") +
-        '<span class="badge b-tag">' + esc((f.kind === "qualitative" || f.kind === "categorical") &&
-          !NOTED_KINDS[f.finding_basis]
-          ? "Reported by the laboratory" : (BASIS_LABEL[f.finding_basis] || f.finding_basis)) + "</span>" +
-        (f.grade_label ? '<span class="labf-grade">' + esc(f.grade_label) + "</span>" : "") +
+        '<span class="badge b-tag">' + esc(badgeText) + "</span>" +
+        (f.data_quality === "suspicious" ? '<span class="badge b-Limited" title="' +
+          esc(f.data_quality_reason || "") + '">check this value</span>' : "") +
+        (f.grade_label && !repeats(f.grade_label, f.value, badgeText)
+          ? '<span class="labf-grade">' + esc(f.grade_label) + "</span>" : "") +
+        (f.printed_band ? '<span class="labf-ref">printed band: ' + esc(f.printed_band) + "</span>" : "") +
         (f.lab_flag ? '<span class="labf-flag" title="Flag printed on the report">report flag: ' +
           esc(f.lab_flag) + "</span>" : "") +
       "</div>" +
@@ -916,10 +956,15 @@
       "<th>Parameter</th><th>Profile</th><th>Result</th><th>Laboratory reference</th>" +
       "<th>Status</th><th>Source</th><th>Notes</th></tr></thead><tbody>";
     rows.forEach(function (p) {
+      var printed = p.raw && p.raw.raw_value !== undefined ? p.raw.raw_value : p.status;
       var value = p.kind === "qualitative"
-        ? '<span class="badge b-' + (p.status || "normal") + '">' + esc(p.status) + "</span>"
+        ? '<span class="badge b-' + (p.status || "normal") + '">' + esc(printed) + "</span>"
         : '<span class="num">' + num(p.value) + "</span> " +
           '<span class="muted small">' + esc(p.unit || "") + "</span>";
+      if (p.data_quality === "suspicious") {
+        value += ' <span class="badge b-Limited" title="' + esc(p.data_quality_reason || "") +
+          '">check this value</span>';
+      }
       var ref = "—", refNote = "";
       if (p.reference_low !== null || p.reference_high !== null) {
         ref = (p.reference_low !== null ? num(p.reference_low) : "") +
@@ -952,7 +997,10 @@
           '<div class="small muted">' + esc(refNote) + "</div></td>" +
         '<td data-label="Status">' + (p.abnormal
           ? '<span class="badge b-' + (p.direction || "high") + '">' + esc(p.direction || "") + "</span> "
-          : "") + '<span class="small">' + esc(p.grade_label || p.grade) + "</span></td>" +
+          : "") + (repeats(p.grade_label || p.grade, printed, "") && p.kind === "qualitative"
+            ? "" : '<span class="small">' + esc(p.grade_label || p.grade) + "</span>") +
+          (p.printed_band ? '<div class="small muted">printed band: ' + esc(p.printed_band) + "</div>" : "") +
+          "</td>" +
         '<td data-label="Source" class="small muted">' +
           esc(SOURCE_WORD[p.finding_basis] || "Lab-reported") + "</td>" +
         '<td data-label="Notes" class="small muted">' + notes.map(esc).join("<br>") + "</td></tr>";
@@ -1017,7 +1065,10 @@
     var groups = {}, order = [];
     recs.forEach(function (r) {
       var k = r.finding || "General";
-      if (!groups[k]) { groups[k] = { name: k, kind: r.finding_kind, items: [], values: [] }; order.push(k); }
+      if (!groups[k]) {
+        groups[k] = { name: r.finding_display || k, kind: r.finding_kind, items: [], values: [] };
+        order.push(k);
+      }
       groups[k].items.push(r);
       (r.values || []).forEach(function (v) {
         if (!groups[k].values.some(function (x) { return x.name === v.name; })) {
@@ -1027,7 +1078,7 @@
     });
     order.sort(function (a, b) {
       var ga = groups[a], gb = groups[b];
-      if ((ga.name === "General") !== (gb.name === "General")) return ga.name === "General" ? 1 : -1;
+      if ((a === "General") !== (b === "General")) return a === "General" ? 1 : -1;
       return Math.min.apply(null, ga.items.map(function (r) { return rank[r.priority]; })) -
              Math.min.apply(null, gb.items.map(function (r) { return rank[r.priority]; }));
     });
@@ -1049,7 +1100,7 @@
         '<p class="plan-lead">If you do nothing else, do these.</p><ol class="plan-list">';
       urgent.slice(0, 3).forEach(function (r) {
         out += '<li class="step p-' + r.priority + '"><div class="step-top">' +
-          '<span class="step-cat">' + esc(r.finding) + "</span></div>" +
+          '<span class="step-cat">' + esc(r.finding_display || r.finding) + "</span></div>" +
           '<div class="step-text">' + esc(r.text) + "</div></li>";
       });
       out += "</ol></section>";

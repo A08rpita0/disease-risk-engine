@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import re
 
-from .config import norm_key, norm_unit
-from .extract import parse_reference_range
+from .config import QUAL_STATE_STATUS, QUAL_STATES, norm_key, norm_unit
+from .extract import _COMPARATOR_FORMS, _band, parse_reference_range, printed_band
 from .layout import GENERIC_RESULT_LABEL
 from .models import NormalizedParameter, StandardizedPatient
 
@@ -86,6 +86,32 @@ def parse_numeric(value):
         return None, qual
 
 
+def clean_number(x):
+    """Round away binary floating-point noise from a computed number (1.50 lakh x 100000
+    was stored as 149999.99999999997) while keeping every digit a report can carry."""
+    if isinstance(x, float):
+        return float("%.10g" % x)
+    return x
+
+
+def label_text(p):
+    return p.grade_label or "within the interval used here"
+
+
+def _state_label(state, status, raw_value):
+    """The grade label of a qualitative result: the state it was written in, never a
+    stronger claim. "Normal" urobilinogen is not "not detected"."""
+    printed = str(raw_value or "").strip()
+    if state == "normal_text":
+        return 'Reported as "%s" (within the expected amount)' % printed
+    if state == "weak_positive":
+        return 'Reported as "%s" (weak positive)' % printed
+    if state == "trace":
+        return 'Reported as "%s" (trace)' % printed
+    return {"positive": "Positive / detected", "negative": "Negative / not detected",
+            "indeterminate": "Equivocal", "normal": "Normal"}.get(status, printed)
+
+
 class Normalizer:
     def __init__(self, config):
         self.cfg = config
@@ -93,47 +119,55 @@ class Normalizer:
     # ---------- qualitative ----------
 
     def _qual_status(self, raw_value, raw_flag=None, interpretation=None):
+        return self._qual_state(raw_value, raw_flag, interpretation)[0]
+
+    def _qual_state(self, raw_value, raw_flag=None, interpretation=None, pdef=None):
+        """-> (status, state). state is how the result was written (see QUAL_STATES);
+        status is what grading uses: positive | negative | indeterminate | normal."""
         for candidate in (raw_value, raw_flag):
             if candidate is None:
                 continue
             s = str(candidate).strip().lower()
             if not s:
                 continue
+            state = None
             if s in self.cfg.qual_positive_raw:
-                return "positive"
-            if s in self.cfg.qual_negative_raw:
-                return "negative"
-            k = norm_key(s)
-            if k in self.cfg.qual_positive:
-                return "positive"
-            if k in self.cfg.qual_negative:
-                return "negative"
-            if k in self.cfg.qual_indeterminate:
-                return "indeterminate"
-            # 'reactive (1:8)', 'positive for IgM', 'growth of E. coli', and crucially
-            # 'Non Reactive, 0.26'.
-            #
-            # LONGEST MATCH WINS, across both vocabularies together. Scanning positives
-            # first meant 'reactive' matched inside 'non reactive' and a negative HBsAg
-            # was read as POSITIVE - the phrase that negates a word is always longer and
-            # more specific than the word it negates, so length is the right tiebreak
-            # and it keeps working as vocabulary is added.
-            best, best_status = None, None
-            for status, vocab in (("positive", self.cfg.qual_positive),
-                                  ("negative", self.cfg.qual_negative),
-                                  ("indeterminate", self.cfg.qual_indeterminate)):
-                for word in vocab:
-                    if not word or len(word) <= len(best or ""):
-                        continue
-                    if re.search(r"\b%s\b" % re.escape(word), k):
-                        best, best_status = word, status
-            if best_status:
-                return best_status
+                state = "positive"
+            elif s in self.cfg.qual_negative_raw:
+                state = "negative"
+            else:
+                k = norm_key(s)
+                for st in QUAL_STATES:
+                    if k in self.cfg.qual_states[st]:
+                        state = st
+                        break
+                if state is None:
+                    # 'reactive (1:8)', 'positive for IgM', 'growth of E. coli', and
+                    # crucially 'Non Reactive, 0.26'.
+                    #
+                    # LONGEST MATCH WINS, across every vocabulary together. Scanning
+                    # positives first meant 'reactive' matched inside 'non reactive' and a
+                    # negative HBsAg was read as POSITIVE - the phrase that negates a word
+                    # is always longer and more specific than the word it negates, so
+                    # length is the right tiebreak and it keeps working as vocabulary is
+                    # added. 'weakly reactive' beats 'reactive' the same way.
+                    best = None
+                    for st in QUAL_STATES:
+                        for word in self.cfg.qual_states[st]:
+                            if not word or len(word) <= len(best or ""):
+                                continue
+                            if re.search(r"\b%s\b" % re.escape(word), k):
+                                best, state = word, st
+            if state:
+                status = (((pdef or {}).get("state_grading") or {}).get(state)
+                          or QUAL_STATE_STATUS[state])
+                return status, state
             # A numeric result on a qualitative test.
             num, qualifier = parse_numeric(candidate)
             if num is not None:
-                return self._numeric_qual_status(s, num, qualifier, interpretation)
-        return None
+                status = self._numeric_qual_status(s, num, qualifier, interpretation)
+                return status, {"positive": "positive", "negative": "negative"}.get(status, "equivocal")
+        return None, None
 
     @staticmethod
     def _numeric_qual_status(raw, num, qualifier, spec):
@@ -212,6 +246,12 @@ class Normalizer:
         unit = (pdef.get("unit") or "").strip()
         if unit == "%" and value > 100:
             return "a percentage above 100 is not possible; the result was not used"
+        limits = pdef.get("plausible_limits")
+        if limits and limits.get("source"):
+            if (limits.get("max") is not None and value > limits["max"]) or \
+                    (limits.get("min") is not None and value < limits["min"]):
+                return ("outside the range that is physiologically possible for this test "
+                        "(%s); the result was not used" % limits["source"])
         return None
 
     def _magnitude_warning(self, pdef, value, sex, raw_unit):
@@ -223,6 +263,110 @@ class Normalizer:
                 % (pdef["name"], self.IMPLAUSIBLE_MULTIPLE, raw_unit or "no unit given"))
 
     # ---------- units ----------
+
+    def _context_bands(self, obs):
+        """Printed bands that each apply to one value of a patient context, or None.
+
+        -> {"context": "smoking", "bands": [(value, low, high, line), ...]}. Only when the
+        report prints no general interval of its own beside them (an unlabelled or
+        normal-labelled line), and bands for more than one context value exist."""
+        if not obs.raw_range:
+            return None
+        vocab = getattr(self.cfg, "context_bands", {})
+        found, general = {}, False
+        for line in (ln.strip() for ln in re.split(r"[\n;|]+", str(obs.raw_range)) if ln.strip()):
+            band = _band(line)
+            if not band:
+                continue
+            label, low, high = band
+            if not label:
+                general = True
+                continue
+            key = re.sub(r"[^a-z]+", " ", label.lower()).strip()
+            for context, values in vocab.items():
+                for flag, words in values.items():
+                    if key in {re.sub(r"[^a-z]+", " ", w.lower()).strip() for w in words}:
+                        found.setdefault(context, []).append((flag == "true", low, high, line))
+        for context, bands in found.items():
+            if not general and len({b[0] for b in bands}) > 1:
+                return {"context": context, "bands": bands}
+        return None
+
+    def _grade_by_context(self, pdef, np_, obs, cond, raw_number):
+        """Grade against context bands. -> (low, high) in canonical units to grade with,
+        or "conditional" when the unstated context decides the result."""
+        context, bands = cond["context"], cond["bands"]
+        known = getattr(getattr(self, "_context", None), context, None)
+
+        def conv(x):
+            return None if x is None else (self._convert(pdef, x, obs.raw_unit)[0] if obs.raw_unit else x)
+
+        def inside(b):
+            # a strict comparator ("< 3.0") excludes its own limit
+            line = b[3]
+            for pat, rep in _COMPARATOR_FORMS:
+                line = pat.sub(rep, line)
+            strict_high, strict_low = bool(re.search(r"<(?!=)", line)), bool(re.search(r">(?!=)", line))
+            return ((b[1] is None or raw_number > b[1] or (raw_number == b[1] and not strict_low))
+                    and (b[2] is None or raw_number < b[2] or (raw_number == b[2] and not strict_high)))
+
+        if known is not None:
+            chosen = [b for b in bands if b[0] == known]
+            if chosen:
+                np_.notes.append("graded against the printed band for %s status (%s)"
+                                 % (context, chosen[0][3]))
+                return conv(chosen[0][1]), conv(chosen[0][2])
+        inside_all = all(inside(b) for b in bands)
+        outside_all = not any(inside(b) for b in bands)
+        if outside_all:
+            self._outside_all_bands = True
+        if inside_all or outside_all:
+            # every printed band agrees; grade against the one nearest the value
+            lows = [b[1] for b in bands if b[1] is not None]
+            highs = [b[2] for b in bands if b[2] is not None]
+            if inside_all:
+                low, high = (max(lows) if lows else None), (min(highs) if highs else None)
+            else:
+                low, high = (min(lows) if lows else None), (max(highs) if highs else None)
+            np_.notes.append("%s status is not stated; every printed band (%s) agrees on this result"
+                             % (context, "; ".join(b[3] for b in bands)))
+            return conv(low), conv(high)
+        np_.conditional_range = {
+            "context": context,
+            "bands": [{"applies_when": "%s: %s" % (context, "yes" if b[0] else "no"),
+                       "printed": b[3], "contains_value": inside(b)} for b in bands]}
+        np_.reference_low = np_.reference_high = None
+        np_.reference_source = "report (depends on %s status)" % context
+        np_.abnormal, np_.grade, np_.graded_by = False, "conditional", "none"
+        np_.severity_score = 0.0
+        np_.grade_label = "Depends on %s status, which is not stated" % context
+        np_.notes.append(
+            "the report prints different intervals by %s status (%s) and they disagree about "
+            "this result; %s status is not stated, so it is not graded as normal or abnormal"
+            % (context, "; ".join(b[3] for b in bands), context))
+        return "conditional"
+
+    @staticmethod
+    def _unit_context_note(pdef, obs):
+        """Why a result's unit or stated method keeps it off the canonical scale, or None.
+
+        Declared per parameter (`unit_context`) from the guideline that defines the
+        scale; nothing here is specific to one test."""
+        ctx = pdef.get("unit_context")
+        if not ctx:
+            return None
+        text = " ".join(str(x) for x in (obs.method, obs.raw_name, obs.section, obs.raw_range) if x)
+        unit = norm_unit(obs.raw_unit)
+        unindexed_unit = unit is not None and unit in {norm_unit(u) for u in ctx.get("unindexed_units", [])}
+        m = re.search(ctx.get("unindexed_methods") or r"(?!x)x", text, re.I)
+        if m:
+            return ctx["note_unindexed_method"] % m.group(0)
+        m = re.search(ctx.get("indexed_methods") or r"(?!x)x", text, re.I)
+        if m and unindexed_unit:
+            return ctx["note_inconsistent"] % (m.group(0), obs.raw_unit)
+        if unindexed_unit:
+            return ctx["note_unindexed_unit"]
+        return None
 
     def _unit_suspect(self, pdef, sex, raw_number, converted, obs):
         """A reason when the printed unit cannot be what the numbers are in, else None.
@@ -253,10 +397,10 @@ class Normalizer:
             else:
                 suspect = converted > dhigh * m and not off_scale(raw_number)
             if suspect:
-                return ("the unit printed ('%s') would make this %.4g %s, which does not fit "
+                return ("the unit printed ('%s') would make this %s %s, which does not fit "
                         "the numbers on the report - the unit is probably misprinted, so the "
                         "result is compared only with the report's own interval"
-                        % (obs.raw_unit, converted, pdef.get("unit")))
+                        % (obs.raw_unit, _plain(converted), pdef.get("unit")))
         elif not obs.raw_unit and rhigh and off_scale(rhigh):
             return ("no unit is printed and the report's interval is on a different scale "
                     "from %s in %s, so the result is compared only with the report's own "
@@ -287,13 +431,13 @@ class Normalizer:
         # simple multiple, such as HbA1c in IFCC mmol/mol.
         if isinstance(factor, dict):
             converted = value * factor["scale"] + factor.get("offset", 0.0)
-            return converted, "converted %s %s to %.4g %s (%s)" % (
-                _fmt(value), raw_unit, converted, canonical,
+            return converted, "converted %s %s to %s %s (%s)" % (
+                _fmt(value), raw_unit, _plain(converted), canonical,
                 factor.get("source", "configured conversion"))
         if factor == 1:
             return value, None
-        return value * factor, "converted %s %s to %.4g %s" % (
-            _fmt(value), raw_unit, value * factor, canonical)
+        return value * factor, "converted %s %s to %s %s" % (
+            _fmt(value), raw_unit, _plain(value * factor), canonical)
 
     def _unit_known(self, pdef, raw_unit):
         """True if the reported unit is absent, canonical, or convertible."""
@@ -471,6 +615,7 @@ class Normalizer:
 
     def build(self, observations, context, warnings=None):
         patient = StandardizedPatient(context=context)
+        self._context = context
         patient.substitutes = {
             p["stands_in_for"]["parameter"]: p["id"]
             for p in self.cfg.parameters if p.get("stands_in_for")}
@@ -499,13 +644,15 @@ class Normalizer:
 
         for pid, group in candidates.items():
             pdef = self.cfg.param_by_id[pid]
-            built = []
+            built, unreadable = [], []
             for o in group:
                 errors_before = len(self._data_errors)
                 b = self._build_one(pdef, o, sex)
                 if b is not None:
                     built.append(b)
-                elif len(self._data_errors) == errors_before and o.shape == "result":
+                elif o.shape == "result":
+                    unreadable.append(o)
+                if b is None and len(self._data_errors) == errors_before and o.shape == "result":
                     # A recognised test whose result cannot be read ("Sample hemolysed",
                     # "1O5", "--") is said so. It used to vanish silently whenever another
                     # record of the same parameter existed - an unreadable HIV-2 result
@@ -519,6 +666,9 @@ class Normalizer:
                     patient.unmapped.append(o)
                 continue
             chosen = self._resolve_duplicates(pdef, built, patient)
+            if pdef.get("screen_components"):
+                pending = [pr["name"] for pr in patient.pending_results if pr["parameter_id"] == pid]
+                self._combine_screen(pdef, chosen, built, unreadable, pending)
             patient.parameters[pid] = chosen
 
         self._compute_derived(patient, sex)
@@ -644,19 +794,18 @@ class Normalizer:
             kind=kind, raw=obs)
 
         if kind == "qualitative":
-            status = self._qual_status(obs.raw_value, obs.raw_flag,
-                                       pdef.get('numeric_interpretation'))
+            status, state = self._qual_state(obs.raw_value, obs.raw_flag,
+                                             pdef.get('numeric_interpretation'), pdef)
             if status is None:
                 return None
             np_.status = status
+            np_.result_state = state
             abnormal_when = pdef.get("abnormal_when", "positive")
             np_.abnormal = (status == abnormal_when)
             np_.direction = status
             np_.grade = "positive" if status == "positive" else (
                 "indeterminate" if status == "indeterminate" else "normal")
-            np_.grade_label = {"positive": "Positive / detected",
-                               "negative": "Negative / not detected",
-                               "indeterminate": "Equivocal"}[status]
+            np_.grade_label = _state_label(state, status, obs.raw_value)
             np_.severity_score = 1.0 if np_.abnormal else (0.3 if status == "indeterminate" else 0.0)
             return np_
 
@@ -711,6 +860,11 @@ class Normalizer:
         unit_suspect = self._unit_suspect(pdef, sex, raw_number, value, obs) if unit_known else None
         if unit_suspect:
             unit_known, value, conv_note = False, raw_number, unit_suspect
+        context_note = self._unit_context_note(pdef, obs)
+        if context_note:
+            # e.g. a Cockcroft-Gault creatinine clearance in mL/min printed as "eGFR":
+            # graded only against the report's interval, never against the canonical bands
+            unit_known, value, conv_note, unit_suspect = False, raw_number, context_note, context_note
 
         # Reject results that are impossible rather than merely extreme. A haemoglobin
         # of -5 is a typo or a parse error, not a critical finding, and reporting it as
@@ -728,6 +882,9 @@ class Normalizer:
         mag = self._magnitude_warning(pdef, value, sex, obs.raw_unit) if unit_known else None
         if mag:
             np_.notes.append(mag)
+            np_.data_quality, np_.data_quality_reason = "suspicious", mag
+        if unit_suspect and unit_suspect != context_note:
+            np_.data_quality, np_.data_quality_reason = "suspicious", unit_suspect
 
         np_.value = round(value, 6)
         np_.unit = pdef.get("unit") if unit_known else obs.raw_unit
@@ -738,7 +895,16 @@ class Normalizer:
 
         if self._not_interpreted_for_sex(pdef, sex, np_):
             return np_
+        self._outside_all_bands = False
+        cond = self._context_bands(obs) if unit_known else None
+        if cond:
+            decided = self._grade_by_context(pdef, np_, obs, cond, raw_number)
+            if decided == "conditional":
+                return np_
         low, high, src = self._reference(pdef, sex, obs.raw_range)
+        if cond and decided:
+            low, high = decided
+            src = "report"
         if not unit_known and src != "report":
             # The only interval that shares this unit is one the report itself printed.
             # Without it there is nothing honest to grade against.
@@ -759,6 +925,21 @@ class Normalizer:
             if high is not None:
                 high = self._convert(pdef, high, obs.raw_unit)[0]
 
+        # An interval from separate limit FIELDS on a different scale from the test (a
+        # MaxValue of 500 for sodium) is not the laboratory's reference interval. Printed
+        # reference text is never second-guessed this way; the check is the same 50x scale
+        # margin the unit checks use, not a clinical threshold.
+        if src == "report" and getattr(obs, "range_from_fields", False) and unit_known:
+            _, dhigh, _ = self._reference(pdef, sex, None)
+            m = self.IMPLAUSIBLE_MULTIPLE
+            if dhigh and dhigh > 0 and any(x is not None and x > 0 and (x > dhigh * m or x < dhigh / m)
+                                           for x in (low, high)):
+                np_.notes.append(
+                    "the limit fields given with this result (%s) are on a different scale from "
+                    "this test, so they were not used as its reference interval" % obs.raw_range)
+                low, high, src = self._reference(pdef, sex, None)
+
+        low, high = clean_number(low), clean_number(high)
         np_.reference_low, np_.reference_high, np_.reference_source = low, high, src
         if src == "none":
             np_.notes.append("no reference interval available for this parameter")
@@ -772,6 +953,13 @@ class Normalizer:
                                              if k not in ("bands", "bands_by_sex")}
         abnormal, direction, grade, label, gnote, gbasis = self._grade(
             grade_def, value, low, high, sex, src)
+        if not abnormal and getattr(self, "_outside_all_bands", False):
+            # outside every printed sub-population band, but AT a strict limit ("< 5.0"
+            # with 5.0), which the inclusive interval check above does not see
+            direction = "high" if high is not None and value >= high else "low"
+            abnormal, grade = True, "mild_%s" % direction
+            label = "Above reference range" if direction == "high" else "Below reference range"
+            gbasis = "range"
         np_.abnormal, np_.direction, np_.grade, np_.grade_label = abnormal, direction, grade, label
         np_.graded_by = gbasis
         np_.severity_score = GRADE_SEVERITY.get(grade, 0.0)
@@ -785,16 +973,109 @@ class Normalizer:
 
         # A report flag that disagrees with our grading is worth surfacing, not silently
         # overriding - the lab may be using a different range than the one we resolved.
+        label, line = printed_band(obs.raw_range, raw_number)
+        np_.printed_band = line
+        if src == "report":
+            np_.lab_range_status = ("above" if high is not None and value > high else
+                                    "below" if low is not None and value < low else "within")
+        else:
+            np_.lab_range_status = "not_determinable" if (obs.raw_range or "").strip() else "not_printed"
+
         flag = (obs.raw_flag or "").strip().lower()
         if flag:
             flagged_abnormal = flag in ("h", "l", "high", "low", "abnormal", "a", "critical", "*")
-            if flagged_abnormal and not abnormal:
-                np_.notes.append("the report flags this as abnormal ('%s') but it falls inside the "
-                                 "reference interval used here" % obs.raw_flag)
+            names_band = bool(label) and flag in (label.lower(), label.lower().split()[0])
+            if flagged_abnormal and not abnormal and names_band:
+                np_.notes.append(
+                    "the report prints \"%s\" beside this result, which is the name of the printed "
+                    "band \"%s\" the value falls in - a band name, not a statement that the result "
+                    "is abnormal; graded here as %s" % (obs.raw_flag.strip(), line, label_text(np_)))
+            elif flagged_abnormal and not abnormal:
+                np_.notes.append("the report prints the flag '%s' beside this result, but it falls "
+                                 "inside the reference interval used here" % obs.raw_flag)
             elif not flagged_abnormal and abnormal and flag in ("n", "normal"):
                 np_.notes.append("the report flags this as normal but it falls outside the "
                                  "reference interval used here")
         return np_
+
+    # worst case for a screen component, over every record that covers it
+    _COMPONENT_RANK = {"positive": 5, "indeterminate": 4, "unreadable": 3, "pending": 2,
+                       "negative": 1, "not reported": 0}
+
+    @staticmethod
+    def _screen_coverage(spec, name):
+        """Which components a printed test name covers: 'HIV-1 Antibody' -> {HIV-1};
+        'HIV 1 & 2', 'HIV I/II' -> both; a name with no type number -> the whole screen."""
+        comps = spec["components"]
+        pattern = (r"%s\s*-?\s*((?:\d+|[ivx]+)(?:\s*(?:&|and|/|,|\+|-)\s*(?:\d+|[ivx]+))*)(?![a-z0-9])"
+                   % re.escape(spec.get("name_prefix", "")))
+        m = re.search(pattern, str(name or "").lower())
+        if not m:
+            return set(comps)
+        tokens = set(re.findall(r"\d+|[ivx]+", m.group(1)))
+        return {c for c, keys in comps.items() if tokens & set(keys)} or set(comps)
+
+    def _combine_screen(self, pdef, chosen, built, unreadable, pending):
+        """A multi-component screen (HIV-1 + HIV-2) from however its parts were printed.
+
+        Positive if any component is positive; else equivocal if any is; negative ONLY
+        when every component is explicitly negative; otherwise INCOMPLETE. Unreadable,
+        pending or unreported never becomes negative, so an incomplete screen can neither
+        reassure nor exclude a condition.
+        """
+        spec = pdef["screen_components"]
+        state = {c: "not reported" for c in spec["components"]}
+
+        def mark(name, st):
+            for c in self._screen_coverage(spec, name):
+                if self._COMPONENT_RANK[st] > self._COMPONENT_RANK[state[c]]:
+                    state[c] = st
+
+        for b in built:
+            st = b.status if b.status in ("positive", "indeterminate", "negative") else "unreadable"
+            mark(b.raw.raw_name if b.raw else "", st)
+        for o in unreadable:
+            mark(o.raw_name, "unreadable")
+        for name in pending:
+            mark(name, "pending")
+        chosen.components = dict(state)
+
+        values = set(state.values())
+        if "positive" in values:
+            combined = "positive"
+        elif "indeterminate" in values:
+            combined = "indeterminate"
+        elif values == {"negative"}:
+            combined = "negative"
+        else:
+            combined = "incomplete"
+        described = "; ".join("%s %s" % (c, st) for c, st in state.items())
+
+        if combined == "negative":
+            chosen.grade_label = "Negative / not detected (%s)" % " and ".join(state)
+            return
+        source = next((b for b in built if b.status == combined), None)
+        if source is not None and source is not chosen:
+            chosen.raw, chosen.result_state = source.raw, source.result_state
+        chosen.status = chosen.direction = combined
+        chosen.abnormal = combined == pdef.get("abnormal_when", "positive")
+        if combined == "incomplete":
+            chosen.grade, chosen.severity_score = "incomplete", 0.0
+            chosen.result_state = "incomplete"
+            chosen.grade_label = "Incomplete screen (%s)" % described
+            chosen.notes.append(
+                "the screen covers %s and not every component was reported as a readable "
+                "result (%s), so it is not a negative screen and rules nothing out"
+                % (" and ".join(state), described))
+        elif combined == "indeterminate":
+            chosen.grade, chosen.severity_score = "indeterminate", 0.3
+            if chosen.result_state not in ("weak_positive", "trace", "equivocal"):
+                chosen.result_state = "equivocal"
+            if source is not None:
+                chosen.grade_label = source.grade_label
+        else:
+            chosen.grade, chosen.grade_label = "positive", "Positive / detected"
+            chosen.severity_score = 1.0 if chosen.abnormal else 0.0
 
     def _resolve_duplicates(self, pdef, built, patient):
         """Same parameter reported more than once. Prefer the most informative record."""
@@ -875,6 +1156,10 @@ class Normalizer:
             for b in dropped:
                 if b.abnormal and not chosen.abnormal:
                     patient.conflicting_readings.append({"kept": chosen, "other": b})
+            chosen.data_quality = "suspicious"
+            chosen.data_quality_reason = (
+                "reported more than once with different results (%s)"
+                % ", ".join(str(b.value if b.value is not None else b.status) for b in built))
             chosen.notes.append(
                 "this parameter appeared %d times with DIFFERENT values (%s); the most "
                 "complete record was used, but which one is correct cannot be determined "
@@ -957,3 +1242,13 @@ def _describe(b):
 
 def _fmt(v):
     return ("%g" % v) if isinstance(v, float) else str(v)
+
+
+def _plain(v):
+    """A number for a sentence: no exponent ("216,000", not "2.16e+05"), no float noise."""
+    if not isinstance(v, (int, float)):
+        return str(v)
+    v = clean_number(float(v))
+    if abs(v) >= 10000:
+        return "{:,.0f}".format(v) if float(v).is_integer() else "{:,.2f}".format(v)
+    return ("%.4f" % v).rstrip("0").rstrip(".")

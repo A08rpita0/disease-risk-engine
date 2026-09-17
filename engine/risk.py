@@ -241,7 +241,8 @@ class RiskEngine:
                 cohort_id=hit.cohort_id, cohort_name=hit.name, role=role,
                 link_weight=link["weight"], cohort_confidence=hit.confidence,
                 contribution=round(value * penalty, 4), dm_basis=link.get("dm_basis", ""),
-                support_penalty=round(penalty, 4), support_note=note))
+                support_penalty=round(penalty, 4), support_note=note,
+                presented_as=link.get("presented_as")))
 
         contributions.sort(key=lambda c: c.contribution, reverse=True)
 
@@ -319,6 +320,18 @@ class RiskEngine:
             dm_fields=disease["fields"], review_status=disease.get("review_status"),
             icd10=disease.get("icd10"))
         risk.finding_type, risk.direct_evidence = finding_type, direct_evidence
+        catalogue = self.cfg.presentation.get("presentations") or {}
+        specs = []
+        for c in contributions:                      # strongest contribution first
+            spec = catalogue.get(c.presented_as) if c.presented_as else None
+            if spec and spec not in specs:
+                specs.append(spec)
+        if specs and contributions[0].presented_as:
+            risk.display_name = " \u00b7 ".join(s["label"] for s in specs)
+            risk.display_note = " ".join(s["note"] for s in specs)
+            risk.evidence_type = specs[0].get("evidence_type")
+        else:
+            risk.display_name = disease["name"]
         risk.score_breakdown = {
             "combination": "noisy-OR: 1 - product(1 - contribution)",
             # each contribution's link weight, cohort confidence, role and support
@@ -338,8 +351,31 @@ class RiskEngine:
         risk.contradicting = contradicting
         risk.context_values = self._context_values(risk, patient, contradicting)
         risk.presentation_tier = self._tier(risk, patient)
+        self._mark_unconfirmed(risk, patient)
         risk.explanation = self._explain(risk, disease, coverage, observed)
         return risk
+
+    @staticmethod
+    def _mark_unconfirmed(risk, patient):
+        """A condition every one of whose results is flagged for checking.
+
+        It is not presented as a supported finding: evidence Limited, listed with the
+        considered-but-unsupported ones, reason given. The score itself is untouched, and
+        a time-critical condition keeps its level and urgency - a real troponin can be far
+        above its interval, and nothing flagged for checking may silence an urgent step.
+        """
+        params = [patient.get(t["parameter_id"]) for t in risk.triggering_parameters]
+        params = [p for p in params if p is not None]
+        if not params or any(getattr(p, "data_quality", "valid") != "suspicious" for p in params):
+            return
+        risk.unconfirmed_reason = "; ".join(
+            "%s: %s" % (p.name, p.data_quality_reason) for p in params)
+        if risk.urgency_tier == "emergency":
+            return
+        risk.evidence_level, risk.evidence_capped = "Limited", True
+        risk.score_breakdown["cap_applied"] = "rests only on results flagged for checking"
+        risk.score_breakdown["final_level"] = "Limited"
+        risk.presentation_tier = "insufficient"
 
     @staticmethod
     def _tier(risk, patient):

@@ -208,7 +208,7 @@
 
     if (d.urgent_findings.length) {
       out += '<div class="callout crit" style="margin:0 0 14px"><b>Time-critical.</b> ' +
-        d.urgent_findings.map(function (r) { return esc(r.name); }).join(", ") +
+        d.urgent_findings.map(function (r) { return esc(r.display_name || r.name); }).join(", ") +
         " — the Disease Master marks these as needing immediate assessment.</div>";
     }
 
@@ -235,7 +235,7 @@
         "<th>Condition</th><th>Evidence</th><th>Triage</th><th>Profiles</th>" +
         '<th class="r">Score</th><th class="r">Coverage</th></tr></thead><tbody>';
       d.disease_risks.forEach(function (r) {
-        out += "<tr><td><span class=\"name\">" + esc(r.name) + "</span>" +
+        out += "<tr><td><span class=\"name\">" + esc(r.display_name || r.name) + "</span>" +
           (r.evidence_capped ? ' <span class="chip chip-out">capped</span>' : "") + "</td>" +
           '<td><span class="chip ' + (LEVEL_CHIP[r.evidence_level] || "chip-mute") + '">' +
             r.evidence_level + "</span></td>" +
@@ -266,7 +266,9 @@
     d.disease_risks.forEach(function (r, i) {
       out += '<div class="finding lv-' + r.evidence_level + '" data-i="' + i + '">';
       out += '<div class="finding-head"><div class="lv-bar"></div><div class="finding-main">';
-      out += '<div class="finding-name">' + esc(r.name) + "</div>";
+      out += '<div class="finding-name">' + esc(r.display_name || r.name) + "</div>" +
+        (r.display_name && r.display_name !== r.name
+          ? '<div class="small muted">' + esc(r.display_note || "") + " Reference condition: " + esc(r.name) + ".</div>" : "");
       out += '<div class="finding-tags">' +
         '<span class="chip ' + (LEVEL_CHIP[r.evidence_level] || "chip-mute") + '">' +
           r.evidence_level + " evidence</span>" +
