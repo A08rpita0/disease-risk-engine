@@ -660,9 +660,7 @@
     if (!abn.length && !thr.length && !noted.length) return "";
     var out = '<section class="tier"><h2 class="tier-h">Abnormal laboratory results' +
       '<span class="tier-n">' + abn.length + "</span></h2>" +
-      '<p class="tier-lead">Every result outside its range or past a guideline threshold, most marked first, with what judged ' +
-      "it: the laboratory's own interval, a guideline threshold configured here, or a value " +
-      "calculated here. These are measurements, not diagnoses.</p>";
+"";
     if (!abn.length) {
       out += '<div class="empty small">No result is outside its range.</div>';
     }
@@ -670,16 +668,13 @@
     if (thr.length) {
       out += '<h3 class="tier-sub">Inside the laboratory range, past a guideline threshold' +
         '<span class="tier-n">' + thr.length + "</span></h3>" +
-        '<p class="tier-lead">The laboratory would call these normal. They are listed because ' +
-        "a configured guideline condition uses a narrower line.</p>";
+"";
       thr.forEach(function (f) { out += labFindingRow(f); });
     }
     if (noted.length) {
       out += '<h3 class="tier-sub">Marked by the laboratory, not graded abnormal here' +
         '<span class="tier-n">' + noted.length + "</span></h3>" +
-        '<p class="tier-lead">The report flags these, gives them as equivocal, prints them twice ' +
-        "with different results, or names a test not recognised here - so the rules used here do " +
-        "not grade them abnormal. Each is shown so nothing the laboratory reported is lost.</p>";
+"";
       noted.forEach(function (f) { out += labFindingRow(f); });
     }
     return out + "</section>";
@@ -689,30 +684,20 @@
     var direct = d.direct_findings || [];
     var derived = d.derived_findings || [];
     var patterns = d.pattern_findings || [];
-    var insufficient = d.insufficient_findings || [];
-    var vetoed = (d.suppressed_findings || []).filter(function (s) { return s.disease; });
-
     if (!direct.length && !derived.length && !patterns.length &&
-        !insufficient.length && !vetoed.length && !(d.abnormal_findings || []).length &&
+        !(d.abnormal_findings || []).length &&
         !(d.threshold_findings || []).length) {
       $("tab-risks").innerHTML = '<div class="empty"><div class="big">✓</div>' +
         "No result is outside its range and no condition reached the reporting threshold.</div>";
       return;
     }
 
-    var out = '<div class="callout info" style="margin-bottom:18px">' +
-      "<b>How to read this page.</b> Nothing below is a diagnosis. The sections are " +
-      "ordered by how directly the evidence supports them: a single measured value that " +
-      "meets a defined threshold is the strongest claim this engine can make; a pattern " +
-      "across several results is a prompt to investigate, not a conclusion.</div>";
-
-    out += labFindingsSection(d);
+    var out = labFindingsSection(d);
 
     if (direct.length) {
       out += '<section class="tier"><h2 class="tier-h">Direct findings' +
         '<span class="tier-n">' + direct.length + "</span></h2>" +
-        '<p class="tier-lead">Each of these is established by a single measured result ' +
-        "against its reference range — not inferred from a combination.</p>";
+"";
       direct.forEach(function (r) { out += directCard(r); });
       out += "</section>";
     }
@@ -720,52 +705,19 @@
     if (derived.length) {
       out += '<section class="tier"><h2 class="tier-h">Calculated findings' +
         '<span class="tier-n">' + derived.length + "</span></h2>" +
-        '<p class="tier-lead">These rest on a value this engine <b>calculated</b> from other ' +
-        "results. No laboratory measured or flagged them, so they carry less weight than a " +
-        "reported abnormality and should be checked against the underlying results.</p>";
+"";
       derived.forEach(function (r) { out += directCard(r); });
       out += "</section>";
     }
 
     out += '<section class="tier"><h2 class="tier-h">Pattern / risk signals' +
       '<span class="tier-n">' + patterns.length + "</span></h2>" +
-      '<p class="tier-lead">These are <b>combinations</b> of results that resemble a known ' +
-      "pattern. They are possible associations to explore with your doctor, not findings " +
-      "in their own right. Open any one for the evidence for and against it.</p>";
+"";
     if (!patterns.length) {
       out += '<div class="empty small">No multi-marker patterns reached the reporting threshold.</div>';
     }
     patterns.forEach(function (r, i) { out += patternCard(r, i, "pattern"); });
     out += "</section>";
-
-    if (insufficient.length) {
-      out += '<section class="tier tier-weak"><h2 class="tier-h">Insufficient evidence' +
-        '<span class="tier-n">' + insufficient.length + "</span></h2>" +
-        '<p class="tier-lead">Considered and assessed, but the results here do not support ' +
-        "reporting these as findings — usually because too few of the relevant markers were " +
-        "measured, or because the ones that were measured came back normal. Shown so you can " +
-        "see they were checked rather than missed.</p>";
-      insufficient.forEach(function (r, i) {
-        out += patternCard(r, i + 1000, "insufficient");
-      });
-      out += "</section>";
-    }
-
-    // Anything a definitive negative ruled out. Shown plainly so the user can see the
-    // test was read and acted on, without the engine's internal wording.
-    if (vetoed.length) {
-      out += '<section class="tier"><h2 class="tier-h">Ruled out by a specific test' +
-        '<span class="tier-n">' + vetoed.length + "</span></h2>" +
-        '<p class="tier-lead">A definitive test came back negative, so these were not ' +
-        "reported even though some related results are abnormal.</p>";
-      vetoed.forEach(function (s) {
-        out += '<div class="ruled-out"><b>' + esc(s.disease) + "</b>" +
-          '<div class="ro-why">' + esc(s.user_message || s.reason) + "</div>" +
-          '<div class="ro-tech tech-only">' + esc(s.reason) + " (" +
-            esc(s.parameter_name) + " " + esc(s.observed) + ")</div></div>";
-      });
-      out += "</section>";
-    }
 
     $("tab-risks").innerHTML = out;
 
