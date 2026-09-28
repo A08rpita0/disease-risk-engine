@@ -114,8 +114,8 @@
         var incomplete = data.document && data.document.incomplete;
         status((incomplete ? "<b>Analysis INCOMPLETE</b> — " + esc(incomplete.message) + " Read so far: "
                            : "Analysis complete — ") + data.summary.parameters_recognised +
-               " parameters recognised, " + data.summary.cohorts_detected +
-               " clusters detected, " + data.summary.conditions_flagged + " conditions flagged.",
+               " parameters recognised, " + data.summary.conditions_flagged +
+               " conditions flagged.",
                incomplete ? "error" : "info");
         render();
         $("results").hidden = false;
@@ -278,6 +278,27 @@
     return p.name ? esc(p.name) : '<span class="muted">Name not stated in the report</span>';
   }
 
+  function findingRows(list) {
+    return list.map(function (f) {
+      return '<div class="finding-row"><span class="badge b-' +
+        (f.severity_score >= 0.75 ? "High" : f.severity_score >= 0.5 ? "Moderate" : "Low") + '">' +
+        esc(f.grade_label || (f.direction === "low" ? "Low" : "High")) + "</span>" +
+        "<b>" + esc(f.name) + "</b> " + '<span class="num">' + num(f.value) + "</span> " +
+        '<span class="muted small">' + esc(f.unit || "") + "</span></div>";
+    }).join("");
+  }
+
+  /* The analysis time, shown in the reader's own timezone. The server sends its offset,
+     so a report analysed in India no longer prints the deployed server's UTC clock. */
+  function analysedAt(iso) {
+    var t = new Date(iso);
+    if (isNaN(t)) return String(iso || "").replace("T", " ");
+    return t.toLocaleString(undefined, {
+      year: "numeric", month: "short", day: "numeric",
+      hour: "2-digit", minute: "2-digit"
+    });
+  }
+
   function renderOverview(d) {
     var s = d.summary, out = "";
 
@@ -286,7 +307,7 @@
       "<h2>Lab report analysis</h2><dl class=\"kv\">" +
       "<dt>Patient</dt><dd>" + patientLine(d.patient) + "</dd>" +
       "<dt>Report</dt><dd>" + esc(d.source_file) + "</dd>" +
-      "<dt>Analysed on</dt><dd>" + esc(d.generated_at.replace("T", " ")) + "</dd></dl>" +
+      "<dt>Analysed on</dt><dd>" + esc(analysedAt(d.generated_at)) + "</dd></dl>" +
       '<p class="print-note">' + esc(d.disclaimer) + "</p>";
 
     // Part of the file could not be read: said first, before any result, so a partial
@@ -299,9 +320,7 @@
     out += '<div class="card"><h2>Record</h2><dl class="kv">' +
       "<dt>Patient</dt><dd>" + patientLine(d.patient) + "</dd>" +
       "<dt>Source file</dt><dd>" + esc(d.source_file) + "</dd>" +
-      "<dt>Analysed</dt><dd>" + esc(d.generated_at.replace("T", " ")) + "</dd>" +
-      "<dt>How complete is this</dt><dd><b>" + esc(s.analysis_confidence) + "</b> — " +
-        esc(d.coverage.note) + "</dd>" +
+      "<dt>Analysed</dt><dd>" + esc(analysedAt(d.generated_at)) + "</dd>" +
       "</dl></div>";
 
     // Sex changes several reference ranges, so say so and offer to re-run rather than
@@ -321,10 +340,6 @@
     out += '<div class="stats">' +
       stat(s.parameters_recognised, "results read") +
       stat(labOut, "outside lab range", labOut ? "alert" : "ok") +
-      stat(s.decision_threshold_count || 0, "past a guideline threshold",
-           s.decision_threshold_count ? "warn" : "") +
-      stat(s.direct_findings, "direct findings", s.direct_findings ? "alert" : "") +
-      stat(s.pattern_findings, "patterns to explore", s.pattern_findings ? "warn" : "") +
       "</div>";
 
     if (s.parameters_unmapped) {
@@ -346,23 +361,16 @@
 
     if ((d.abnormal_findings || []).length) {
       var af = d.abnormal_findings;
-      var nLab = af.filter(function (f) { return f.finding_basis === "lab_range"; }).length;
-      var nCalc = af.filter(function (f) { return f.finding_basis === "derived"; }).length;
-      var nThr = (d.threshold_findings || []).length;
       out += '<div class="card"><h2>Results needing attention (' + af.length + ")</h2>" +
-        '<p class="small muted" style="margin:-4px 0 10px">' + nLab + " outside the laboratory's range, " +
-        (af.length - nLab - nCalc) + " past a guideline threshold, " + nCalc + " calculated here" +
-        (nThr ? "; " + nThr + " more inside the laboratory's range but past a guideline threshold" : "") +
-        ". Every one is listed under <b>What we found</b>, whether or not any condition is linked to it.</p>" +
-        af.slice(0, 6).map(function (f) {
-          return '<div class="finding-row"><span class="badge b-' +
-            (f.severity_score >= 0.75 ? "High" : f.severity_score >= 0.5 ? "Moderate" : "Low") + '">' +
-            esc(f.grade_label || (f.direction === "low" ? "Low" : "High")) + "</span>" +
-            "<b>" + esc(f.name) + "</b> " + '<span class="num">' + num(f.value) + "</span> " +
-            '<span class="muted small">' + esc(f.unit || "") + "</span></div>";
-        }).join("") +
-        (af.length > 6 ? '<p class="small muted" style="margin:8px 0 0">and ' + (af.length - 6) +
-          " more.</p>" : "") + "</div>";
+        findingRows(af.slice(0, 6)) +
+        // The rest are behind a disclosure rather than a dead "and 3 more." line: the
+        // count told the reader something was hidden without giving them any way to see
+        // it. <details> also prints open, so a printed report carries every row.
+        (af.length > 6
+          ? "<details><summary>Show the other " + (af.length - 6) + " result" +
+            (af.length - 6 === 1 ? "" : "s") + "</summary>" +
+            findingRows(af.slice(6)) + "</details>"
+          : "") + "</div>";
     }
 
     if (!(d.direct_findings || []).length && !(d.derived_findings || []).length &&
@@ -380,20 +388,7 @@
           : "") +
         "</div>";
     } else {
-      var nd = (d.direct_findings || []).length,
-          nv = (d.derived_findings || []).length,
-          np = (d.pattern_findings || []).length,
-          ni = (d.insufficient_findings || []).length;
-      out += '<div class="card"><h2>What we found</h2>' +
-        '<p class="small muted" style="margin:-4px 0 12px">' +
-        (nd ? "<b>" + nd + "</b> direct finding" + (nd === 1 ? "" : "s") +
-              " (established by a single measurement), " : "") +
-        (nv ? "<b>" + nv + "</b> calculated finding" + (nv === 1 ? "" : "s") + ", " : "") +
-        "<b>" + np + "</b> pattern" + (np === 1 ? "" : "s") +
-        " (combinations worth exploring)" +
-        (ni ? " and <b>" + ni + "</b> considered but not supported by the evidence here" : "") +
-        ". None of this is a diagnosis — a strong match means your results closely match " +
-        "a known pattern, not that you have the condition.</p>";
+      out += '<div class="card"><h2>What we found</h2>';
       // Only what the evidence actually supports is listed here. An insufficient-evidence
       // condition shown in the same five-row summary, at the same size, is exactly how a
       // "we looked and found nothing" reads as a finding.
@@ -422,7 +417,6 @@
         " Affected: " + d.coverage.capped_conditions.map(esc).join(", ") + ".</div>";
     }
 
-    out += '<div class="callout info">' + esc(d.disclaimer) + "</div>";
     $("tab-overview").innerHTML = out;
   }
 
@@ -1274,7 +1268,6 @@
 
   fetch("/api/config/summary").then(function (r) { return r.json(); }).then(function (c) {
     state.config = c;
-    $("footConfig").textContent =
-      "This report is a risk check based on clinical guidelines. It is not a diagnosis.";
+    $("footConfig").textContent = "";
   }).catch(function () {});
 })();

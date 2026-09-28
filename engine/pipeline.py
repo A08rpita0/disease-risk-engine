@@ -30,6 +30,18 @@ DISCLAIMER = (
 )
 
 
+
+def _now_iso():
+    """The moment of analysis, with its UTC offset.
+
+    A naive timestamp carries no timezone, so the server's clock was being printed as
+    though it were the reader's: a report analysed at 19:11 in India showed 13:41,
+    because the deployed server runs on UTC. Sending the offset lets the page show the
+    time in whatever zone the reader is actually in.
+    """
+    return datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
 class Pipeline:
     def __init__(self, config=None):
         self.cfg = config or get_config()
@@ -139,7 +151,7 @@ class Pipeline:
         unrelated file would imply the analysis ran and found nothing wrong.
         """
         return {
-            "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
+            "generated_at": _now_iso(),
             "source_file": filename,
             "analysed": False,
             "document": document,
@@ -180,7 +192,7 @@ class Pipeline:
         coverage = self._coverage_report(patient, risks)
 
         return {
-            "generated_at": datetime.datetime.now().isoformat(timespec="seconds"),
+            "generated_at": _now_iso(),
             "source_file": filename,
             "analysed": True,
             "document": document,
