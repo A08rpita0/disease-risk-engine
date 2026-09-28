@@ -654,29 +654,13 @@
   }
 
   function labFindingsSection(d) {
+    // Threshold results and results the laboratory marked are no longer listed here,
+    // so this section shows - and is kept open by - the abnormal results alone.
     var abn = d.abnormal_findings || [];
-    var thr = d.threshold_findings || [];
-    var noted = d.lab_noted_findings || [];
-    if (!abn.length && !thr.length && !noted.length) return "";
+    if (!abn.length) return "";
     var out = '<section class="tier"><h2 class="tier-h">Abnormal laboratory results' +
-      '<span class="tier-n">' + abn.length + "</span></h2>" +
-"";
-    if (!abn.length) {
-      out += '<div class="empty small">No result is outside its range.</div>';
-    }
+      '<span class="tier-n">' + abn.length + "</span></h2>";
     abn.forEach(function (f) { out += labFindingRow(f); });
-    if (thr.length) {
-      out += '<h3 class="tier-sub">Inside the laboratory range, past a guideline threshold' +
-        '<span class="tier-n">' + thr.length + "</span></h3>" +
-"";
-      thr.forEach(function (f) { out += labFindingRow(f); });
-    }
-    if (noted.length) {
-      out += '<h3 class="tier-sub">Marked by the laboratory, not graded abnormal here' +
-        '<span class="tier-n">' + noted.length + "</span></h3>" +
-"";
-      noted.forEach(function (f) { out += labFindingRow(f); });
-    }
     return out + "</section>";
   }
 
