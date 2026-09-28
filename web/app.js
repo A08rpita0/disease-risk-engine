@@ -233,21 +233,6 @@
     selectTab(tabs[next], true);
   });
 
-  /* ---------------- technical details ---------------- */
-
-  $("techBtn").addEventListener("click", function () {
-    var on = this.getAttribute("aria-pressed") !== "true";
-    this.setAttribute("aria-pressed", on ? "true" : "false");
-    this.classList.toggle("on", on);
-    document.querySelectorAll(".tab.tech").forEach(function (t) { t.hidden = !on; });
-    document.body.classList.toggle("show-tech", on);
-    // Never leave the user staring at a panel whose tab just disappeared.
-    if (!on) {
-      var active = document.querySelector(".tab.active");
-      if (active && active.classList.contains("tech")) selectTab($("tabbtn-overview"));
-    }
-  });
-
   /* ---------------- print ---------------- */
 
   $("printBtn").addEventListener("click", function () { window.print(); });
@@ -262,16 +247,13 @@
       tabBtn.title = (d.direct_findings.length) + " direct, " +
         ((d.pattern_findings || []).length) + " pattern";
     }
-    $("pillCohorts").textContent = d.cohorts.length;
     $("pillParams").textContent = d.parameters.length;
     $("pillPlan").textContent = d.recommendations.length;
 
     renderOverview(d);
     renderRisks(d);
-    renderCohorts(d);
     renderParams(d);
     renderPlan(d);
-    renderData(d);
   }
 
   function patientLine(p) {
@@ -347,9 +329,7 @@
         " item" + (s.parameters_unmapped === 1 ? "" : "s") + " in your report " +
         (s.parameters_unmapped === 1 ? "was" : "were") + " not recognised as a test we " +
         "know, so " + (s.parameters_unmapped === 1 ? "it was" : "they were") +
-        " left out of this analysis. Everything else was read normally." +
-        (document.body.classList.contains("show-tech")
-          ? "" : ' Turn on <b>Technical details</b> to see which.') + "</div>";
+        " left out of this analysis. Everything else was read normally.</div>";
     }
 
     if (d.urgent_findings.length) {
@@ -804,95 +784,6 @@
     return id.replace(/_/g, " ");
   }
 
-  function renderCohorts(d) {
-    if (!d.cohorts.length) {
-      $("tab-cohorts").innerHTML = '<div class="empty"><div class="big">—</div>' +
-        "No clinically established clusters were detected in these parameters.</div>";
-      return;
-    }
-    var out = '<p class="small muted" style="margin:0 0 14px">A cluster is a combination of ' +
-      "parameters that, together, carry clinical meaning that none of them carries alone. " +
-      "Clusters marked <b>cross-profile</b> deliberately draw on more than one test profile.</p>";
-
-    d.cohorts.forEach(function (c) {
-      out += '<div class="cohort"><div class="cohort-head"><div>' +
-        "<h3>" + esc(c.name) + "</h3>" +
-        '<div class="risk-meta">' +
-        '<span class="badge b-tag">' + esc(c.category) + "</span>" +
-        (c.cross_profile_rationale ? '<span class="badge b-monitoring">cross-profile</span>' : "") +
-        (c.mode === "count_of" ? '<span class="badge b-tag">counting rule</span>' : "") +
-        (c.urgency_override ? '<span class="badge b-' + c.urgency_override + '">' +
-          esc(c.urgency_override) + "</span>" : "") +
-        '<span class="small muted">' + c.profiles_touched.map(esc).join(" · ") + "</span>" +
-        "</div></div>" +
-        '<div class="conf">' + pct(c.confidence) + '<div class="c small muted" ' +
-        'style="text-align:right;font-family:inherit">confidence</div></div></div>';
-
-      out += '<div class="desc">' + esc(c.description) + "</div>";
-
-      if (c.mode === "count_of") {
-        out += '<div class="section"><h4>Components met (' + c.components_met.length + ")</h4>";
-        c.components_met.forEach(function (m) {
-          out += '<div class="trigger-row"><span class="role-tag">met</span>' +
-            '<span class="lbl">' + esc(m.label) + " — " + esc(m.evidence) + "</span></div>";
-        });
-        c.components_unmet.forEach(function (m) {
-          out += '<div class="trigger-row dim"><span class="role-tag">' +
-            (m.status.indexOf("not assessable") === 0 ? "no data" : "not met") + "</span>" +
-            '<span class="lbl">' + esc(m.label) + " — " + esc(m.status) + "</span></div>";
-        });
-        out += "</div>";
-      }
-
-      var hits = c.hits.filter(function (h) { return h.effective_weight > 0; });
-      if (hits.length) {
-        out += '<div class="section"><h4>Signals</h4>';
-        hits.forEach(function (h) {
-          out += '<div class="trigger-row' + (h.suppressed_by ? " dim" : "") + '">' +
-            '<span class="role-tag">' + esc(h.role) + "</span>" +
-            '<span class="lbl">' + esc(h.label || h.parameter_name) +
-            ' <span class="muted">— ' + esc(h.observed) + "</span>" +
-            (h.suppressed_by ? '<br><span class="small muted">weight reduced to avoid ' +
-              "double-counting with " + esc(h.suppressed_by) + "</span>" : "") +
-            '</span><span class="w num">' + h.effective_weight.toFixed(2) + "</span></div>";
-        });
-        out += "</div>";
-      }
-
-      if (c.cross_profile_rationale) {
-        out += '<div class="section"><h4>Why this crosses profiles</h4>' +
-          '<div class="explain">' + esc(c.cross_profile_rationale) + "</div></div>";
-      }
-
-      out += '<div class="section"><h4>Maps to</h4><div class="chips">' +
-        (state.config ? cohortDiseaseChips(c.cohort_id) : "") + "</div></div>";
-
-      if (c.evidence && c.evidence.length) {
-        out += "<details><summary>Clinical references (" + c.evidence.length + ")</summary>";
-        c.evidence.forEach(function (e) {
-          out += '<div class="cite"><b>' + esc(e.citation) + "</b><br>" + esc(e.note) + "</div>";
-        });
-        out += "</details>";
-      }
-
-      if (c.parameters_missing.length) {
-        out += '<p class="small muted" style="margin:10px 0 0">Data coverage ' +
-          pct(c.data_coverage) + " — not measured: " +
-          c.parameters_missing.map(function (p) { return esc(paramName(p)); }).join(", ") + "</p>";
-      }
-      out += "</div>";
-    });
-    $("tab-cohorts").innerHTML = out;
-  }
-
-  function cohortDiseaseChips(cohortId) {
-    var c = state.config.cohorts.filter(function (x) { return x.id === cohortId; })[0];
-    if (!c) return "";
-    return c.diseases.map(function (l) {
-      return '<span class="chip" title="' + esc(l.dm_basis || "") + '">' + esc(l.name) +
-        ' <span class="muted">' + l.role + " · w " + l.weight + "</span></span>";
-    }).join("");
-  }
 
   /* Three different claims were sharing one "Outside the normal range" heading:
      the lab's own interval was breached, a guideline band this engine applies decided
@@ -1119,124 +1010,6 @@
       (note ? '<div class="dq-note">' + esc(note) + "</div>" : "") + "</div></div>";
   }
 
-  function renderData(d) {
-    var s = d.summary;
-    var unmapped = d.unmapped_observations || [];
-    var fields = d.document_fields_skipped || [];
-    var rejected = d.rejected_values || [];
-
-    var out = '<div class="card"><h2>What was read from this file</h2><div class="dq-grid">' +
-      dqRow(s.observations_found, "values found in the file",
-            "every name/value pair the reader could see") +
-      dqRow(s.parameters_recognised, "recognised as tests",
-            "matched to a known parameter, unit-converted and graded", "ok") +
-      dqRow(s.parameters_unmapped, "tests not recognised",
-            "result-shaped, but no matching parameter in the dictionary",
-            unmapped.length ? "warn" : "") +
-      dqRow(s.document_fields_skipped, "document fields skipped",
-            "sample dates, lab numbers, package names — never test results") +
-      dqRow(s.values_rejected || 0, "values rejected",
-            "impossible or unusable readings, listed below",
-            rejected.length ? "warn" : "") +
-      dqRow(s.duplicates_resolved || 0, "duplicates resolved",
-            "the same test reported more than once") +
-      dqRow(s.derived_values || 0, "values calculated here",
-            "ratios and indices computed from other results") +
-      "</div>";
-    out += '<p class="small muted" style="margin:10px 0 0">Recognition rate across ' +
-      "result-shaped values: <b>" +
-      (s.parameters_recognised + s.parameters_unmapped > 0
-        ? Math.round(100 * s.parameters_recognised /
-            (s.parameters_recognised + s.parameters_unmapped)) + "%"
-        : "—") +
-      "</b>. Document fields are excluded from that figure because they were never " +
-      "results.</p>";
-    out += '<dl class="kv" style="margin-top:14px"><dt>Profiles touched</dt><dd>' +
-      s.profiles_touched.map(esc).join(", ") + "</dd></dl></div>";
-
-    if (rejected.length) {
-      out += '<div class="card"><h2>Values rejected (' + rejected.length + ")</h2>" +
-        '<p class="small muted">These could not be a real measurement, so they were not ' +
-        "used anywhere in the analysis rather than being graded as findings.</p>" +
-        '<div class="wrap"><table class="tbl"><thead><tr><th>Parameter</th><th>Reported</th>' +
-        "<th>Why it was rejected</th></tr></thead><tbody>";
-      rejected.forEach(function (x) {
-        out += "<tr><td><b>" + esc(x.parameter || x.name || x.parameter_id || "—") +
-          '</b></td><td class="num">' +
-          esc(x.value !== undefined ? x.value : x.raw_value) + " " + esc(x.unit || "") +
-          '</td><td class="small muted">' + esc(x.reason || "") + "</td></tr>";
-      });
-      out += "</tbody></table></div></div>";
-    }
-
-    if (d.warnings && d.warnings.length) {
-      out += '<div class="callout warn"><b>Extraction warnings</b><ul style="margin:6px 0 0">' +
-        d.warnings.map(function (w) { return "<li>" + esc(w) + "</li>"; }).join("") + "</ul></div>";
-    }
-
-    if (d.duplicates_resolved.length) {
-      out += '<div class="card"><h2>Duplicate results resolved (' +
-        d.duplicates_resolved.length + ")</h2>" +
-        '<p class="small muted">The same test appeared more than once. The rule is fixed and ' +
-        "does not look at which value is more alarming: a record carrying the report's own " +
-        "reference range and units wins, then the first one seen. Both values are shown.</p>";
-      out += '<div class="wrap"><table class="tbl"><thead><tr><th>Parameter</th><th>Seen</th>' +
-        "<th>Kept</th><th>Dropped</th><th>Reason</th></tr></thead><tbody>";
-      d.duplicates_resolved.forEach(function (x) {
-        out += "<tr><td><b>" + esc(x.parameter) + "</b>" +
-          (x.conflicting_values ? ' <span class="badge b-Moderate">values differed</span>' : "") +
-          "</td><td>" + x.occurrences + "</td>" +
-          '<td class="num">' + esc(x.kept.value) + " " + esc(x.kept.unit || "") + "</td>" +
-          '<td class="num muted">' + x.dropped.map(function (v) {
-            return esc(v.value) + " " + esc(v.unit || "");
-          }).join("<br>") + "</td>" +
-          '<td class="small muted">' + esc(x.reason) + "</td></tr>";
-      });
-      out += "</tbody></table></div></div>";
-    }
-
-    if (unmapped.length) {
-      out += '<div class="card"><h2>Tests not recognised (' + unmapped.length + ")</h2>" +
-        '<p class="small muted">These look like results but did not match any parameter in the ' +
-        "dictionary, so they were ignored rather than guessed at. Nothing here was used in " +
-        "the analysis.</p>" +
-        '<div class="wrap"><table class="tbl"><thead><tr><th>Name in file</th><th>Value</th>' +
-        "<th>Unit</th><th>Range in file</th></tr></thead><tbody>";
-      unmapped.forEach(function (o) {
-        out += "<tr><td>" + esc(o.raw_name) + '</td><td class="num">' + esc(o.raw_value) +
-          "</td><td>" + esc(o.raw_unit || "—") + '</td><td class="small muted">' +
-          esc(o.raw_range || "—") + "</td></tr>";
-      });
-      out += "</tbody></table></div></div>";
-    }
-
-    if (fields.length) {
-      out += '<details class="card"><summary><b>Document fields skipped (' + fields.length +
-        ")</b> — sample dates, lab numbers, package names</summary>" +
-        '<p class="small muted">Listed for completeness. None of these is a test result, so ' +
-        "none of them was expected to map to a parameter.</p>" +
-        '<div class="wrap"><table class="tbl"><thead><tr><th>Key</th><th>Value</th>' +
-        "<th>Where</th></tr></thead><tbody>";
-      fields.slice(0, 200).forEach(function (o) {
-        out += "<tr><td>" + esc(o.raw_name) + "</td><td>" + esc(o.raw_value) +
-          '</td><td class="small muted">' + esc(o.source_path || "") + "</td></tr>";
-      });
-      out += "</tbody></table></div></details>";
-    }
-
-    if (d.cohorts_not_assessable.length) {
-      out += '<div class="card"><h2>Clusters that could not be assessed</h2>' +
-        '<p class="small muted">Not enough of their parameters were present in this record.</p>' +
-        '<div class="wrap"><table class="tbl"><thead><tr><th>Cluster</th><th>Reason</th>' +
-        "</tr></thead><tbody>";
-      d.cohorts_not_assessable.forEach(function (c) {
-        out += "<tr><td>" + esc(c.name) + '</td><td class="small muted">' + esc(c.reason) +
-          "</td></tr>";
-      });
-      out += "</tbody></table></div></div>";
-    }
-    $("tab-data").innerHTML = out;
-  }
 
 
   /* ---------------- boot ---------------- */
