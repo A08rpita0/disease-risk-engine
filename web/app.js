@@ -901,25 +901,10 @@
      0.54-5.3 lab range still drives the hypothyroid pattern, so a reader saw the
      advice with no visible result behind it. */
   var BASIS_GROUPS = [
-    { key: "lab_range", title: "Outside the laboratory reference range",
-      lead: "The laboratory's own reference interval for this report says these are out of range.",
-      cls: "g-lab" },
-    { key: "decision_threshold", title: "Clinical decision threshold triggered",
-      lead: "These met a guideline threshold configured in this engine. Where the laboratory " +
-            "supplied no interval of its own, that threshold is what judged the result; where " +
-            "it did, the value is inside the laboratory range and the threshold is a separate, " +
-            "narrower line.",
-      cls: "g-band" },
-    { key: "derived", title: "Calculated by this engine",
-      lead: "Not measured by any laboratory — computed from other results in this report. " +
-            "Check them against the values they were derived from.",
-      cls: "g-derived" }
+    { key: "lab_range", title: "Outside the laboratory reference range", cls: "g-lab" },
+    { key: "decision_threshold", title: "Clinical decision threshold triggered", cls: "g-band" },
+    { key: "derived", title: "Calculated by this engine", cls: "g-derived" }
   ];
-
-  var SOURCE_WORD = {
-    lab_range: "Lab-reported", decision_threshold: "Decision threshold",
-    derived: "Derived", normal: "Lab-reported"
-  };
 
   function renderParams(d) {
     var out = "";
@@ -930,7 +915,6 @@
       rows.forEach(function (p) { shown[p.parameter_id] = 1; });
       if (!rows.length) return;
       out += '<div class="card ' + g.cls + '"><h2>' + esc(g.title) + " (" + rows.length + ")</h2>" +
-        '<p class="small muted" style="margin:-4px 0 12px">' + esc(g.lead) + "</p>" +
         paramTable(rows) + "</div>";
     });
 
@@ -948,7 +932,7 @@
   function paramTable(rows) {
     var out = '<div class="wrap"><table class="tbl"><thead><tr>' +
       "<th>Parameter</th><th>Profile</th><th>Result</th><th>Laboratory reference</th>" +
-      "<th>Status</th><th>Source</th><th>Notes</th></tr></thead><tbody>";
+      "<th>Status</th></tr></thead><tbody>";
     rows.forEach(function (p) {
       var printed = p.raw && p.raw.raw_value !== undefined ? p.raw.raw_value : p.status;
       var value = p.kind === "qualitative"
@@ -975,12 +959,6 @@
         ? "guideline band — the report printed bands, not one normal interval"
         : "guideline band — no lab range supplied";
 
-      var notes = (p.notes || []).slice();
-      if (p.conversion_note) notes.push(p.conversion_note);
-      if (p.derived) notes.push(p.derivation);
-      (p.triggered_bands || []).forEach(function (b) {
-        notes.push("Met a cluster condition: " + b.band + " (" + b.cohort + ")");
-      });
       // data-label drives the stacked card layout on phones, where the header row is hidden.
       out += '<tr class="' + (p.abnormal ? "abn" : "") + '">' +
         '<td data-label="Test"><b>' + esc(p.name) + "</b>" +
@@ -994,10 +972,7 @@
           : "") + (repeats(p.grade_label || p.grade, printed, "") && p.kind === "qualitative"
             ? "" : '<span class="small">' + esc(p.grade_label || p.grade) + "</span>") +
           (p.printed_band ? '<div class="small muted">printed band: ' + esc(p.printed_band) + "</div>" : "") +
-          "</td>" +
-        '<td data-label="Source" class="small muted">' +
-          esc(SOURCE_WORD[p.finding_basis] || "Lab-reported") + "</td>" +
-        '<td data-label="Notes" class="small muted">' + notes.map(esc).join("<br>") + "</td></tr>";
+          "</td></tr>";
     });
     return out + "</tbody></table></div>";
   }
