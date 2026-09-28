@@ -624,12 +624,6 @@
   function labFindingRow(f) {
     var badgeText = (f.kind === "qualitative" || f.kind === "categorical") && !NOTED_KINDS[f.finding_basis]
       ? "Reported by the laboratory" : (BASIS_LABEL[f.finding_basis] || f.finding_basis);
-    var links = (f.linked || []).map(function (l) {
-      var tier = l.kind === "pattern" ? "pattern"
-        : (l.tier === "insufficient" ? "considered, not supported" : l.tier + " finding");
-      return '<span class="chip">' + esc(l.name) + ' <span class="muted">' + esc(tier) +
-        "</span></span>";
-    }).join("");
     return '<div class="labf sev-' + (f.severity_score >= 0.75 ? "hi" : f.severity_score >= 0.5 ? "mid" : "lo") +
       (f.in_lab_range ? " in-range" : "") + '">' +
       '<div class="labf-top">' +
@@ -646,37 +640,15 @@
         (f.lab_flag ? '<span class="labf-flag" title="Flag printed on the report">report flag: ' +
           esc(f.lab_flag) + "</span>" : "") +
       "</div>" +
-      '<div class="labf-say">' + esc(f.statement) +
-        (f.standalone ? " No condition or pattern in this analysis rests on this result on " +
-          "its own, so none is suggested - it is listed so it is not missed." : "") + "</div>" +
-      (links ? '<div class="labf-links"><span class="small muted">Also part of:</span> ' + links + "</div>" : "") +
       "</div>";
   }
 
   function labFindingsSection(d) {
     var abn = d.abnormal_findings || [];
-    var thr = d.threshold_findings || [];
-    var noted = d.lab_noted_findings || [];
-    if (!abn.length && !thr.length && !noted.length) return "";
+    if (!abn.length) return "";
     var out = '<section class="tier"><h2 class="tier-h">Abnormal laboratory results' +
-      '<span class="tier-n">' + abn.length + "</span></h2>" +
-"";
-    if (!abn.length) {
-      out += '<div class="empty small">No result is outside its range.</div>';
-    }
+      '<span class="tier-n">' + abn.length + "</span></h2>";
     abn.forEach(function (f) { out += labFindingRow(f); });
-    if (thr.length) {
-      out += '<h3 class="tier-sub">Inside the laboratory range, past a guideline threshold' +
-        '<span class="tier-n">' + thr.length + "</span></h3>" +
-"";
-      thr.forEach(function (f) { out += labFindingRow(f); });
-    }
-    if (noted.length) {
-      out += '<h3 class="tier-sub">Marked by the laboratory, not graded abnormal here' +
-        '<span class="tier-n">' + noted.length + "</span></h3>" +
-"";
-      noted.forEach(function (f) { out += labFindingRow(f); });
-    }
     return out + "</section>";
   }
 
