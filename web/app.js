@@ -745,23 +745,31 @@
      advice with no visible result behind it. */
   var BASIS_GROUPS = [
     { key: "lab_range", title: "Outside the laboratory reference range", cls: "g-lab" },
-    { key: "decision_threshold", title: "Clinical decision threshold triggered", cls: "g-band" },
-    { key: "derived", title: "Calculated by this engine", cls: "g-derived" }
+    { key: "decision_threshold", title: "Clinical decision threshold triggered", cls: "g-band" }
   ];
 
   function renderParams(d) {
     var out = "";
     var shown = {};
 
+    // Values this engine calculated are still computed, and still drive pattern
+    // detection; they are simply not listed on this page. They are marked as shown so
+    // they do not fall through into "Within range" instead.
+    d.parameters.forEach(function (p) {
+      if (p.derived || p.finding_basis === "derived") shown[p.parameter_id] = 1;
+    });
+    var listed = 0;
+
     BASIS_GROUPS.forEach(function (g) {
       var rows = d.parameters.filter(function (p) { return p.finding_basis === g.key; });
       rows.forEach(function (p) { shown[p.parameter_id] = 1; });
       if (!rows.length) return;
+      listed += rows.length;
       out += '<div class="card ' + g.cls + '"><h2>' + esc(g.title) + " (" + rows.length + ")</h2>" +
         paramTable(rows) + "</div>";
     });
 
-    if (!Object.keys(shown).length) {
+    if (!listed) {
       out += '<div class="card"><h2>Outside the laboratory reference range (0)</h2>' +
         '<p class="muted small">None — every recognised result is within its range.</p></div>';
     }
