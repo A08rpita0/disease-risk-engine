@@ -778,21 +778,13 @@
         value += ' <span class="badge b-Limited" title="' + esc(p.data_quality_reason || "") +
           '">check this value</span>';
       }
-      var ref = "—", refNote = "";
+      var ref = "—";
       if (p.reference_low !== null || p.reference_high !== null) {
         ref = (p.reference_low !== null ? num(p.reference_low) : "") +
               (p.reference_low !== null && p.reference_high !== null ? " – " : "") +
               (p.reference_high !== null ? num(p.reference_high) : "");
         ref = '<span class="num">' + ref + "</span>";
       }
-      // Say plainly whose range this is. "dictionary" told the reader nothing, and it
-      // is the whole difference between a lab flagging a result and this engine doing it.
-      if (p.derived) refNote = "engine reference for a calculated value";
-      else if (p.reference_source && p.reference_source.indexOf("report") === 0)
-        refNote = "from this report";
-      else if (ref !== "—") refNote = (p.raw && p.raw.raw_range)
-        ? "guideline band — the report printed bands, not one normal interval"
-        : "guideline band — no lab range supplied";
 
       // data-label drives the stacked card layout on phones, where the header row is hidden.
       out += '<tr class="' + (p.abnormal ? "abn" : "") + '">' +
@@ -800,13 +792,11 @@
           (p.derived ? ' <span class="badge b-tag">derived</span>' : "") + "</td>" +
         '<td data-label="Profile" class="small muted">' + esc(p.profile || "—") + "</td>" +
         '<td data-label="Result">' + value + "</td>" +
-        '<td data-label="Laboratory reference">' + ref +
-          '<div class="small muted">' + esc(refNote) + "</div></td>" +
+        '<td data-label="Laboratory reference">' + ref + "</td>" +
         '<td data-label="Status">' + (p.abnormal
           ? '<span class="badge b-' + (p.direction || "high") + '">' + esc(p.direction || "") + "</span> "
           : "") + (repeats(p.grade_label || p.grade, printed, "") && p.kind === "qualitative"
             ? "" : '<span class="small">' + esc(p.grade_label || p.grade) + "</span>") +
-          (p.printed_band ? '<div class="small muted">printed band: ' + esc(p.printed_band) + "</div>" : "") +
           "</td></tr>";
     });
     return out + "</tbody></table></div>";
